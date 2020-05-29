@@ -20,3 +20,4 @@ contracts/.openzeppelin/
 node_modules
 dapp/contracts/*
 dapp/src/contracts/*
+docs/build/*
