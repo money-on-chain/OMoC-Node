@@ -11,7 +11,7 @@ If your your machine is based on the AMI from AWS, the following commands will s
 
 1. Go to the OMoC folder an update your repo.
 
-	`cd ..(VOLVER)`	
+	`cd OMoC-Node`	
 	`git pull`
 	
 2. Configure the data of oracles and SMTP email following the instructions in the script:
