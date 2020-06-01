@@ -51,7 +51,7 @@ class Account(object):
                     print("We will use them as part of the seed used for generate a random privateKey")
                     words = input()
                 account = Account(words)
-                print("Your new address is:" + account.address)
+                print("Your new address is: " + account.address)
         return (account)
 
 def addTo(filePath, search, addText):
@@ -147,7 +147,7 @@ def main():
     quit = False
     while (quit ==False):
         print("Please, select what do you want to configure right now:")
-        print(" 1. Configure my oracle and scheduler" + oracleDone)
+        print(" 1. Configure my oracle" + oracleDone)
         print(" 2. Configure my email account" + emailDone)
         print(" 3. I have done the two previous items. What are the following instructions?")
         print(" 4. Exit")
