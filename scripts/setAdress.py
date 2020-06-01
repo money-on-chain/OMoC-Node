@@ -64,18 +64,20 @@ def oracleOption():
     global oracleDone
 
     oracle = Account.getAccount("oracle")
-    answ = input("You want to use the same address for the scheduler? (Yes/No) (default: Yes)").lower()
-    if (answ in ["no","n"]):
-        scheduler = Account.getAccount("scheduler")
-    else:
-        scheduler = Account("")
-        scheduler.setAddress(oracle.address)
-        scheduler.setPrivateKey(oracle.privateKey)
 
-    addTo(envServer,"ORACLE_ADDR=",'"' + oracle.address + '"')
+    ### NO SCheduler ###
+        #answ = input("You want to use the same address for the scheduler? (Yes/No) (default: Yes)").lower()
+        #if (answ in ["no","n"]):
+        #    scheduler = Account.getAccount("scheduler")
+        #else:
+        #    scheduler = Account("")
+        #    scheduler.setAddress(oracle.address)
+        #    scheduler.setPrivateKey(oracle.privateKey)
+
+    #addTo(envServer,"ORACLE_ADDR=",'"' + oracle.address + '"')
     addTo(envServer,"ORACLE_PRIVATE_KEY=",'"' + oracle.privateKey + '"' )
-    addTo(envServer,"SCHEDULER_SIGNING_ADDR = ",'"' + scheduler.address  + '"')
-    addTo(envServer,"SCHEDULER_SIGNING_KEY = ", '"' + scheduler.privateKey + '"')
+    #addTo(envServer,"SCHEDULER_SIGNING_ADDR = ",'"' + scheduler.address  + '"')
+    #addTo(envServer,"SCHEDULER_SIGNING_KEY = ", '"' + scheduler.privateKey + '"')
     addTo(envMonitor,"ORACLE_SERVER_ADDRESS=",oracle.address)
 
     oracleDone  = " (Done)"
