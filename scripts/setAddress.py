@@ -100,8 +100,9 @@ def emailOption():
     emailFrom = input("From:")
     print("What email account will receive the messages?")
     emailTo = input("to:")
-    print("How often, in seconds, are the emails sent?")
-    seconds = input("seconds: ")
+    print("How often, in minutes, are the emails sent?")
+    minutes = input("minutes (default:60): ")
+    seconds = minutes * 60 if minutes.strip().isnumeric() else  60 * 60
     #setup file
     addTo(envMonitor,"SMTP_HOST=", smtp_host)
     addTo(envMonitor,"SMTP_PORT=", smtp_port)
@@ -119,8 +120,10 @@ def checkStatus():
     file = Path(envMonitor)
     oracle = re.search('ORACLE_SERVER_ADDRESS=.*',file.read_text())
     mail = re.search('SMTP_HOST=.*',file.read_text())
-    if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="): oracleDone = " (Done)"
-    if (mail.group().strip() != "SMTP_HOST=" ): emailDone = " (Done)"
+    if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="):
+        oracleDone = " (" + oracle.group().strip()[22:] + ")"
+    if (mail.group().strip() != "SMTP_HOST=" ): 
+        emailDone = " (" + mail.group().strip()[10:] +")"
 def main():
     global envMonitor
     global envServer
