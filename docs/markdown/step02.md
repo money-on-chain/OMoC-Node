@@ -1,33 +1,26 @@
-#Setup your machine and run the service
+Launch your instant from the AMI
+===============================
 
-We will setup your machine to run the Oracle and Backend services.
-The Oracle service will inform the smart contracts about the current prices of the coinPairs (BTCUSD, RIFBTC).
-The Backend service will send emails with the content of the logs from Oracle service to an specific email account from a SMTP email account.
+## 1) Login with your account and go to the EC2 menu.
+![Login01](./images/login.png)![Login02](./images/00.png)
+## 2) From the EC2 menu go to Instances and press Launch Instance.
+![Launch](./images/01.png)
+## 3) Now select My AMIs and check "Shared with me" from ownership's menu. After that select the AMI MOC-Oracle.
+![Select AMI](./images/02.png)
+## 4) We will use a  t2.micro so just go to "6. Configure Security Group"
+![T2Micro](./images/03.png)
 
-The following commands will set up your machine and start the services.
+## 5) Configure your Security Group
+### At Security Group press "Add Rule", select "custom RPC" at the type column, in port range enter 5556 and in the source column select Anywhere.
+### After that press "Review and Launch"
+![sescurityGroup](./images/sescurityGroup.png)
+## 6) Press "Launch"
+![Launch](./images/04.png)
+## 7) Download KeyPair and launch the instance.
+### Select "Create a new key pair", put a name for the key and download the file. Now run the instance
+![KeyPair](./images/05.png)
+## 8) To connect to your instance follow the instructions from AWS and change "root" for "ubuntu"
+![connect01](./images/connect01.png)
+![connect02](./images/connect02.png)
 
-
-1. Go to the OMoC folder an update your repo.
-
-	`cd OMoC-Node` </br>
-	`git pull`
-	
-2. Configure the data of oracles and SMTP email following the instructions in the script:
-
-	`python3 scripts/setAddress.py`
-
-3. Enable supervisor as a service when starting the machine:
-
-	`sudo systemctl enable supervisor.service`
-4. Start supervisor:
-
-	`sudo supervisord`
-5. Check if oracle and backend service's are running:
-
-	`supervisorctl status`
-
-Now you can register your oracle and interact with the smartcontract using the Dapp.
-
-
-
-
+Now you can interact with your AWS machine, to set up your oracle go to the [next step](./step03.html) 
