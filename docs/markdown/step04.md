@@ -10,9 +10,8 @@ The intention of this document is to guide the user on how to interact with the 
 2. Know the RSK address (0x...) and internet address of your Oracle (http://<IP>:5556).
 3. Install Metamask in your browser.
 
-##Interaction with the Dapp
-###Login and Setup
-####Add RSK-Test to Metamask and select that network.
+###1)Login and Setup
+####1.A) Add RSK-Test to Metamask and select that network.
 
 Go to Network's menu, select Custom RPC and config the network with the following values and save:
 
@@ -22,26 +21,25 @@ Go to Network's menu, select Custom RPC and config the network with the followin
 
 
 Network name: RSKTestnet
+
 New RPC URL: https://public-node.testnet.rsk.co
+
 ChainId: 31
 
-####Get RBTC in RSK_testnet 
-Visit https://faucet.rsk.co/ and complete the form to get Ethers.
-####Enter the (site web)[http://oracles.testnet.moneyonchain.com]  and connect your metamask account. 
+####1.B) Get RBTC in RSK_testnet 
+Visit [https://faucet.rsk.co/](https://faucet.rsk.co/) and complete the form to get Ethers.
+####1.C) Enter the [dapp](http://oracles.testnet.moneyonchain.com)  and connect your metamask account. 
 
 ![dapp](./images/GUIA03-03.png)
    
-###Structure of the Site
-The site is divided into five tabs. In this guide we will use those tabs as reference.
 
-###Tab Oracles
-####Registration (Mint->Allow->Register)
+###2)Registration (Mint->Allow->Register)
 To register your Oracle, you will need to allow the contract to use your MoCTokens. To do that, go to the Oracle tab and subtab Registration, and mint MoC Token (will be assigned to your account). After that allow part or the total of your MoCToken to the contract. For the last step, register your Oracle using the Oracle address, the network address and stake the total or part of what you allow, in the allow step.
 
 ![dapp](./images/GUIA03-05.png)
 ![dapp](./images/GUIA03-06.png)
 
-####Edit your Oracle's configuration
+###3)Edit your Oracle's configuration
 At the end of the Oracle Tab you will see all of the Oracles and you will be allowed to edit or delete only your Oracles.
 
 ![dapp](./images/GUIA03-07.png)
