@@ -1,3 +1,3 @@
-1. Install pymmd
+1. npm install markdown2
 
-2. run 'python converter.py'
+2. run 'python build.py'
