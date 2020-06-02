@@ -102,7 +102,7 @@ def emailOption():
     emailTo = input("to:")
     print("How often, in minutes, are the emails sent?")
     minutes = input("minutes (default:60): ")
-    seconds = minutes * 60 if minutes.strip().isnumeric() else  60 * 60
+    seconds = str(int(minutes) * 60) if minutes.strip().isnumeric() else  str(60 * 60)
     #setup file
     addTo(envMonitor,"SMTP_HOST=", smtp_host)
     addTo(envMonitor,"SMTP_PORT=", smtp_port)
@@ -134,7 +134,6 @@ def main():
     if ((folders[len(folders)-1] ) == "scripts"):
         envMonitor = "../" + envMonitor
         envServer = "../" + envServer
-    checkStatus()
     # Address  and privateKey
     print("///////////")
     print("We are going to configure your oracle. ")
@@ -149,6 +148,7 @@ def main():
 
     quit = False
     while (quit ==False):
+        checkStatus()
         print("Please, select what do you want to configure right now:")
         print(" 1. Configure my oracle" + oracleDone)
         print(" 2. Configure my email account" + emailDone)
