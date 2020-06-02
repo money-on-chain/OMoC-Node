@@ -3,7 +3,7 @@ import markdown2
 import os,re
 
 template = "resources/template.html"
-files = ["index","step01", "step02", "step03"]
+files = ["index","step02", "step03", "step04"]
 build = "./build"
 resources = "./resources"
 mdFolder = "./markdown"
@@ -21,7 +21,7 @@ for file in files:
 	#generate html from mmdFile and return body content from HTML
 	print (mdFile)
 	body = markdown2.markdown_path(mdFile)
-	body = re.sub(r'<img',r'<br /> <img class="img-fluid"',body)
+	body = re.sub(r'<img',r'<img class="img-fluid"',body)
 	if file=="index":
 		templateIndex = re.sub(r'<a href="index.*</a>',r'',templateContent,re.DOTALL) if file=="index" else body
 		html = re.sub("ID_CONTENIDO",body,templateIndex)

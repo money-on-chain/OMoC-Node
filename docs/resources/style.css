@@ -10,7 +10,7 @@ img{
   cursor: pointer;
   transition: 0.3s;
   max-width: 40%;
-  max-height: 200px;
+  max-height: 400px;
 }
 .img-fluid:hover {opacity: 0.7;}
 code{
