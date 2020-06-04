@@ -1,4 +1,6 @@
 #Index
-##[01) Create your machine](./step01.html)
-##[02) Setup your oracle service](./step02.html)
-##[03) Register your oracle with the Dapp](./step03.html)
+##01) Get access to the AMI
+Send an email to [oracles@moneyonchain.com](oracles@moneyonchain.com) with your AWS Account ID to get access to the AMI
+##[02) Create your machine](./step02.html)
+##[03) Setup your oracle service](./step03.html)
+##[04) Register your oracle with the Dapp](./step04.html)
