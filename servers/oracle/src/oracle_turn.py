@@ -75,6 +75,7 @@ class OracleTurn:
                                 vi.last_pub_block_hash,
                                 vi.selected_oracles)
         addrs = [x.addr for x in selection]
+
         selected = addrs.pop(0)
         # selected oracle can publish from f_block == 0
         if oracle_addr == selected:
@@ -96,18 +97,18 @@ class OracleTurn:
             logger.info(msg)
             return False, msg
 
-        try:
-            f_idx = addrs.index(oracle_addr)
-        except ValueError:
-            msg = "%r : %s is not in the selected list for this round" % (self._coin_pair, oracle_addr)
-            logger.info(msg)
-            return False, msg
+        entering_fallback_sequence = [x for x in self._conf.entering_fallbacks_amounts]
 
-        if (f_idx * 3) > f_num:
-            msg = "%r : is not %s turn it is not a secondary fallback %r %r %r" % \
-                  (self._coin_pair, oracle_addr, f_block, f_num, f_idx)
-            logger.info(msg)
-            return False, msg
+        # Gets blocks since price changed from f_block and uses it as index in the amount of entering fallbacks sequence.
+        # Makes sure the index is within range of the list.
+        entering_fallback_sequence_index = f_block if f_block < len(entering_fallback_sequence) else len(entering_fallback_sequence) - 1
+        selected_fallbacks = addrs[:entering_fallback_sequence[entering_fallback_sequence_index]]
 
-        logger.info("%r : fallback chosen %s  %r %r %r" % (self._coin_pair, oracle_addr, f_block, f_num, f_idx))
-        return True, None
+        for fallback in selected_fallbacks:
+            if fallback == oracle_addr:
+                logger.info("%r : %s is a chosen fallback %r %r" % (self._coin_pair, oracle_addr, f_block, f_num))
+                return True, None
+
+        msg = "%r : %s is NOT a chosen fallback %r %r" % (self._coin_pair, oracle_addr, f_block, f_num)
+        logger.info(msg)
+        return False, msg

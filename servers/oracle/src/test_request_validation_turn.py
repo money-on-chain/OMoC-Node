@@ -10,7 +10,7 @@ from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.oracle_turn import OracleTurn
 from oracle.src.request_validation import RequestValidation, InvalidTurn
 
-conf = OracleTurnConfiguration(2, 0.05, 3, 1)
+conf = OracleTurnConfiguration(2, 0.05, 3, 1, b'\x02\x04\x06\x08\n')
 cp = CoinPair("BTCUSD")
 price_ts_utc = 1
 version = 1

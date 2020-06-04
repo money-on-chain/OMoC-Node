@@ -12,7 +12,7 @@ def g(last_pub_block, block_num, blockchain_price):
     return OracleBlockchainInfo("BTCUSD", [], blockchain_price, block_num, last_pub_block, "", 3)
 
 
-conf = OracleTurnConfiguration(2, 0.05, 3, 1)
+conf = OracleTurnConfiguration(2, 0.05, 3, 1, b'\x02\x04\x06\x08\n'))
 gg = PriceWithTimestamp
 
 
