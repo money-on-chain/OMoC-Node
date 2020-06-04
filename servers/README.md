@@ -198,6 +198,15 @@ The rest of the parameters are optional. If they are missing they are taken from
 
 #### Server configuration: parameters for development 
 
+Besides the minimal set of variables previously mentioned, the following parameters are also needed for development:
+
+- SCRIPT_ORACLE_OWNER_ADDR="0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9"
+- SCRIPT_ORACLE_OWNER_PRIVATE_KEY="0xe485d098507f54e7733a205420dfddbe58db035fa577fc294ebd14db90767a52"
+- SCRIPT_REWARD_BAG_ADDR="0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+- SCRIPT_REWARD_BAG_PRIVATE_KEY="4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
+
+The following are optional:
+
 - DEBUG = False
 
     Turn on debug logging.
