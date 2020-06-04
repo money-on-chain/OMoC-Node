@@ -175,11 +175,11 @@ class OracleConfiguration:
                 "description": "Fallback oracle try to publish ORACLE_PRICE_FALLBACK_BLOCKS  blocks after price change.",
                 "default": 2,
             },
-            "ENTERING_FALLBACKS_AMOUNTS": {
+            "ORACLE_ENTERING_FALLBACKS_AMOUNTS": {
                 "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ENTERING_FALLBACKS_AMOUNTS', cast=bytes),
+                "configuration": lambda: config('ORACLE_ENTERING_FALLBACKS_AMOUNTS', cast=bytes),
                 "blockchain": lambda p: self._eternal_storage_service.get_bytes(p),
-                "description": "Each int in the ENTERING_FALLBACKS_AMOUNTS sequence is the number of fallbacks that will be allowed to publish next.",
+                "description": "Each int in the ORACLE_ENTERING_FALLBACKS_AMOUNTS sequence is the number of fallbacks that will be allowed to publish next.",
                 "default": b'\x02\x04\x06\x08\n',
             }
         }
@@ -255,4 +255,4 @@ class OracleConfiguration:
     def oracle_turn_conf(self):
         return OracleTurnConfiguration(self.ORACLE_STAKE_LIMIT_MULTIPLICATOR, self.ORACLE_PRICE_FALLBACK_DELTA_PCT,
                                        self.ORACLE_PRICE_FALLBACK_BLOCKS, self.ORACLE_PRICE_PUBLISH_BLOCKS,
-                                       self.ENTERING_FALLBACKS_AMOUNTS)
+                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS)
