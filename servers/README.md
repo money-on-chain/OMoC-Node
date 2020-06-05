@@ -185,12 +185,6 @@ The rest of the parameters are optional. If they are missing they are taken from
 
     Timeout used when requesting signatures fom other oracles.
 
-- ORACLE_STAKE_LIMIT_MULTIPLICATOR = 2
-
-    This parameter is used to limit the difference in participation between the Oracles. The maximum
-    stake taken into consideration to choose the selected Oracle is the minimum stake multiplied by 
-    this factor (even if some oracle has more stake).
-
 - ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
 
     This can be used to limit the coin pairs that the Oracle monitors. The missing coin pairs are ignored
@@ -309,10 +303,6 @@ ORACLE_PRICE_FALLBACK_BLOCKS = 3
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
-
-# This is used to limit the difference in participation between selected oracles, the maximum stake used
-# is the minimum multiplied by this factor (even if some oracle has more stake participating)
-ORACLE_STAKE_LIMIT_MULTIPLICATOR = 2
 
 # If configured (json array of strings) only publish for those coinpairs in the list
 ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
