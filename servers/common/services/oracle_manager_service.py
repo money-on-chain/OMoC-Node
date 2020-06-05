@@ -50,17 +50,17 @@ class OracleManagerService:
     async def subscribe_coin_pair(self, coin_pair: CoinPair, address: BlockChainAddress,
                                   account: BlockchainAccount = None,
                                   wait=False):
-        return await self.oracle_manager_execute("suscribeCoinPair", address, coin_pair.longer(), account=account,
+        return await self.oracle_manager_execute("subscribeCoinPair", address, coin_pair.longer(), account=account,
                                                  wait=wait)
 
     async def unsubscribe_coin_pair(self, coin_pair: CoinPair, address: BlockChainAddress,
                                     account: BlockchainAccount = None,
                                     wait=False):
-        return await self.oracle_manager_execute("unsuscribeCoinPair", address, coin_pair.longer(), account=account,
+        return await self.oracle_manager_execute("unsubscribeCoinPair", address, coin_pair.longer(), account=account,
                                                  wait=wait)
 
     async def is_subscribed(self, coin_pair: CoinPair, address: BlockChainAddress) -> bool:
-        return await self.oracle_manager_call("isSuscribed", address, coin_pair.longer())
+        return await self.oracle_manager_call("isSubscribed", address, coin_pair.longer())
 
     async def get_registered_oracle_head(self):
         return await self.oracle_manager_call("getRegisteredOracleHead")

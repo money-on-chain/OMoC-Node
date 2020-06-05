@@ -19,8 +19,7 @@ MOC_NETWORK = config('MOC_NETWORK', cast=str, default=None)
 # If we use the build directory (MOC_NETWORK unconfigured) we must set this parameter to the block chain network id
 DEVELOP_NETWORK_ID = config('DEVELOP_NETWORK_ID', cast=int, default=None)
 CONTRACT_ROOT_FOLDER = config('CONTRACT_ROOT_FOLDER', cast=pathlib.Path,
-                              default=os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                   "../../contracts"))
+                              default=os.path.dirname(os.path.realpath(__file__)))
 # The server expect to find in this folder the *.json files with the abi an addresses of contracts
 CONTRACT_FOLDER = config('CONTRACT_FOLDER', cast=pathlib.Path,
                          default=os.path.join(CONTRACT_ROOT_FOLDER, "build/contracts"))
