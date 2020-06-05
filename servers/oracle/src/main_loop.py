@@ -34,19 +34,19 @@ class MainLoop(BgTaskExecutor):
     async def run(self):
         logger.info("MainExecutor loop start")
         if not self.initialized:
-            if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_VESTED_ADDR is None:
+            if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_ADDR is None:
                 logger.info("MainExecutor waiting to get configuration from blockchain")
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
             self.initialized = True
             self._print_info()
-            self._startup(self.conf.SUPPORTERS_VESTED_ADDR, self.conf.ORACLE_MANAGER_ADDR)
+            self._startup(self.conf.SUPPORTERS_ADDR, self.conf.ORACLE_MANAGER_ADDR)
 
         await self.conf.update()
         # TODO: react to a change in addresses.
         logger.info("MainExecutor loop done")
         return self.conf.ORACLE_CONFIGURATION_TASK_INTERVAL
 
-    def _startup(self, supporters_vested_addr, oracle_manager_addr):
+    def _startup(self, supporters_addr, oracle_manager_addr):
         oracle_service = OracleService(self.cf, oracle_manager_addr)
         self.oracle_loop = OracleLoop(self.conf, oracle_service)
         self.tasks.append(self.oracle_loop)
@@ -54,7 +54,7 @@ class MainLoop(BgTaskExecutor):
             monitor.log_setup()
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))
         if oracle_settings.SCHEDULER_RUN_SUPPORTERS_SCHEDULER:
-            supporters_service = self.cf.get_supporters(supporters_vested_addr)
+            supporters_service = self.cf.get_supporters(supporters_addr)
             self.tasks.append(SchedulerSupportersLoop(self.conf, supporters_service))
         for t in self.tasks:
             t.start_bg_task()
