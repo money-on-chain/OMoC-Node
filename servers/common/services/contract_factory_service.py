@@ -50,6 +50,9 @@ class ContractFactoryService:
     def get_supporters(self, addr) -> SupportersService:
         raise Exception("Unimplemented")
 
+    def get_abi(self, name):
+        raise Exception("Unimplemented")
+
     def get_addr(self, name):
         raise Exception("Unimplemented")
 
@@ -86,8 +89,11 @@ class MocContractFactoryService(ContractFactoryService):
         return OracleManagerService(self._get_contract(addr, abi))
 
     def get_supporters(self, addr) -> SupportersService:
-        abi = self._read_abi('SupportersVested.abi')
+        abi = self._read_abi('SupportersWhitelisted.abi')
         return SupportersService(self._get_contract(addr, abi))
+
+    def get_abi(self, name):
+        return self._read_abi(name)
 
     def get_addr(self, name):
         if name == "ETERNAL_STORAGE" and "EternalStorageGobernanza" in self.addresses:
@@ -102,7 +108,8 @@ class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
         "ETERNAL_STORAGE": "EternalStorageGobernanza.json"
         , "MOC_ERC20": "TestMOC.json"
-        , "SUPPORTERS": "SupportersVested.json"
+        , "SUPPORTERS": "SupportersWhitelisted.json"
+        , "SUPPORTERS_VESTED": "SupportersVested.json"
         , "ORACLE_MANAGER": "OracleManager.json"
         , "COIN_PAIR_PRICE": "CoinPairPrice.json"
     }
@@ -145,6 +152,11 @@ class BuildDirContractFactoryService(ContractFactoryService):
             raise Exception("Configure DEVELOP_NETWORK_ID environment variable")
         logger.info("Using network id %r for %s" % (network_id, name))
         return parse_addr(data["networks"][str(network_id)]["address"])
+
+    @classmethod
+    def get_abi(cls, name):
+        data = cls._read_data(name)
+        return data["abi"]
 
     @classmethod
     def _read_data(cls, name):
