@@ -24,14 +24,7 @@ class OracleTurn:
     # Called byt coin_pair_price_loop
     def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
         (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price)
-        if not is_my_turn:
-            return False
-        f_block = self._price_changed_blocks(vi, exchange_price)
-        if f_block is None or f_block < self._conf.price_publish_blocks:
-            logger.warning("%r : I'm selected but still waiting for price change blocks %r < %r" %
-                           (self._coin_pair, f_block, self._conf.price_publish_blocks))
-            return False
-        return True
+        return is_my_turn
 
     def _price_changed_blocks(self, block_chain: OracleBlockchainInfo, exchange_price: PriceWithTimestamp):
         if block_chain.last_pub_block < 0 or block_chain.block_num < 0:
@@ -71,44 +64,115 @@ class OracleTurn:
             logger.info(msg)
             return False, msg
 
-        selection = select_next(self._conf.stake_limit_multiplicator,
-                                vi.last_pub_block_hash,
-                                vi.selected_oracles)
-        addrs = [x.addr for x in selection]
+        ordered_oracle_selection = select_next(self._conf.stake_limit_multiplicator,
+                                               vi.last_pub_block_hash,
+                                               vi.selected_oracles)
+        oracle_addrs = [x.addr for x in ordered_oracle_selection]
 
-        selected = addrs.pop(0)
-        # selected oracle can publish from f_block == 0
-        if oracle_addr == selected:
-            msg = "%r : selected chosen %s" % (self._coin_pair, oracle_addr)
-            logger.info(msg)
-            return True, msg
+        selected_oracle = oracle_addrs[0]
 
         f_block = self._price_changed_blocks(vi, exchange_price)
-        if f_block is None:
-            msg = "%r : is not %s turn there was no price change" % (self._coin_pair, oracle_addr)
-            logger.info(msg)
-            return False, msg
-
-        # fallback oracles need to wait  self._conf.price_fallback_blocks
-        f_num = f_block - self._conf.price_fallback_blocks
-        if f_num < 0:
-            msg = "%r : is not %s turn it is not a fallback and price changed %r blocks ago, this is less than %r" % \
-                  (self._coin_pair, oracle_addr, f_block, self._conf.price_fallback_blocks,)
-            logger.info(msg)
-            return False, msg
 
         entering_fallback_sequence = [x for x in self._conf.entering_fallbacks_amounts]
 
         # Gets blocks since price changed from f_block and uses it as index in the amount of entering fallbacks sequence.
         # Makes sure the index is within range of the list.
         entering_fallback_sequence_index = f_block if f_block < len(entering_fallback_sequence) else len(entering_fallback_sequence) - 1
-        selected_fallbacks = addrs[:entering_fallback_sequence[entering_fallback_sequence_index]]
+        selected_fallbacks = oracle_addrs[1:entering_fallback_sequence[entering_fallback_sequence_index]]
 
-        for fallback in selected_fallbacks:
-            if fallback == oracle_addr:
-                logger.info("%r : %s is a chosen fallback %r %r" % (self._coin_pair, oracle_addr, f_block, f_num))
-                return True, None
+        if oracle_addr == selected_oracle:
+            if f_block is not None and f_block < self._conf.price_publish_blocks:
+                msg = "%r : %s I'm selected but still waiting for %r blocks to pass to be allowed. %r < %r" % \
+                      (self._coin_pair, oracle_addr, self._conf.price_publish_blocks, f_block, self._conf.price_publish_blocks)
+                logger.warning(msg)
+                return False, msg
+            elif f_block is None:
+                msg = "%r : %s I'm selected but still waiting for price change blocks" % \
+                      (self._coin_pair, oracle_addr)
+                logger.warning(msg)
+                is_my_turn_before_price_expiration = self.is_selected_turn_before_price_expiration(oracle_addr,
+                                                                                                   vi,
+                                                                                                   oracle_addrs,
+                                                                                                   entering_fallback_sequence)
+                msg_on_price_expiration = ("%r : %s I'm selected without a price change before it expires" % \
+                                          (self._coin_pair, oracle_addr)) if is_my_turn_before_price_expiration else ("%r : %s I'm NOT selected without a price change before it expires" % \
+                                          (self._coin_pair, oracle_addr))
+                logger.warning(msg_on_price_expiration)
+                return is_my_turn_before_price_expiration, msg_on_price_expiration
+            else:
+                msg = "%r : %s is the selected oracle" % (self._coin_pair, oracle_addr)
+                logger.info(msg)
+                return True, msg
+        elif oracle_addr in selected_fallbacks:
+            if f_block is not None and f_block < self._conf.price_fallback_blocks:
+                msg = "%r : it's not fallback %s turn, as the price changed %r blocks ago, this is less than %r" % \
+                      (self._coin_pair, oracle_addr, f_block, self._conf.price_fallback_blocks)
+                logger.info(msg)
+                return False, msg
+            elif f_block is None:
+                msg = "%r : %s I'm a selected fallback but still waiting for price change blocks" % \
+                      (self._coin_pair, oracle_addr)
+                logger.warning(msg)
+                is_my_turn_before_price_expiration = self.is_selected_turn_before_price_expiration(oracle_addr,
+                                                                                                   vi,
+                                                                                                   oracle_addrs,
+                                                                                                   entering_fallback_sequence)
+                msg_on_price_expiration = ("%r : %s I'm selected without a price change before it expires" % \
+                                          (self._coin_pair, oracle_addr)) if is_my_turn_before_price_expiration else ("%r : %s I'm NOT selected without a price change before it expires" % \
+                                          (self._coin_pair, oracle_addr))
+                logger.warning(msg_on_price_expiration)
+                return is_my_turn_before_price_expiration, msg_on_price_expiration
+            else:
+                msg = "%r : %s is the chosen fallback %r" % (self._coin_pair, oracle_addr, f_block)
+                logger.info(msg)
+                return True, msg
+        else:
+            msg = "%r : %s is NOT the chosen fallback %r" % (self._coin_pair, oracle_addr, f_block)
+            logger.info(msg)
+            return False, msg
 
-        msg = "%r : %s is NOT a chosen fallback %r %r" % (self._coin_pair, oracle_addr, f_block, f_num)
-        logger.info(msg)
-        return False, msg
+    def is_selected_turn_before_price_expiration(self,
+                                                 oracle_address,
+                                                 vi: OracleBlockchainInfo,
+                                                 oracle_addrs,
+                                                 entering_oracles_sequence):
+        # Appends the chosen oracle to the beginning of sequence
+        entering_oracles_sequence.insert(0, 1)
+        
+        # Warn if trigger_valid_publication_blocks param is lower than period it takes for oracles to definitely publish.
+        ######################################
+        total_oracle_amount = len(oracle_addrs)
+        oracles_accumulated = 0
+        block_count = 0
+
+        for i in entering_oracles_sequence:
+            if (oracles_accumulated >= total_oracle_amount):
+                minimum_successful_publication_period_blocks = block_count
+                break
+            oracles_accumulated += i
+            block_count += 1
+
+        if (vi.trigger_valid_publication_blocks < minimum_successful_publication_period_blocks):
+            logger.warning("trigger_valid_publication_blocks parameter SHOULD BE HIGHER than period it takes for chosen and fallback oracles to publish")
+        #######################################
+
+        is_selected_turn = False
+
+        start_block_pub_period_before_price_expires = self.price_change_pub_block + vi.valid_price_period_in_blocks - vi.trigger_valid_publication_blocks
+
+        current_block_in_blocks_after_pub_period_start = vi.block_num - start_block_pub_period_before_price_expires
+
+        # If current block isn't in valid publication period, it is not the oracle's turn
+        if (current_block_in_blocks_after_pub_period_start < 0):
+            logger.info("It's NOT my turn because valid publication period hasn't arrived yet.")
+            return is_selected_turn
+        else:
+            for i in range(current_block_in_blocks_after_pub_period_start):
+                if (i < len(entering_oracles_sequence)):
+                    accumulated_oracles += entering_oracles_sequence[i]
+                else:
+                    break
+            if (oracle_address in oracle_addrs[:accumulated_oracles]):
+                is_selected_turn = True
+        
+        return is_selected_turn
