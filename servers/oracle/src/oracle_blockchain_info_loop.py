@@ -61,7 +61,8 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
                 self._cps.get_price(),
                 self._cps.get_last_block(),
                 _get_last_pub_data(),
-                self._cps.get_valid_price_period_in_blocks()]
+                self._cps.get_valid_price_period_in_blocks(),
+                self._cps.get_trigger_valid_publication_blocks()]
         ret = await asyncio.gather(*cors, return_exceptions=True)
         if any(is_error(elem) or isinstance(elem, Exception) for elem in ret):
             logger.error("Error getting blockchain info %r" % (ret,))
@@ -72,7 +73,8 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
             return None
         (selected_oracles, blockchain_price, block_num,
          (last_pub_block, last_pub_block_hash),
-         valid_price_period_in_blocks) = ret
+         valid_price_period_in_blocks,
+         trigger_valid_publication_blocks) = ret
         return OracleBlockchainInfo(self._coin_pair, selected_oracles,
                                     blockchain_price, block_num, last_pub_block, last_pub_block_hash,
-                                    valid_price_period_in_blocks)
+                                    valid_price_period_in_blocks, trigger_valid_publication_blocks)
