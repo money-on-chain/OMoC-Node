@@ -158,7 +158,7 @@ class OracleTurn:
 
         is_selected_turn = False
 
-        start_block_pub_period_before_price_expires = self.price_change_pub_block + vi.valid_price_period_in_blocks - vi.trigger_valid_publication_blocks
+        start_block_pub_period_before_price_expires = self.price_change_pub_block + vi.valid_price_period_in_blocks - self._conf.trigger_valid_publication_blocks
 
         current_block_in_blocks_after_pub_period_start = vi.block_num - start_block_pub_period_before_price_expires
 

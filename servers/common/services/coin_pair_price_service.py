@@ -30,9 +30,6 @@ class CoinPairService:
     async def get_valid_price_period_in_blocks(self):
         return await self.coin_pair_price_call("validPricePeriodInBlocks")
 
-    async def get_trigger_valid_publication_blocks(self):
-        return await self.coin_pair_price_call("triggerValidPublicationBlocks")
-
     async def get_oracle_server_info(self):
         return await self.coin_pair_price_call("getOracleServerInfo")
 

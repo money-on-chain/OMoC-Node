@@ -97,9 +97,6 @@ class OracleCoinPairService:
     async def get_valid_price_period_in_blocks(self) -> int:
         return await self._coin_pair_service.get_valid_price_period_in_blocks()
 
-    async def get_trigger_valid_publication_blocks(self) -> int:
-        return await self._coin_pair_service.get_trigger_valid_publication_blocks()
-
     async def get_oracle_server_info(self) -> OracleBlockchainInfo:
         data = await self._coin_pair_service.get_oracle_server_info()
         if is_error(data):
@@ -108,8 +105,7 @@ class OracleCoinPairService:
          selected_oracles_info,
          current_price, current_block,
          last_publication_block, last_publication_block_hash,
-         valid_price_period_in_blocks,
-         trigger_valid_publication_blocks
+         valid_price_period_in_blocks
          ) = data
         if int.from_bytes(last_publication_block_hash, byteorder='big') == 0:
             last_publication_block_hash = await self.get_last_pub_block_hash(last_publication_block)
@@ -124,8 +120,7 @@ class OracleCoinPairService:
                                     current_block,
                                     last_publication_block,
                                     last_publication_block_hash,
-                                    valid_price_period_in_blocks,
-                                    trigger_valid_publication_blocks)
+                                    valid_price_period_in_blocks)
 
     async def get_round_info(self) -> RoundInfo:
         return await self._coin_pair_service.get_round_info()

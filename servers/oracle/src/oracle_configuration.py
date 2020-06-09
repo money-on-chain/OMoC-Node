@@ -15,7 +15,8 @@ OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
                                              ("price_fallback_delta_pct", int),
                                              ("price_fallback_blocks", int),
                                              ("price_publish_blocks", int),
-                                             ("entering_fallbacks_amounts", bytes)
+                                             ("entering_fallbacks_amounts", bytes),
+                                             ("trigger_valid_publication_blocks", int)
                                              ])
 
 
@@ -186,6 +187,13 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_bytes(p),
                 "description": "Each int in the ORACLE_ENTERING_FALLBACKS_AMOUNTS sequence is the number of fallbacks that will be allowed to publish next.",
                 "default": b'\x02\x04\x06\x08\n',
+            },
+            "ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS', cast=int),
+                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
+                "description": "Period in which selected oracle or fallbacks will publish before the price expires.",
+                "default": 30,
             }
         }
         self.from_conf = set()
@@ -260,4 +268,4 @@ class OracleConfiguration:
     def oracle_turn_conf(self):
         return OracleTurnConfiguration(self.ORACLE_STAKE_LIMIT_MULTIPLICATOR, self.ORACLE_PRICE_FALLBACK_DELTA_PCT,
                                        self.ORACLE_PRICE_FALLBACK_BLOCKS, self.ORACLE_PRICE_PUBLISH_BLOCKS,
-                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS)
+                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS, self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)
