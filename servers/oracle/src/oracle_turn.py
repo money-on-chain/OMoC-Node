@@ -88,7 +88,8 @@ class OracleTurn:
 
         # Gets blocks since price changed from f_block and uses it as index in the amount of entering fallbacks sequence.
         # Makes sure the index is within range of the list.
-        entering_fallback_sequence_index = f_block if f_block < len(entering_fallback_sequence) else len(entering_fallback_sequence) - 1
+        entering_fallback_sequence_index = f_block if f_block is not None and f_block < len(entering_fallback_sequence) \
+                                                   else len(entering_fallback_sequence) - 1
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
 
         if oracle_addr == selected_oracle:
@@ -204,7 +205,7 @@ class OracleTurn:
             oracles_accumulated += i
             block_count += 1
 
-        if (vi.trigger_valid_publication_blocks < minimum_successful_publication_period_blocks):
+        if (self._conf.trigger_valid_publication_blocks < minimum_successful_publication_period_blocks):
             logger.warning("trigger_valid_publication_blocks parameter SHOULD BE HIGHER than period it takes for chosen and fallback oracles to publish")
         #######################################
 
