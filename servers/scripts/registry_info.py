@@ -4,9 +4,7 @@ from colorlog import ColoredFormatter
 
 from common import helpers
 from common.services.contract_factory_service import ContractFactoryService
-from oracle.src import oracle_settings
 from oracle.src.oracle_configuration import OracleConfiguration
-from scripts import script_settings
 
 
 async def main():
