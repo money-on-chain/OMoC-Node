@@ -35,7 +35,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
         self._oracle_addr = oracle_settings.get_oracle_account().addr
         self._cps = cps
         self._coin_pair = cps.coin_pair
-        self._oracle_turn = OracleTurn(self._conf.oracle_turn_conf, cps.coin_pair)
+        self._oracle_turn = OracleTurn(self._conf, cps.coin_pair)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
