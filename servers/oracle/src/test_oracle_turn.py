@@ -10,7 +10,7 @@ oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS = 3
 
 
 def oracleBCInfo1(last_pub_block, block_num, blockchain_price):
-    return OracleBlockchainInfo("BTCUSD", [], blockchain_price, block_num, last_pub_block, "", 3)
+    return OracleBlockchainInfo("BTCUSD", [], blockchain_price, block_num, last_pub_block, "", 300)
 
 
 oracleTurnConf = OracleTurnConfiguration(0.05, 3, 1, b'\x02\x04\x06\x08\n', 30)
@@ -173,22 +173,24 @@ def test_is_oracle_turn_no_price_change():
 
     assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 14, 1, "0x00000000", 11.1),
                           selected_oracles[0].addr,
-                          priceWithTS(11.1, 0)) is True
+                          priceWithTS(11.1, 0)) is False
     assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 14, 1, "0x00000000", 11.1),
                           selected_oracles[1].addr,
                           priceWithTS(11.1, 0)) is False
+
     assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 16, 1, "0x00000000", 11.1),
                           selected_oracles[0].addr,
-                          priceWithTS(11.1 + conf.price_fallback_delta_pct * .99, 0)) is True
+                          priceWithTS(11.1 + conf.price_fallback_delta_pct * .99, 0)) is False
     assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 16, 1, "0x00000000", 11.1),
                           selected_oracles[1].addr,
                           priceWithTS(11.1 + conf.price_fallback_delta_pct * .99, 0)) is False
+
     assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 18, 1, "0x00000000",
                                                     11.1 + conf.price_fallback_delta_pct * .99),
-                          selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+                          selected_oracles[0].addr, priceWithTS(11.1, 0)) is False
     assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 18, 1, "0x00000000",
                                                     11.1 + conf.price_fallback_delta_pct * .99),
-                          selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+                          selected_oracles[1].addr, priceWithTS(11.1, 0)) is False
 
 
 def test_is_oracle_turn_price_change():

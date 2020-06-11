@@ -57,7 +57,7 @@ def rv(oracle_turn, running_oracle, params):
                                                   params["block_number"],
                                                   params["blockchain_last_pub_block"],
                                                   params["last_pub_block_hash"],
-                                                  3))
+                                                  300))
 
 
 def can_publish(ot, params, is_idx):
@@ -94,20 +94,20 @@ def test_success_oracle_turn():
     can_publish(ot, params, [1])
 
     # After a price change the fallback start will publish, but after some blocks
-    params["price_delta"] = 1.000000001 + conf.price_fallback_delta_pct / 100
+    params["price_delta"] = 1.000000001 + conf.oracle_turn_conf.price_fallback_delta_pct / 100
     can_publish(ot, params, [1])
-    params["block_number"] = params["block_number"] + conf.price_fallback_blocks - 1
+    params["block_number"] = params["block_number"] + conf.oracle_turn_conf.price_fallback_blocks - 1
     can_publish(ot, params, [1])
     # after some block then the primary fallbacks can
-    params["block_number"] = params["block_number"] + conf.price_fallback_blocks
+    params["block_number"] = params["block_number"] + conf.oracle_turn_conf.price_fallback_blocks
     can_publish(ot, params, [1, 0])
 
     # After some more blocks the secondary can
-    params["block_number"] = params["block_number"] + conf.price_fallback_blocks
+    params["block_number"] = params["block_number"] + conf.oracle_turn_conf.price_fallback_blocks
     can_publish(ot, params, [1, 0, 2])
 
     # After some more blocks everybody can publish
-    params["block_number"] = params["block_number"] + conf.price_fallback_blocks
+    params["block_number"] = params["block_number"] + conf.oracle_turn_conf.price_fallback_blocks
     can_publish(ot, params, [1, 0, 2, 3])
 
 

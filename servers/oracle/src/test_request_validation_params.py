@@ -39,7 +39,7 @@ def rv(publish_price, exchange_price, publish_last_pub_block, blockchain_last_pu
                                                   validated_by_is_oracle_turn["block_number"],
                                                   blockchain_last_pub_block,
                                                   validated_by_is_oracle_turn["last_pub_block_hash"],
-                                                  3))
+                                                  300))
 
     def test_fail_if_no_exchange_price():
         with pytest.raises(NoBlockchainData) as e:

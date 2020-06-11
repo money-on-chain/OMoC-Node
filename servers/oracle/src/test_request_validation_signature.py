@@ -59,7 +59,7 @@ def rv(oracle_account):
                                                       "block_number"],
                                                   blockchain_last_pub_block,
                                                   "0x000000",
-                                                  3))
+                                                  300))
 
 
 def sign(oracle_account, v: RequestValidation):
