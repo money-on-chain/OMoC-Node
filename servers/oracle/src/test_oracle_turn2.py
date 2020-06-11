@@ -3,7 +3,14 @@ from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
 from oracle.src.oracle_configuration import OracleTurnConfiguration
 from oracle.src.oracle_turn import OracleTurn
 
-conf = OracleTurnConfiguration(0.05, 3, 1, b'\x02\x04\x06\x08\n', 30)
+
+class Conf:
+    @property
+    def oracle_turn_conf(self):
+        return OracleTurnConfiguration(0.05, 3, 1, b'\x02\x04\x06\x08\n', 30)
+
+
+conf = Conf()
 
 points = 0
 current_round_num = 10
