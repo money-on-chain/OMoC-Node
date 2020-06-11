@@ -71,9 +71,7 @@ class OracleTurn:
             logger.info(msg)
             return False, msg
 
-        selection = select_next(self._conf.stake_limit_multiplicator,
-                                vi.last_pub_block_hash,
-                                vi.selected_oracles)
+        selection = select_next(vi.last_pub_block_hash, vi.selected_oracles)
         addrs = [x.addr for x in selection]
         selected = addrs.pop(0)
         # selected oracle can publish from f_block == 0
