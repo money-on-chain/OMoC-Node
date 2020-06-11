@@ -38,14 +38,14 @@ class OracleConfiguration:
                 "priority": self.Order.configuration_default_blockchain,
                 "configuration": lambda: config('SUPPORTERS_VESTED_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters vested address, called by scheduler",
+                "description": "Supporters vested address, USED ONLY BY SCRIPTS",
                 "default": cf.get_addr("SUPPORTERS_VESTED")
             },
             "SUPPORTERS_ADDR": {
                 "priority": self.Order.configuration_default_blockchain,
                 "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters whitelisted address, called by scheduler",
+                "description": "Supporters whitelisted address, called by scheduler to switch rounds",
                 "default": cf.get_addr("SUPPORTERS")
             },
             "INFO_ADDR": {
