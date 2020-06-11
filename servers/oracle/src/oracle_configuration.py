@@ -48,6 +48,13 @@ class OracleConfiguration:
                 "description": "Supporters whitelisted address, called by scheduler",
                 "default": cf.get_addr("SUPPORTERS")
             },
+            "INFO_ADDR": {
+                "priority": self.Order.configuration_default_blockchain,
+                "configuration": lambda: config('INFO_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Info address, contract to get all the information at once",
+                "default": cf.get_addr("INFO_GETTER")
+            },
             "ORACLE_MANAGER_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: config('ORACLE_MANAGER_ADDR', cast=str),

@@ -3,6 +3,7 @@ from typing import List
 
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
 from common.services.coin_pair_price_service import CoinPairService
+from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
 
@@ -12,10 +13,12 @@ logger = logging.getLogger(__name__)
 class OracleCoinPairService:
     def __init__(self, blockchain: BlockChain,
                  coin_pair_service: CoinPairService,
+                 info_service: InfoGetterService,
                  oracle_manager_service: OracleManagerService,
                  coin_pair_info: CoinPairInfo):
         self._blockchain = blockchain
         self._coin_pair_service = coin_pair_service
+        self._info_service = info_service
         self._oracle_manager_service = oracle_manager_service
         self._coin_pair_info = coin_pair_info
 
@@ -97,8 +100,11 @@ class OracleCoinPairService:
     async def get_valid_price_period_in_blocks(self) -> int:
         return await self._coin_pair_service.get_valid_price_period_in_blocks()
 
+    def is_info_service_available(self) -> bool:
+        return self._info_service is not None
+
     async def get_oracle_server_info(self) -> OracleBlockchainInfo:
-        data = await self._coin_pair_service.get_oracle_server_info()
+        data = await self._info_service.get_oracle_server_info(self._oracle_manager_service, self._coin_pair_service)
         if is_error(data):
             return data
         (round_number, start_block, lock_period_end_block, total_points,

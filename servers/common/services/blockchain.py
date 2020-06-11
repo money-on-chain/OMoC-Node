@@ -209,8 +209,13 @@ class BlockChain:
 class BlockChainContract:
 
     def __init__(self, blockchain: BlockChain, addr, abi):
+        self._addr = addr
         self._blockchain = blockchain
         self._contract = blockchain.get_contract(addr, abi)
+
+    @property
+    def addr(self):
+        return self._addr
 
     @exec_with_catch_async
     async def bc_call(self, method, *args, account: BlockchainAccount = None, **kw):

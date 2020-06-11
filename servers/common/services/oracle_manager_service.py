@@ -12,6 +12,10 @@ class OracleManagerService:
     def __init__(self, contract: BlockChainContract):
         self._contract = contract
 
+    @property
+    def addr(self):
+        return self._contract.addr
+
     async def oracle_manager_call(self, method, *args, **kw):
         return await self._contract.bc_call(method, *args, **kw)
 

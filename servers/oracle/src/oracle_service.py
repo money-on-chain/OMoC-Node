@@ -11,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 class OracleService:
-    def __init__(self, contract_factory: ContractFactoryService, oracle_manager_addr: str):
+    def __init__(self, contract_factory: ContractFactoryService, oracle_manager_addr: str, info_addr: str):
         self.contract_factory = contract_factory
         self.oracle_manager_service = contract_factory.get_oracle_manager(oracle_manager_addr)
+        self.info_service = contract_factory.get_info_service(info_addr) if info_addr is not None else None
 
     async def get_token_addr(self):
         return await self.oracle_manager_service.get_token_addr()
@@ -40,6 +41,7 @@ class OracleService:
             return coin_pair_info
         return OracleCoinPairService(self.contract_factory.get_blockchain(),
                                      self.contract_factory.get_coin_pair_price(coin_pair_info.addr),
+                                     self.info_service,
                                      self.oracle_manager_service,
                                      coin_pair_info)
 
