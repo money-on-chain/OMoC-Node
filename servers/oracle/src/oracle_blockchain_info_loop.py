@@ -37,21 +37,24 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
         async with self.update_lock:
             self.last_update = time.time()
 
-        data = await self._get_blocking()
+        if self._cps.is_info_service_available():
+            data = await self._get_blocking_one_big_request()
+        else:
+            data = await self._get_blocking_parallel_requests()
         if data:
             self._blockchain_info = data
 
     def get(self) -> OracleBlockchainInfo:
         return self._blockchain_info
 
-    async def _get_blocking(self) -> OracleBlockchainInfo:
+    async def _get_blocking_one_big_request(self) -> OracleBlockchainInfo:
         ret = await self._cps.get_oracle_server_info()
         if is_error(ret):
             logger.error("Error getting blockchain info %r" % (ret,))
             return None
         return ret
 
-    async def _get_blocking_old(self) -> OracleBlockchainInfo:
+    async def _get_blocking_parallel_requests(self) -> OracleBlockchainInfo:
         async def _get_last_pub_data():
             lpb = await self._cps.get_last_pub_block()
             lpbh = await self._cps.get_last_pub_block_hash(lpb)

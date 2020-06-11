@@ -11,10 +11,12 @@ async def main():
         cps = await oracle_service.get_coin_pair_service(cp)
         print(cp, " REWARDS BEFORE: ", await cps.get_available_reward_fees())
 
-        balance = await script_settings.blockchain.get_balance(script_settings.SCRIPT_REWARD_BAG_ACCOUNT.addr)
-        if balance < script_settings.NEEDED_APROVE_BAG:
+        balance = await moc_token_service.balance_of(script_settings.SCRIPT_REWARD_BAG_ACCOUNT.addr)
+        print(cp, " REWARD ACCOUNT BALANCE: ", balance)
+        if balance < script_settings.REWARDS:
+            print(cp, " MINTING")
             tx = await moc_token_service.mint(script_settings.SCRIPT_REWARD_BAG_ACCOUNT.addr,
-                                              script_settings.NEEDED_APROVE_BAG,
+                                              script_settings.REWARDS,
                                               account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
                                               wait=True)
             if is_error(tx):
@@ -25,7 +27,7 @@ async def main():
                                               account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
                                               wait=True)
         if is_error(tx):
-            print("ERROR IN APPROVE", tx)
+            print("ERROR IN TRANSFER", tx)
             return
         print(cp, " REWARDS AFTER: ", await cps.get_available_reward_fees())
 

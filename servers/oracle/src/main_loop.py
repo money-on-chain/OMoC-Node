@@ -39,22 +39,22 @@ class MainLoop(BgTaskExecutor):
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
             self.initialized = True
             self._print_info()
-            self._startup(self.conf.SUPPORTERS_ADDR, self.conf.ORACLE_MANAGER_ADDR)
+            self._startup()
 
         await self.conf.update()
         # TODO: react to a change in addresses.
         logger.info("MainExecutor loop done")
         return self.conf.ORACLE_CONFIGURATION_TASK_INTERVAL
 
-    def _startup(self, supporters_addr, oracle_manager_addr):
-        oracle_service = OracleService(self.cf, oracle_manager_addr)
+    def _startup(self):
+        oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
         self.oracle_loop = OracleLoop(self.conf, oracle_service)
         self.tasks.append(self.oracle_loop)
         if oracle_settings.ORACLE_MONITOR_RUN:
             monitor.log_setup()
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))
         if oracle_settings.SCHEDULER_RUN_SUPPORTERS_SCHEDULER:
-            supporters_service = self.cf.get_supporters(supporters_addr)
+            supporters_service = self.cf.get_supporters(self.conf.SUPPORTERS_ADDR)
             self.tasks.append(SchedulerSupportersLoop(self.conf, supporters_service))
         for t in self.tasks:
             t.start_bg_task()

@@ -31,7 +31,7 @@ async def configure_oracle():
     cf = ContractFactoryService.get_contract_factory_service()
     conf = OracleConfiguration(cf)
     await conf.initialize()
-    oracle_service = OracleService(cf, conf.ORACLE_MANAGER_ADDR)
+    oracle_service = OracleService(cf, conf.ORACLE_MANAGER_ADDR, conf.INFO_ADDR)
     moc_token_service = cf.get_moc_token(await oracle_service.get_token_addr())
     oracle_manager_service = cf.get_oracle_manager(conf.ORACLE_MANAGER_ADDR)
     oracle_manager_addr = cf.get_addr("ORACLE_MANAGER")

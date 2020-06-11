@@ -8,6 +8,7 @@ from common import settings, helpers
 from common.services.blockchain import BlockChain, BlockChainContract, parse_addr
 from common.services.coin_pair_price_service import CoinPairService
 from common.services.eternal_storage_service import EternalStorageService
+from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
 from common.services.oracle_manager_service import OracleManagerService
 from common.services.supporters_service import SupportersService
@@ -45,6 +46,9 @@ class ContractFactoryService:
         raise Exception("Unimplemented")
 
     def get_oracle_manager(self, addr) -> OracleManagerService:
+        raise Exception("Unimplemented")
+
+    def get_info_service(self, addr) -> InfoGetterService:
         raise Exception("Unimplemented")
 
     def get_supporters(self, addr) -> SupportersService:
@@ -88,6 +92,10 @@ class MocContractFactoryService(ContractFactoryService):
         abi = self._read_abi('OracleManager.abi')
         return OracleManagerService(self._get_contract(addr, abi))
 
+    def get_info_service(self, addr) -> InfoGetterService:
+        abi = self._read_abi('InfoGetter.abi')
+        return InfoGetterService(self._get_contract(addr, abi))
+
     def get_supporters(self, addr) -> SupportersService:
         abi = self._read_abi('SupportersWhitelisted.abi')
         return SupportersService(self._get_contract(addr, abi))
@@ -112,6 +120,7 @@ class BuildDirContractFactoryService(ContractFactoryService):
         , "SUPPORTERS_VESTED": "SupportersVested.json"
         , "ORACLE_MANAGER": "OracleManager.json"
         , "COIN_PAIR_PRICE": "CoinPairPrice.json"
+        , "INFO_GETTER": "InfoGetter.json"
     }
     DATA = dict()
 
@@ -136,6 +145,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
     def get_oracle_manager(self, addr) -> OracleManagerService:
         data = self._read_data("ORACLE_MANAGER")
         return OracleManagerService(self._get_contract(addr, data["abi"]))
+
+    def get_info_service(self, addr) -> InfoGetterService:
+        data = self._read_data("INFO_GETTER")
+        return InfoGetterService(self._get_contract(addr, data["abi"]))
 
     def get_supporters(self, addr) -> SupportersService:
         data = self._read_data("SUPPORTERS")
