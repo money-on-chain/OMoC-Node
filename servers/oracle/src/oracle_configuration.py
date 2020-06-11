@@ -263,6 +263,8 @@ class OracleConfiguration:
 
     @property
     def oracle_turn_conf(self):
-        return OracleTurnConfiguration(self.ORACLE_STAKE_LIMIT_MULTIPLICATOR, self.ORACLE_PRICE_FALLBACK_DELTA_PCT,
-                                       self.ORACLE_PRICE_FALLBACK_BLOCKS, self.ORACLE_PRICE_PUBLISH_BLOCKS,
-                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS, self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)
+        return OracleTurnConfiguration(self.ORACLE_PRICE_FALLBACK_DELTA_PCT,
+                                       self.ORACLE_PRICE_FALLBACK_BLOCKS,
+                                       self.ORACLE_PRICE_PUBLISH_BLOCKS,
+                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
+                                       self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)
