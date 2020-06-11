@@ -3,7 +3,7 @@ import markdown2
 import os,re
 
 template = "resources/template.html"
-files = ["index","step02", "step03", "step04"]
+files = ["index","step02", "step03", "step04", "removeOracle"]
 build = "./build"
 resources = "./resources"
 mdFolder = "./markdown"
