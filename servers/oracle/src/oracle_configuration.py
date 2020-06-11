@@ -32,8 +32,6 @@ class OracleConfiguration:
             raise ValueError("Missing ORACLE_REGISTRY_ADDR!!!")
         logger.info("Configuration Registry address: %s" % registry_addr)
         self._eternal_storage_service = cf.get_eternal_storage(registry_addr)
-        supporters_vested_addr = cf.get_addr("SUPPORTERS")
-        oracle_manager_addr = cf.get_addr("ORACLE_MANAGER")
 
         self.parameters = {
             "SUPPORTERS_VESTED_ADDR": {
@@ -41,7 +39,14 @@ class OracleConfiguration:
                 "configuration": lambda: config('SUPPORTERS_VESTED_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Supporters vested address, called by scheduler",
-                "default": supporters_vested_addr
+                "default": cf.get_addr("SUPPORTERS_VESTED")
+            },
+            "SUPPORTERS_ADDR": {
+                "priority": self.Order.configuration_default_blockchain,
+                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Supporters whitelisted address, called by scheduler",
+                "default": cf.get_addr("SUPPORTERS")
             },
             "ORACLE_MANAGER_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -49,7 +54,7 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Oracle manager address, used in OracleLoop to get coin"
                                "pairs and CoinPairPrice addresses",
-                "default": oracle_manager_addr
+                "default": cf.get_addr("ORACLE_MANAGER")
             },
             "ORACLE_PRICE_FETCH_RATE": {
                 "priority": self.Order.configuration_blockchain_default,

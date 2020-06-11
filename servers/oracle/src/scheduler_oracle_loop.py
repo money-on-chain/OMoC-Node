@@ -20,7 +20,8 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         self.log("start")
 
         round_info = await self._cps.get_round_info()
-        if not self._is_round_started(round_info):
+        if is_error(round_info):
+            self.error("error get_round_info error %r" % (round_info,))
             return self._conf.SCHEDULER_POOL_DELAY
         self.log("Round %r" % (round_info,))
 
@@ -36,14 +37,6 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         self.log("round switched %r" % (receipt.hash,))
         return self._conf.SCHEDULER_ROUND_DELAY
 
-    def _is_round_started(self, round_info):
-        if is_error(round_info):
-            self.error("error get_round_info error %r" % (round_info,))
-            return False
-        if round_info.round == 0:
-            self.log("The system didn't started yet, wait %r" % (round_info,))
-            return False
-        return True
 
     def _is_right_block(self, round_info, block_number):
         if is_error(block_number):
