@@ -11,8 +11,7 @@ from common.settings import config
 logger = logging.getLogger(__name__)
 
 OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
-                                            [("stake_limit_multiplicator", int),
-                                             ("price_fallback_delta_pct", int),
+                                            [("price_fallback_delta_pct", int),
                                              ("price_fallback_blocks", int),
                                              ("price_publish_blocks", int),
                                              ("entering_fallbacks_amounts", bytes),
@@ -156,15 +155,6 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
                 "description": "Version field of the message that is send to the blockchain",
                 "default": 3,
-            },
-            "ORACLE_STAKE_LIMIT_MULTIPLICATOR": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_STAKE_LIMIT_MULTIPLICATOR', cast=int),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "This is used to limit the difference in participation between selected oracles,"
-                               "the maximum stake used is the minimum multiplied by this factor"
-                               "(even if some oracle has more stake participating)",
-                "default": 2,
             },
             "ORACLE_PRICE_FALLBACK_DELTA_PCT": {
                 "priority": self.Order.configuration_blockchain_default,
