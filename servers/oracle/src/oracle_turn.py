@@ -19,11 +19,13 @@ class OracleTurn:
 
     # Called by /sign endpoint
     def validate_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
-        return self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price)
+        is_validation = True
+        return self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, is_validation)
 
     # Called byt coin_pair_price_loop
     def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
-        (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price)
+        is_validation = False
+        (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, is_validation)
         return is_my_turn
 
     def _price_changed_blocks(self, block_chain: OracleBlockchainInfo, exchange_price: PriceWithTimestamp):
@@ -56,15 +58,18 @@ class OracleTurn:
         logger.info("%r : The price has changed, right now" % self._coin_pair)
         return 0
 
-    def _is_oracle_turn_with_msg(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
+    def _is_oracle_turn_with_msg(self,
+                                 vi: OracleBlockchainInfo,
+                                 oracle_addr,
+                                 exchange_price: PriceWithTimestamp,
+                                 is_validation):
         
         # WARN if price is about to expire
         ####################################
-        start_block_pub_period_before_price_expires = self.price_change_pub_block + vi.valid_price_period_in_blocks - self._conf.trigger_valid_publication_blocks
-        current_block_in_blocks_after_pub_period_start = vi.block_num - start_block_pub_period_before_price_expires
-        price_is_about_to_expire = current_block_in_blocks_after_pub_period_start >= 0
-
-        if (price_is_about_to_expire):
+        start_block_pub_period_before_price_expires = self.price_change_pub_block + \
+                                                      vi.valid_price_period_in_blocks - \
+                                                      self._conf.trigger_valid_publication_blocks
+        if (vi.block_num - start_block_pub_period_before_price_expires >= 0):
             logger.warning("PRICE is about to EXPIRE. Valid publication period starts NOW.")
         ####################################
 
@@ -93,12 +98,16 @@ class OracleTurn:
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
 
         if oracle_addr == selected_oracle:
+            if is_validation:
+                msg = "%r : selected chosen %s" % (self._coin_pair, oracle_addr)
+                logger.info(msg)
+                return True, msg
             return self.process_selected_oracle(oracle_addr,
                                                 f_block,
                                                 vi,
                                                 oracle_addresses,
                                                 entering_fallback_sequence,
-                                                price_is_about_to_expire)
+                                                start_block_pub_period_before_price_expires)
         
         if oracle_addr in selected_fallbacks:
             return self.process_fallback_oracle(oracle_addr,
@@ -106,7 +115,7 @@ class OracleTurn:
                                                 vi,
                                                 oracle_addresses,
                                                 entering_fallback_sequence,
-                                                price_is_about_to_expire)
+                                                start_block_pub_period_before_price_expires)
 
         msg = "%r : %s is NOT the chosen fallback %r" % (self._coin_pair, oracle_addr, f_block)
         logger.info(msg)
@@ -118,7 +127,7 @@ class OracleTurn:
                                 vi: OracleBlockchainInfo,
                                 oracle_addresses,
                                 entering_fallback_sequence,
-                                price_is_about_to_expire):
+                                start_block_pub_period_before_price_expires):
         if f_block is not None and f_block < self._conf.price_publish_blocks:
             msg = "%r : %s I'm selected but still waiting for %r blocks to pass to be allowed. %r < %r" % \
                   (self._coin_pair, oracle_addr, self._conf.price_publish_blocks, f_block, self._conf.price_publish_blocks)
@@ -132,8 +141,9 @@ class OracleTurn:
             is_my_turn_before_price_expires = self.is_selected_turn_before_price_expires(oracle_addr,
                                                                                          vi,
                                                                                          oracle_addresses,
-                                                                                         entering_fallback_sequence) \
-                                              if price_is_about_to_expire else False
+                                                                                         entering_fallback_sequence,
+                                                                                         start_block_pub_period_before_price_expires) \
+                                              if vi.block_num - start_block_pub_period_before_price_expires >= 0 else False
             msg_on_price_expiration = ("%r : %s I'm selected without a price change before it expires" % \
                                       (self._coin_pair, oracle_addr)) if is_my_turn_before_price_expires \
                                       else ("%r : %s I'm NOT selected without a price change before it expires" % \
@@ -151,7 +161,7 @@ class OracleTurn:
                                 vi: OracleBlockchainInfo,
                                 oracle_addresses,
                                 entering_fallback_sequence,
-                                price_is_about_to_expire):
+                                start_block_pub_period_before_price_expires):
         if f_block is not None and f_block < self._conf.price_fallback_blocks:
             msg = "%r : it's not fallback %s turn, as the price changed %r blocks ago, this is less than %r" % \
                   (self._coin_pair, oracle_addr, f_block, self._conf.price_fallback_blocks)
@@ -165,8 +175,9 @@ class OracleTurn:
             is_my_turn_before_price_expires = self.is_selected_turn_before_price_expires(oracle_addr,
                                                                                          vi,
                                                                                          oracle_addresses,
-                                                                                         entering_fallback_sequence) \
-                                              if price_is_about_to_expire else False
+                                                                                         entering_fallback_sequence,
+                                                                                         start_block_pub_period_before_price_expires) \
+                                              if vi.block_num - start_block_pub_period_before_price_expires >= 0 else False
             msg_on_price_expiration = ("%r : %s I'm selected without a price change before it expires" % \
                                       (self._coin_pair, oracle_addr)) if is_my_turn_before_price_expires \
                                       else ("%r : %s I'm NOT selected without a price change before it expires" % \
@@ -182,11 +193,10 @@ class OracleTurn:
                                               oracle_address,
                                               vi: OracleBlockchainInfo,
                                               oracle_addresses,
-                                              entering_oracles_sequence):
+                                              entering_oracles_sequence,
+                                              start_block_pub_period_before_price_expires):
         is_selected_turn = False
-        start_block_pub_period_before_price_expires = self.price_change_pub_block + \
-                                                      vi.valid_price_period_in_blocks - \
-                                                      self._conf.trigger_valid_publication_blocks
+        
         current_block_in_blocks_after_pub_period_start = vi.block_num - start_block_pub_period_before_price_expires
 
         # Inserts the chosen oracle representation to the beginning of sequence
