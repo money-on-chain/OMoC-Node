@@ -8,105 +8,105 @@ oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS = 1
 oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS = 3
 
 
-def g(last_pub_block, block_num, blockchain_price):
+def oracleBCInfo1(last_pub_block, block_num, blockchain_price):
     return OracleBlockchainInfo("BTCUSD", [], blockchain_price, block_num, last_pub_block, "", 3)
 
 
-conf = OracleTurnConfiguration(0.05, 3, 1)
-gg = PriceWithTimestamp
+oracleTurnConf = OracleTurnConfiguration(2, 0.05, 3, 1, b'\x02\x04\x06\x08\n', 30)
+priceWithTS = PriceWithTimestamp
 
 
 def test_no_price_change():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(11.1, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(1, 14, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 14, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(2, 16, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 16, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(2, 18, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 18, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(2, 20, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 20, 11.1), priceWithTS(11.1, 0))
     assert ret is None
 
 
 def test_price_change():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(11.1, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(1, 14, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 14, 11.1), priceWithTS(22.2, 0))
     assert ret == 2
-    ret = f._price_changed_blocks(g(1, 16, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 16, 11.1), priceWithTS(22.2, 0))
     assert ret == 4
-    ret = f._price_changed_blocks(g(1, 18, 11.1), gg(33.3, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 18, 11.1), priceWithTS(33.3, 0))
     assert ret == 6
 
 
 def test_initial_price_change():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(22.2, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
     assert ret == 2
-    ret = f._price_changed_blocks(g(1, 14, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 14, 11.1), priceWithTS(22.2, 0))
     assert ret == 4
-    ret = f._price_changed_blocks(g(1, 16, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 16, 11.1), priceWithTS(22.2, 0))
     assert ret == 6
-    ret = f._price_changed_blocks(g(1, 18, 11.1), gg(33.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 18, 11.1), priceWithTS(33.2, 0))
     assert ret == 8
 
 
 def test_price_change_2():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(11.1, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(1, 14, 11.1), gg(33.3, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 14, 11.1), priceWithTS(33.3, 0))
     assert ret == 2
 
 
 def test_new_pub_no_price_change():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(11.1, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(2, 14, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 14, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(2, 16, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 16, 11.1), priceWithTS(11.1, 0))
     assert ret is None
 
 
 def test_new_pub_price_change():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(11.1, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
     assert ret is None
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(2, 14, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 14, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(2, 16, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 16, 11.1), priceWithTS(11.1, 0))
     assert ret == 2
 
 
 def test_new_pub_initial_price_change():
-    f = OracleTurn(conf, "BTCUSD")
-    ret = f._price_changed_blocks(g(1, 10, 11.1), gg(22.2, 0))
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 10, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(1, 12, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 12, 11.1), priceWithTS(11.1, 0))
     assert ret == 2
-    ret = f._price_changed_blocks(g(1, 14, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(1, 14, 11.1), priceWithTS(11.1, 0))
     assert ret == 4
-    ret = f._price_changed_blocks(g(2, 16, 11.1), gg(22.2, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 16, 11.1), priceWithTS(22.2, 0))
     assert ret == 0
-    ret = f._price_changed_blocks(g(2, 18, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 18, 11.1), priceWithTS(11.1, 0))
     assert ret == 2
-    ret = f._price_changed_blocks(g(2, 20, 11.1), gg(11.1, 0))
+    ret = oracleTurn._price_changed_blocks(oracleBCInfo1(2, 20, 11.1), priceWithTS(11.1, 0))
     assert ret == 4
 
 
@@ -127,100 +127,172 @@ selected_oracles = [
                         current_round_num)]
 
 
-def h(os, block_num, last_pub_block, last_pub_block_hash, blockchain_price):
+def oracleBCInfo2(os, block_num, last_pub_block, last_pub_block_hash, blockchain_price):
     return OracleBlockchainInfo(CoinPair('BTCUSD'), os, blockchain_price, block_num, last_pub_block,
                                 last_pub_block_hash, 3)
 
 
 def test_is_never_oracle_3_turn_is_not_selected():
-    f = OracleTurn(conf, "BTCUSD")
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
 
     def is_oracle_turn(vi, oracle_addr, exchange_price):
-        return f._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price)[0]
+        return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, False)[0]
 
-    assert is_oracle_turn(h(selected_oracles, 18, 1, "0x00000000",
-                            11.1 + conf.price_fallback_delta_pct * .99),
-                          selected_oracles[3].addr, gg(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 18, 1, "0x00000000",
+                            11.1 + oracleTurnConf.price_fallback_delta_pct * .99),
+                          selected_oracles[3].addr, priceWithTS(11.1, 0)) is False
 
 
 def test_is_oracle_turn_no_price_change():
-    f = OracleTurn(conf, "BTCUSD")
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
 
     def is_oracle_turn(vi, oracle_addr, exchange_price):
-        return f._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price)[0]
+        return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, False)[0]
 
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000000", 11.1), selected_oracles[0].addr,
-                          gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000000", 11.1), selected_oracles[1].addr,
-                          gg(11.1, 0)) is False
-    assert is_oracle_turn(h(selected_oracles, 14, 1, "0x00000000", 11.1), selected_oracles[0].addr,
-                          gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 14, 1, "0x00000000", 11.1), selected_oracles[1].addr,
-                          gg(11.1, 0)) is False
-    assert is_oracle_turn(h(selected_oracles, 16, 1, "0x00000000", 11.1), selected_oracles[0].addr,
-                          gg(11.1 + conf.price_fallback_delta_pct * .99, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 16, 1, "0x00000000", 11.1), selected_oracles[1].addr,
-                          gg(11.1 + conf.price_fallback_delta_pct * .99, 0)) is False
-    assert is_oracle_turn(h(selected_oracles, 18, 1, "0x00000000",
-                            11.1 + conf.price_fallback_delta_pct * .99),
-                          selected_oracles[0].addr, gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 18, 1, "0x00000000",
-                            11.1 + conf.price_fallback_delta_pct * .99),
-                          selected_oracles[0].addr, gg(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000000", 11.1), selected_oracles[0].addr,
+                          priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000000", 11.1), selected_oracles[1].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 14, 1, "0x00000000", 11.1), selected_oracles[0].addr,
+                          priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 14, 1, "0x00000000", 11.1), selected_oracles[1].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 16, 1, "0x00000000", 11.1), selected_oracles[0].addr,
+                          priceWithTS(11.1 + oracleTurnConf.price_fallback_delta_pct * .99, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 16, 1, "0x00000000", 11.1), selected_oracles[1].addr,
+                          priceWithTS(11.1 + oracleTurnConf.price_fallback_delta_pct * .99, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 18, 1, "0x00000000",
+                            11.1 + oracleTurnConf.price_fallback_delta_pct * .99),
+                          selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 18, 1, "0x00000000",
+                            11.1 + oracleTurnConf.price_fallback_delta_pct * .99),
+                          selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
 
 
 def test_is_oracle_turn_price_change():
-    f = OracleTurn(conf, "BTCUSD")
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
 
     def is_oracle_turn(vi, oracle_addr, exchange_price):
-        return f._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price)[0]
+        return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, False)[0]
 
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[0].addr,
-                          gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[1].addr,
-                          gg(11.1, 0)) is False
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[2].addr,
-                          gg(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[0].addr,
+                          priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[1].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[2].addr,
+                          priceWithTS(11.1, 0)) is False
 
     # price change
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[0].addr,
-                          gg(14.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[1].addr,
-                          gg(14.1, 0)) is False
-    assert is_oracle_turn(h(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[2].addr,
-                          gg(14.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[0].addr,
+                          priceWithTS(14.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[1].addr,
+                          priceWithTS(14.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[2].addr,
+                          priceWithTS(14.1, 0)) is False
 
-    assert is_oracle_turn(h(selected_oracles, 13, 1, "0x00000001", 11.1), selected_oracles[0].addr,
-                          gg(14.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 13, 1, "0x00000001", 11.1), selected_oracles[1].addr,
-                          gg(14.1, 0)) is False
-    assert is_oracle_turn(h(selected_oracles, 13, 1, "0x00000001", 11.1), selected_oracles[2].addr,
-                          gg(14.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 13, 1, "0x00000001", 11.1), selected_oracles[0].addr,
+                          priceWithTS(14.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 13, 1, "0x00000001", 11.1), selected_oracles[1].addr,
+                          priceWithTS(14.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 13, 1, "0x00000001", 11.1), selected_oracles[2].addr,
+                          priceWithTS(14.1, 0)) is False
 
-    assert is_oracle_turn(h(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[0].addr, gg(14.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[1].addr, gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[2].addr, gg(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is False
 
-    assert is_oracle_turn(h(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[0].addr, gg(14.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[1].addr, gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[2].addr, gg(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is False
 
-    assert is_oracle_turn(h(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[0].addr, gg(14.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[1].addr, gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[2].addr, gg(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
 
-    assert is_oracle_turn(h(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[0].addr, gg(14.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[1].addr, gg(11.1, 0)) is True
-    assert is_oracle_turn(h(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
-                            "0x00000001", 11.1), selected_oracles[2].addr, gg(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS, 1,
+                            "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+
+# Fallbacks enter price_fallback_blocks blocks after price change according to sequence block by block
+def test_2_fallbacks_enter_at_their_turn_after_price_change():
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+
+    def is_oracle_turn(vi, oracle_addr, exchange_price):
+        return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, False)[0]
+
+    # oracleBCInfo2(os, block_num, last_pub_block, last_pub_block_hash, blockchain_price)
+    # is_oracle_turn(vi, oracle_addr, exchange_price)
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[0].addr,
+                          priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[1].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[2].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[3].addr,
+                          priceWithTS(11.1, 0)) is False
+
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[3].addr, priceWithTS(11.1, 0)) is False
+
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[3].addr, priceWithTS(11.1, 0)) is True
+
+# If price doesn't change, chosen oracle and fallback publish before price expiration
+def test_oracles_publish_before_price_expiration():
+    oracleTurn = OracleTurn(oracleTurnConf, "BTCUSD")
+
+    def is_oracle_turn(vi, oracle_addr, exchange_price):
+        return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, False)[0]
+
+    # oracleBCInfo2(os, block_num, last_pub_block, last_pub_block_hash, blockchain_price)
+    # is_oracle_turn(vi, oracle_addr, exchange_price)
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[0].addr,
+                          priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[1].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[2].addr,
+                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12, 1, "0x00000001", 11.1), selected_oracles[3].addr,
+                          priceWithTS(11.1, 0)) is False
+
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS,
+                          1, "0x00000001", 11.1), selected_oracles[3].addr, priceWithTS(11.1, 0)) is False
+
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+    assert is_oracle_turn(oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_FALLBACK_BLOCKS + 1,
+                          1, "0x00000001", 11.1), selected_oracles[3].addr, priceWithTS(11.1, 0)) is True

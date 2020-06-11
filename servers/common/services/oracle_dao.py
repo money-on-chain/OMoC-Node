@@ -68,5 +68,5 @@ OracleBlockchainInfo = typing.NamedTuple("OracleBlockchainInfo",
                                           ('block_num', int),
                                           ('last_pub_block', int),
                                           ('last_pub_block_hash', str),
-                                          ('valid_price_period_in_blocks', int),
+                                          ('valid_price_period_in_blocks', int)
                                           ])
