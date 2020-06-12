@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class PriceFollower:
-    def __init__(self):
+    def __init__(self, coin_pair):
+        self._coin_pair = coin_pair
         self.price_change_block = -1
         self.price_change_pub_block = -1
 
@@ -54,7 +55,7 @@ class OracleTurn:
     def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair):
         self._conf: OracleConfiguration = conf
         self._coin_pair: CoinPair = coin_pair
-        self.price_follower = PriceFollower()
+        self.price_follower = PriceFollower(coin_pair)
 
     # Called by /sign endpoint
     def validate_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
