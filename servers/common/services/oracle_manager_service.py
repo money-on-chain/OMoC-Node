@@ -66,6 +66,9 @@ class OracleManagerService:
     async def is_subscribed(self, coin_pair: CoinPair, address: BlockChainAddress) -> bool:
         return await self.oracle_manager_call("isSubscribed", address, coin_pair.longer())
 
+    async def can_remove(self, address: BlockChainAddress) -> bool:
+        return await self.oracle_manager_call("canRemoveOracle", address)
+
     async def get_registered_oracle_head(self):
         return await self.oracle_manager_call("getRegisteredOracleHead")
 
