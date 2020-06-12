@@ -132,7 +132,7 @@ class OracleTurn:
             logger.info(msg)
             return False, msg
 
-        if blocks_since_price_change <= conf.price_publish_blocks:
+        if blocks_since_price_change < conf.price_publish_blocks:
             msg = "%r : %s Price changed but still waiting to reach %r blocks to be allowed. %r < %r" % \
                   (self._coin_pair, oracle_addr, conf.price_publish_blocks, blocks_since_price_change,
                    conf.price_publish_blocks)
