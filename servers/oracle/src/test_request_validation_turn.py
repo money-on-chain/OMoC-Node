@@ -94,7 +94,7 @@ def test_success_oracle_turn():
     can_publish(ot, params, [1])
 
     # After a price change the fallback start will publish, but after some blocks
-    params["price_delta"] = 1.000000001 + conf.oracle_turn_conf.price_fallback_delta_pct / 100
+    params["price_delta"] = 1.000000001 + conf.oracle_turn_conf.price_delta_pct / 100
     can_publish(ot, params, [1])
     params["block_number"] = params["block_number"] + conf.oracle_turn_conf.price_fallback_blocks - 1
     can_publish(ot, params, [1])

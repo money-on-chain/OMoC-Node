@@ -45,7 +45,7 @@ def test_is_never_oracle_3_turn_is_not_selected():
     f = OracleTurn(conf, "BTCUSD")
 
     assert f.is_oracle_turn(h(selected_oracles, 18, 1, "0x00000000",
-                              11.1 + conf.price_fallback_delta_pct * .99),
+                              11.1 + conf.price_delta_pct * .99),
                             selected_oracles[3].addr, gg(11.1, 0)) is False
 
 
@@ -61,14 +61,14 @@ def test_is_oracle_turn_no_price_change():
     assert f.is_oracle_turn(h(selected_oracles, 14, 1, "0x00000000", 11.1), selected_oracles[1].addr,
                             gg(11.1, 0)) is False
     assert f.is_oracle_turn(h(selected_oracles, 16, 1, "0x00000000", 11.1), selected_oracles[0].addr,
-                            gg(11.1 + conf.price_fallback_delta_pct * .99, 0)) is False
+                            gg(11.1 + conf.price_delta_pct * .99, 0)) is False
     assert f.is_oracle_turn(h(selected_oracles, 16, 1, "0x00000000", 11.1), selected_oracles[1].addr,
-                            gg(11.1 + conf.price_fallback_delta_pct * .99, 0)) is False
+                            gg(11.1 + conf.price_delta_pct * .99, 0)) is False
     assert f.is_oracle_turn(h(selected_oracles, 18, 1, "0x00000000",
-                              11.1 + conf.price_fallback_delta_pct * .99),
+                              11.1 + conf.price_delta_pct * .99),
                             selected_oracles[0].addr, gg(11.1, 0)) is True
     assert f.is_oracle_turn(h(selected_oracles, 18, 1, "0x00000000",
-                              11.1 + conf.price_fallback_delta_pct * .99),
+                              11.1 + conf.price_delta_pct * .99),
                             selected_oracles[0].addr, gg(11.1, 0)) is True
 
 

@@ -89,3 +89,8 @@ def select_next(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo
     while rnd_stake > stake_buckets[idx][1]:
         idx += 1
     return [l2[(idx + i) % len(l2)] for i in range(len(l2))]
+
+
+def select_next_addresses(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo]):
+    ordered_oracle_selection = select_next(last_block_hash, oracle_info_list)
+    return [x.addr for x in ordered_oracle_selection]

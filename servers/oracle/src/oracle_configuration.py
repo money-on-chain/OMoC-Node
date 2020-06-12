@@ -11,8 +11,7 @@ from common.settings import config
 logger = logging.getLogger(__name__)
 
 OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
-                                            [("price_fallback_delta_pct", int),
-                                             ("price_fallback_blocks", int),
+                                            [("price_delta_pct", int),
                                              ("price_publish_blocks", int),
                                              ("entering_fallbacks_amounts", bytes),
                                              ("trigger_valid_publication_blocks", int)
@@ -156,12 +155,11 @@ class OracleConfiguration:
                 "description": "Version field of the message that is send to the blockchain",
                 "default": 3,
             },
-            "ORACLE_PRICE_FALLBACK_DELTA_PCT": {
+            "ORACLE_PRICE_DELTA_PCT": {
                 "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_PRICE_FALLBACK_DELTA_PCT', cast=Decimal),
+                "configuration": lambda: config('ORACLE_PRICE_DELTA_PCT', cast=Decimal),
                 "blockchain": lambda p: self._eternal_storage_service.get_decimal(p),
-                "description": "If the price delta percentage has changed and more than"
-                               " ORACLE_PRICE_FALLBACK_BLOCKS pass we act as fallbacks.",
+                "description": "Wait for this price change to start publishing a price",
                 "default": Decimal("0.05"),
             },
             "ORACLE_PRICE_PUBLISH_BLOCKS": {
@@ -170,13 +168,6 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
                 "description": "Selected oracle publishes after  ORACLE_PRICE_PUBLISH_BLOCKS  blocks of a price change.",
                 "default": 1,
-            },
-            "ORACLE_PRICE_FALLBACK_BLOCKS": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_PRICE_FALLBACK_BLOCKS', cast=int),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Fallback oracle try to publish ORACLE_PRICE_FALLBACK_BLOCKS  blocks after price change.",
-                "default": 2,
             },
             "ORACLE_ENTERING_FALLBACKS_AMOUNTS": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -263,8 +254,7 @@ class OracleConfiguration:
 
     @property
     def oracle_turn_conf(self):
-        return OracleTurnConfiguration(self.ORACLE_PRICE_FALLBACK_DELTA_PCT,
-                                       self.ORACLE_PRICE_FALLBACK_BLOCKS,
+        return OracleTurnConfiguration(self.ORACLE_PRICE_DELTA_PCT,
                                        self.ORACLE_PRICE_PUBLISH_BLOCKS,
                                        self.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
                                        self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)

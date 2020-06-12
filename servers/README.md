@@ -165,21 +165,21 @@ The rest of the parameters are optional. If they are missing they are taken from
     When an Oracle ask for a signature if the price difference percentage is grater than this value
     we reject the request by not signing.
     
-- ORACLE_PRICE_FALLBACK_DELTA_PCT = 0.05
+- ORACLE_PRICE_DELTA_PCT = 0.05
     
     To decide when to publish the Oracle check for the price difference percentage between the currently
     published price in the blockchain and the last price from the exchanges. It the change is more than
-    `ORACLE_PRICE_FALLBACK_DELTA_PCT` the Oracle starts to count blocks. After `ORACLE_PRICE_PUBLISH_BLOCKS`
-    the selected Oracle try to publish and after `ORACLE_PRICE_FALLBACK_BLOCKS` the first fallback Oracle
-    try to publish, after `ORACLE_PRICE_FALLBACK_BLOCKS + 1` the second fallback Oracle try to publish, etc.
+    `ORACLE_PRICE_DELTA_PCT` the Oracle starts to count blocks. After `ORACLE_PRICE_PUBLISH_BLOCKS`
+    the selected Oracle try to publish and after `ORACLE_ENTERING_FALLBACKS_AMOUNTS` list is used to 
+    check how many fall back oracles try to publish.
 
 - ORACLE_PRICE_PUBLISH_BLOCKS = 1
 
     The selected oracle publishes after `ORACLE_PRICE_PUBLISH_BLOCKS` blocks after a price change.
 
-- ORACLE_PRICE_FALLBACK_BLOCKS = 3
+- ORACLE_ENTERING_FALLBACKS_AMOUNTS = b'\x02\x04\x06\x08\n'
 
-    The fallback oracle try to publish `ORACLE_PRICE_FALLBACK_BLOCKS` blocks after a price change.
+    See ORACLE_PRICE_DELTA_PCT explanation bellow.
 
 - ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
 
@@ -301,14 +301,14 @@ ORACLE_PRICE_FETCH_RATE = "5 secs"
 # If the price delta percentage is grater than this we reject by not signing
 ORACLE_PRICE_REJECT_DELTA_PCT = 50
 
-# If the price delta percentage has changed and more than ORACLE_PRICE_FALLBACK_BLOCKS pass we act as fallbacks.
-ORACLE_PRICE_FALLBACK_DELTA_PCT = 0.05
+# Try to publish if the price has changed more than this percentage  
+ORACLE_PRICE_DELTA_PCT = 0.05
 
 # Selected oracle publishes after ORACLE_PRICE_PUBLISH_BLOCKS  blocks of a price change.
 ORACLE_PRICE_PUBLISH_BLOCKS = 1
 
-# Fallback oracle try to publish ORACLE_PRICE_FALLBACK_BLOCKS blocks after price change.
-ORACLE_PRICE_FALLBACK_BLOCKS = 3
+#
+ORACLE_ENTERING_FALLBACKS_AMOUNTS=
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
