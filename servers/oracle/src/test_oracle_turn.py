@@ -120,6 +120,9 @@ def test_new_pub_initial_price_change():
 
 points = 0
 current_round_num = 10
+
+# 14 oracles. The last two are the same and only one has selectedInCurrentRound set to False.
+# It should make both of them unable to be selected for a turn.
 selected_oracles = [
     FullOracleRoundInfo('0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d', 'http://127.0.0.1:24004',
                         14000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
@@ -143,6 +146,18 @@ selected_oracles = [
                         2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
                         current_round_num),
     FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cd0w2f', 'http://127.0.0.1:24016',
+                        2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                        current_round_num),
+    FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cdoe3q', 'http://127.0.0.1:24018',
+                        2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                        current_round_num),
+    FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cdxc90', 'http://127.0.0.1:24020',
+                        2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                        current_round_num),
+    FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cfj109', 'http://127.0.0.1:24022',
+                        2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                        current_round_num),
+    FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cpk3oD', 'http://127.0.0.1:24024',
                         2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
                         current_round_num),
     FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cd535E', 'http://127.0.0.1:24000',
@@ -175,16 +190,16 @@ def is_oracle_turn(oracleTurn, vi, oracle_addr, exchange_price):
                                              vi.selected_oracles)
     return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)[0]
 
-# Test oracle of index 8 is not selected because has selectedInCurrentRound set to False
-def test_is_never_oracle_8_turn_because_is_not_selected():
+# Test oracle of index 12 is not selected because has selectedInCurrentRound set to False
+def test_is_never_oracle_12_turn_because_is_not_selected():
     oracleTurn = getOracleTurnForTurnTesting()
     assert is_oracle_turn(oracleTurn,
                           oracleBCInfo2(selected_oracles,
                                         18,
                                         1,
-                                        "0x00000000000000000000",
+                                        "0x0000000000000000000000000000",
                                         11.1 + oracleConf.oracle_turn_conf.price_delta_pct * .99),
-                          selected_oracles[8].addr,
+                          selected_oracles[12].addr,
                           priceWithTS(11.1, 0)) is False
 
 # Test random oracle is not selected because is not in list of oracles with selectedInCurrentRound set to True
@@ -194,7 +209,7 @@ def test_an_address_that_is_not_selected():
                           oracleBCInfo2(selected_oracles,
                                         18,
                                         1,
-                                        "0x00000000000000000000",
+                                        "0x0000000000000000000000000000",
                                         11.1 + oracleConf.oracle_turn_conf.price_delta_pct * .99),
                           "0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826",
                           priceWithTS(11.1, 0)) is False
@@ -207,7 +222,7 @@ def test_is_oracle_turn_no_price_change():
                                        blockchain_price_diff=0,
                                        exchange_price_diff=0):
         last_pub_block = 1
-        last_pub_block_hash = "0x00000000000000000000"
+        last_pub_block_hash = "0x0000000000000000000000000000"
         blockchain_price = 11.1 + blockchain_price_diff
         exchange_price = 11.1 + exchange_price_diff
         return is_oracle_turn(oracleTurn,
@@ -249,7 +264,7 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
                                                        blockchain_price_diff=0,
                                                        exchange_price_diff=0):
         last_pub_block = 1
-        last_pub_block_hash = "0x00000000000000000001"
+        last_pub_block_hash = "0x0000000000000000000000000001"
         blockchain_price = 11.1 + blockchain_price_diff
         exchange_price = 11.1 + exchange_price_diff
         return is_oracle_turn(oracleTurn,
@@ -262,9 +277,12 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
                           priceWithTS(exchange_price, 0))
 
     block_num_list = [12,14,16,18]
+    # The last 2 oracles have selectedInCurrentRound set to False.
+    len_unselected_oracles = 2
+    selected_in_current_round_oracles_len = len(selected_oracles) - len_unselected_oracles
 
     # Price changes but it still needs to wait for ORACLE_PRICE_PUBLISH_BLOCKS blocks to pass.
-    for i in range(8):
+    for i in range(selected_in_current_round_oracles_len):
         assert is_oracle_turn_it_needs_to_wait_publish_blocks(selected_oracles[i].addr,
                                                               block_num_list[0],
                                                               0,
@@ -275,7 +293,7 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
                                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                                                           0,
                                                           3) is True
-    for i in range(1,8):
+    for i in range(1,selected_in_current_round_oracles_len):
         assert is_oracle_turn_it_needs_to_wait_publish_blocks(selected_oracles[i].addr,
                                                               block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                                                               0,
@@ -284,6 +302,7 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
 
 # Test that ORACLE_PRICE_PUBLISH_BLOCKS blocks after price change the chosen oracle and the fallbacks are selected
 # at their respective blocks.
+# Also test all fallbacks are selected by the end of the fallback sequence from the config.
 def test_is_oracle_turn_price_change():
     oracleTurn = getOracleTurnForTurnTesting()
     def is_oracle_turn_price_change(oracle_addr,
@@ -291,7 +310,7 @@ def test_is_oracle_turn_price_change():
                                     blockchain_price_diff=0,
                                     exchange_price_diff=0):
         last_pub_block = 1
-        last_pub_block_hash = "0x00000000000000000001"
+        last_pub_block_hash = "0x0000000000000000000000000001"
         blockchain_price = 11.1 + blockchain_price_diff
         exchange_price = 11.1 + exchange_price_diff
         return is_oracle_turn(oracleTurn,
@@ -304,14 +323,17 @@ def test_is_oracle_turn_price_change():
                           priceWithTS(exchange_price, 0))
 
     block_num_list = [12,14,16,18]
+    # The last 2 oracles have selectedInCurrentRound set to False.
+    len_unselected_oracles = 2
+    selected_in_current_round_oracles_len = len(selected_oracles) - len_unselected_oracles
 
     # No price change yet
-    for i in range(8):
+    for i in range(selected_in_current_round_oracles_len):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0]) is False
 
     # Price changes but it still needs to wait for ORACLE_PRICE_PUBLISH_BLOCKS blocks to pass.
-    for i in range(8):
+    for i in range(selected_in_current_round_oracles_len):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0],
                                            0,
@@ -322,7 +344,7 @@ def test_is_oracle_turn_price_change():
                                        block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                                        0,
                                        3) is True
-    for i in range(1,8):
+    for i in range(1,selected_in_current_round_oracles_len):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                                            0,
@@ -335,7 +357,7 @@ def test_is_oracle_turn_price_change():
                                            0,
                                            3) is True
 
-    for i in range(3,8):
+    for i in range(3,selected_in_current_round_oracles_len):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
                                            0,
@@ -348,7 +370,7 @@ def test_is_oracle_turn_price_change():
                                            0,
                                            3) is True
 
-    for i in range(5,8):
+    for i in range(5,selected_in_current_round_oracles_len):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 2,
                                            0,
@@ -361,9 +383,49 @@ def test_is_oracle_turn_price_change():
                                            0,
                                            3) is True
 
-    for i in range(7,8):
+    for i in range(7,selected_in_current_round_oracles_len):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 3,
+                                           0,
+                                           3) is False
+
+    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 4) blocks ago so it's the first oracle's turn and the next eight fallbacks' too.
+    for i in range(9):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 4,
+                                           0,
+                                           3) is True
+
+    for i in range(9,selected_in_current_round_oracles_len):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 4,
+                                           0,
+                                           3) is False
+
+    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 5) blocks ago so it's the first oracle's turn and the next ten fallbacks' too.
+    for i in range(11):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 5,
+                                           0,
+                                           3) is True
+
+    for i in range(11,selected_in_current_round_oracles_len):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 5,
+                                           0,
+                                           3) is False
+
+    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 6) blocks ago so it's all of the fallbacks' turn now.
+    for i in range(12):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 6,
+                                           0,
+                                           3) is True
+
+    # The rest of the oracles have selectedInCurrentRound set as False so they are not selected ever.
+    for i in range(12,selected_in_current_round_oracles_len):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 6,
                                            0,
                                            3) is False
 
