@@ -199,7 +199,7 @@ def test_an_address_that_is_not_selected():
                           "0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826",
                           priceWithTS(11.1, 0)) is False
 
-# Test that if the prices doesn't change enough, it's no oracle's turn
+# Test that if the price doesn't change enough, it's no oracle's turn
 def test_is_oracle_turn_no_price_change():
     oracleTurn = getOracleTurnForTurnTesting()
     def is_oracle_turn_no_price_change(oracle_addr,

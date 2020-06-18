@@ -152,7 +152,7 @@ class OracleTurn:
         if OracleTurn.is_selected_oracle(oracle_addresses, oracle_addr):
             return True
         # Gets blocks since publication is allowed from blocks_since_pub_is_allowed and uses it as index in the amount
-        # of entering fall backs sequence. 1 is added so the fallbacks start to enter 1 block after the first oracle. 
+        # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
         entering_fallback_sequence_index = blocks_since_pub_is_allowed \
             if blocks_since_pub_is_allowed is not None \
