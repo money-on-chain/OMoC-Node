@@ -95,13 +95,13 @@ class OracleTurn:
         ####################################
 
         # WARN if valid_price_period_in_blocks < trigger_valid_publication_blocks and return False
-        # as it may allow many oracles
+        # as it may allow many oracles to publish without a price change
         ####################################
         if vi.valid_price_period_in_blocks < conf.trigger_valid_publication_blocks:
             msg = "valid_price_period_in_blocks should be higher than trigger_valid_publication_blocks \
                    %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
                                                       conf.trigger_valid_publication_blocks)
-            logger.warning(msg)
+            logger.error(msg)
             return False, msg
         ####################################
 
