@@ -94,6 +94,17 @@ class OracleTurn:
             logger.warning("PRICE will EXPIRE before oracles get to publish. Check configuration.")
         ####################################
 
+        # WARN if valid_price_period_in_blocks < trigger_valid_publication_blocks and return False
+        # as it may allow many oracles
+        ####################################
+        if vi.valid_price_period_in_blocks < conf.trigger_valid_publication_blocks:
+            msg = "valid_price_period_in_blocks should be higher than trigger_valid_publication_blocks \
+                   %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
+                                                      conf.trigger_valid_publication_blocks)
+            logger.warning(msg)
+            return False, msg
+        ####################################
+
         start_block_pub_period_before_price_expires = vi.last_pub_block + \
                                                       vi.valid_price_period_in_blocks - \
                                                       conf.trigger_valid_publication_blocks
