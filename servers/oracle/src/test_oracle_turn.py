@@ -281,26 +281,15 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
                                                               0,
                                                               3) is False
 
-    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 1) blocks ago so it's the first oracle's turn and the next two fallbacks' too.
-    for i in range(3):
-        assert is_oracle_turn_it_needs_to_wait_publish_blocks(selected_oracles[i].addr,
-                                                              block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
-                                                              0,
-                                                              3) is True
 
-    for i in range(3,8):
-        assert is_oracle_turn_it_needs_to_wait_publish_blocks(selected_oracles[i].addr,
-                                                              block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
-                                                              0,
-                                                              3) is False
-
-
+# Test that ORACLE_PRICE_PUBLISH_BLOCKS blocks after price change the chosen oracle and the fallbacks are selected
+# at their respective blocks.
 def test_is_oracle_turn_price_change():
     oracleTurn = getOracleTurnForTurnTesting()
     def is_oracle_turn_price_change(oracle_addr,
-                                       block_num,
-                                       blockchain_price_diff=0,
-                                       exchange_price_diff=0):
+                                    block_num,
+                                    blockchain_price_diff=0,
+                                    exchange_price_diff=0):
         last_pub_block = 1
         last_pub_block_hash = "0x00000000000000000001"
         blockchain_price = 11.1 + blockchain_price_diff
@@ -317,125 +306,66 @@ def test_is_oracle_turn_price_change():
     block_num_list = [12,14,16,18]
 
     # No price change yet
-    for i in range(3):
+    for i in range(8):
         assert is_oracle_turn_price_change(selected_oracles[i].addr,
                                            block_num_list[0]) is False
 
-    # Price changes
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1), selected_oracles[0].addr,
-                          priceWithTS(14.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1), selected_oracles[1].addr,
-                          priceWithTS(14.1, 0)) is False
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1), selected_oracles[2].addr,
-                          priceWithTS(14.1, 0)) is False
+    # Price changes but it still needs to wait for ORACLE_PRICE_PUBLISH_BLOCKS blocks to pass.
+    for i in range(8):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0],
+                                           0,
+                                           3) is False
 
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 13, 1, "0x00000000000000000001", 11.1), selected_oracles[0].addr,
-                          priceWithTS(14.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 13, 1, "0x00000000000000000001", 11.1), selected_oracles[1].addr,
-                          priceWithTS(14.1, 0)) is False
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 13, 1, "0x00000000000000000001", 11.1), selected_oracles[2].addr,
-                          priceWithTS(14.1, 0)) is False
+    # Price has changed ORACLE_PRICE_PUBLISH_BLOCKS blocks ago so it's the first oracle's turn only.
+    assert is_oracle_turn_price_change(selected_oracles[0].addr,
+                                       block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
+                                       0,
+                                       3) is True
+    for i in range(1,8):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
+                                           0,
+                                           3) is False
 
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 13 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is False
+    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 1) blocks ago so it's the first oracle's turn and the next two fallbacks' too.
+    for i in range(3):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
+                                           0,
+                                           3) is True
 
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 14 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is False
+    for i in range(3,8):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
+                                           0,
+                                           3) is False
 
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 16 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 2) blocks ago so it's the first oracle's turn and the next four fallbacks' too.
+    for i in range(5):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 2,
+                                           0,
+                                           3) is True
 
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[0].addr, priceWithTS(14.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
-    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 18 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS, 1,
-                                        "0x00000000000000000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
+    for i in range(5,8):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 2,
+                                           0,
+                                           3) is False
 
+    # Price has changed (ORACLE_PRICE_PUBLISH_BLOCKS + 3) blocks ago so it's the first oracle's turn and the next six fallbacks' too.
+    for i in range(7):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 3,
+                                           0,
+                                           3) is True
 
-# Fallbacks enter price_fallback_blocks blocks after price change according to sequence block by block
-#def test_fallbacks_enter_at_their_turn_after_price_change():
-#    oracleTurn = getOracleTurnForTurnTesting()
-#    
-#    # oracleBCInfo2(os, block_num, last_pub_block, last_pub_block_hash, blockchain_price)
-#    # is_oracle_turn(oracleTurn, vi, oracle_addr, exchange_price)
-#
-#    # It's no oracle's turn because the price hasn't changed
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1),
-#                          selected_oracles[0].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1),
-#                          selected_oracles[1].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1),
-#                          selected_oracles[2].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12, 1, "0x00000000000000000001", 11.1),
-#                          selected_oracles[3].addr,
-#                          priceWithTS(11.1, 0)) is False
-#
-#    # It's no oracle's turn because even if ORACLE_PRICE_PUBLISH_BLOCKS blocks have passed, the price hasn't changed.
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[0].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[1].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[2].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[3].addr,
-#                          priceWithTS(11.1, 0)) is False
-#
-#    # It's no oracle's turn because no blocks passed since publication and the price hasn't changed.
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[0].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[1].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[2].addr,
-#                          priceWithTS(11.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[3].addr,
-#                          priceWithTS(11.1, 0)) is False
-#
-#    # It's no oracle's turn because the price has changed but no blocks passed since publication.
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[0].addr,
-#                          priceWithTS(14.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[1].addr,
-#                          priceWithTS(14.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[2].addr,
-#                          priceWithTS(14.1, 0)) is False
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[3].addr,
-#                          priceWithTS(14.1, 0)) is False
-#
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[0].addr, priceWithTS(11.1, 0)) is True
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[1].addr, priceWithTS(11.1, 0)) is True
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[2].addr, priceWithTS(11.1, 0)) is True
-#    assert is_oracle_turn(oracleTurn, oracleBCInfo2(selected_oracles, 12 + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
-#                          1, "0x00000000000000000001", 11.1), selected_oracles[3].addr, priceWithTS(11.1, 0)) is True
+    for i in range(7,8):
+        assert is_oracle_turn_price_change(selected_oracles[i].addr,
+                                           block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 3,
+                                           0,
+                                           3) is False
 
 
 # If price doesn't change, chosen oracle and fallback publish before price expiration
