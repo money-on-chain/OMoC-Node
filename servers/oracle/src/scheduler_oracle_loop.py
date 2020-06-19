@@ -50,7 +50,7 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         return True
 
     def log(self, msg):
-        logger.info("%r : SchedulerCoinPairLoop : %s" % (self._coin_pair, msg))
+        logger.info("SchedulerCoinPairLoop : %r : %s" % (self._coin_pair, msg))
 
     def error(self, msg):
-        logger.error("%r : SchedulerCoinPairLoop : %s" % (self._coin_pair, msg))
+        logger.error("SchedulerCoinPairLoop : %r : %s" % (self._coin_pair, msg))

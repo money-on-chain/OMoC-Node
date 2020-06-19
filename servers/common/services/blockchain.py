@@ -33,6 +33,8 @@ BCSuccess = typing.NamedTuple("BCSuccess", [("state", STATE), ("hash", str)])
 class BCError(typing.NamedTuple("BCError", [("state", STATE), ("hash", str), ("error", str)])):
 
     def __new__(cls, err, hash):
+        if err.startswith("Could not decode") and "return data b'\\x00'" in err:
+            err = "Check your NODE_URL configuration, most probably we are using the wrong block chain node : " + err
         return super(BCError, cls).__new__(cls, STATE.ERROR, hash, err)
 
     @classmethod
