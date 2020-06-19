@@ -19,10 +19,10 @@ MOC_NETWORK = config('MOC_NETWORK', cast=str, default=None)
 # If we use the build directory (MOC_NETWORK unconfigured) we must set this parameter to the block chain network id
 DEVELOP_NETWORK_ID = config('DEVELOP_NETWORK_ID', cast=int, default=None)
 CONTRACT_ROOT_FOLDER = config('CONTRACT_ROOT_FOLDER', cast=pathlib.Path,
-                              default=os.path.dirname(os.path.realpath(__file__)))
+                              default=pathlib.Path(os.path.dirname(os.path.realpath(__file__))).parent)
 # The server expect to find in this folder the *.json files with the abi an addresses of contracts
 CONTRACT_FOLDER = config('CONTRACT_FOLDER', cast=pathlib.Path,
-                         default=os.path.join(CONTRACT_ROOT_FOLDER, "build/contracts"))
+                         default=os.path.join(CONTRACT_ROOT_FOLDER, "build", "contracts"))
 
 # Timeout used when connection to the blockchain node
 WEB3_TIMEOUT = parseTimeDelta(config('WEB3_TIMEOUT ', cast=str, default="30 secs"))
