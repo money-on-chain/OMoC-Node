@@ -4,7 +4,8 @@ This script queries the OracleManager for all the CoinPairPrice addresses then
     Example: ```NETWORK=ganche node lastPubBlock.js 0xE2e9570d9f3E63Ca1b6dAf7D0966C5dC151b03DF```
 
  */
-const DEPTH_IN_BLOCKS = process.argv[2] ? parseInt(process.argv[2]) : 70;
+const DEPTH_IN_BLOCKS = process.argv[3] ? parseInt(process.argv[3]) : 70;
+console.log("DEPTH_IN_BLOCKS", DEPTH_IN_BLOCKS);
 const config = require('./CONFIG');
 const helpers = require('./helpers');
 const txDecoder = require('ethereum-tx-decoder');
