@@ -20,6 +20,13 @@ class OracleConf:
 oracleConf = OracleConf()
 
 ###############################################################################
+###############################################################################
+# Each test uses an independent instance of the OracleTurn class to be able to 
+# have an isolated and controlled sequence of events throughout a chain of blocks.
+###############################################################################
+###############################################################################
+
+###############################################################################
 # price_changed_blocks testing
 ###############################################################################
 
@@ -125,7 +132,7 @@ def test_new_pub_initial_price_change():
     assert ret == 4
 
 ###############################################################################
-# is_oracle_turn testing
+# _is_oracle_turn_with_msg testing
 ###############################################################################
 
 points = 0
@@ -208,8 +215,8 @@ def is_oracle_turn_aux(oracleTurn,
                                             last_pub_block,
                                             last_pub_block_hash,
                                             blockchain_price),
-                          oracle_addr,
-                          priceWithTS(exchange_price, 0))
+                              oracle_addr,
+                              priceWithTS(exchange_price, 0))
 
 block_num_list = [12,14,16,18]
 
@@ -221,26 +228,18 @@ selected_in_current_round_oracles_len = len(selected_oracles) - len_unselected_o
 # Test oracle of index 12 is not selected because has selectedInCurrentRound set to False
 def test_is_never_oracle_12_turn_because_is_not_selected():
     oracleTurn = getOracleTurnForTurnTesting()
-    assert is_oracle_turn(oracleTurn,
-                          oracleBCInfo2(selected_oracles,
-                                        18,
-                                        1,
-                                        "0x0000000000000000000000000000",
-                                        11.1 + oracleConf.oracle_turn_conf.price_delta_pct * .99),
-                          selected_oracles[12].addr,
-                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn_aux(oracleTurn,
+                              selected_oracles[12].addr,
+                              block_num_list[3],
+                              oracleConf.oracle_turn_conf.price_delta_pct * .99) is False
 
 # Test random oracle is not selected because is not in list of oracles with selectedInCurrentRound set to True
 def test_an_address_that_is_not_selected():
     oracleTurn = getOracleTurnForTurnTesting()
-    assert is_oracle_turn(oracleTurn,
-                          oracleBCInfo2(selected_oracles,
-                                        18,
-                                        1,
-                                        "0x0000000000000000000000000000",
-                                        11.1 + oracleConf.oracle_turn_conf.price_delta_pct * .99),
-                          "0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826",
-                          priceWithTS(11.1, 0)) is False
+    assert is_oracle_turn_aux(oracleTurn,
+                              "0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826",
+                              block_num_list[3],
+                              oracleConf.oracle_turn_conf.price_delta_pct * .99) is False
 
 # Test that if the price doesn't change enough, it's no oracle's turn
 def test_is_oracle_turn_no_price_change():
