@@ -1,6 +1,8 @@
+import logging
+
 from starlette.datastructures import Secret
 
-from common.services.blockchain import BlockchainAccount, BlockChainContract, BlockChainAddress
+from common.services.blockchain import BlockchainAccount, BlockChainContract, BlockChainAddress, is_error
 from common.services.contract_factory_service import BuildDirContractFactoryService, ContractFactoryService
 from common.services.oracle_dao import CoinPair
 from common.services.supporters_service import SupportersDetailedBalance
@@ -9,6 +11,8 @@ from common.settings import config
 from oracle.src import oracle_settings
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_service import OracleService
+
+logger = logging.getLogger(__name__)
 
 USE_COIN_PAIR = [CoinPair("BTCUSD"), CoinPair("RIFBTC")]
 INITIAL_STAKE = 5 * (10 ** 12)
@@ -32,7 +36,11 @@ async def configure_oracle():
     conf = OracleConfiguration(cf)
     await conf.initialize()
     oracle_service = OracleService(cf, conf.ORACLE_MANAGER_ADDR, conf.INFO_ADDR)
-    moc_token_service = cf.get_moc_token(await oracle_service.get_token_addr())
+    addr = await oracle_service.get_token_addr()
+    if is_error(addr):
+        logger.error("ERROR GETTING TOKEN ADDR", addr)
+        raise Exception(addr);
+    moc_token_service = cf.get_moc_token(addr)
     oracle_manager_service = cf.get_oracle_manager(conf.ORACLE_MANAGER_ADDR)
     oracle_manager_addr = cf.get_addr("ORACLE_MANAGER")
     return conf, oracle_service, moc_token_service, oracle_manager_service, oracle_manager_addr
