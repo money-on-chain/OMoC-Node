@@ -10,6 +10,7 @@ oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS = 1
 oracle_settings.ORACLE_ENTERING_FALLBACKS_AMOUNTS = b'\x02\x04\x06\x08\n'
 oracle_settings.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS = 30
 
+
 class OracleConf:
     @property
     def oracle_turn_conf(self):
@@ -17,7 +18,10 @@ class OracleConf:
                                        oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                                        oracle_settings.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
                                        oracle_settings.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)
+
+
 oracleConf = OracleConf()
+
 
 ###############################################################################
 ###############################################################################
@@ -33,103 +37,140 @@ oracleConf = OracleConf()
 def getOracleTurnForPriceTesting():
     return OracleTurn(None, "BTCUSD")
 
+
 priceWithTS = PriceWithTimestamp
+
+
 def oracleBCInfo1(last_pub_block, block_num, blockchain_price):
     return OracleBlockchainInfo("BTCUSD", [], blockchain_price, block_num, last_pub_block, "", 300)
 
 
 def test_no_price_change():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 18, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 18, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 20, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 20, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
 
 
 def test_price_change():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 2
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 16, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 16, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 4
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 18, 11.1), priceWithTS(33.3, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 18, 11.1),
+                                                         priceWithTS(33.3, 0))
     assert ret == 6
 
 
 def test_initial_price_change():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 2
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 4
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 16, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 16, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 6
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 18, 11.1), priceWithTS(33.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 18, 11.1),
+                                                         priceWithTS(33.2, 0))
     assert ret == 8
 
 
 def test_price_change_2():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1), priceWithTS(33.3, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1),
+                                                         priceWithTS(33.3, 0))
     assert ret == 2
 
 
 def test_new_pub_no_price_change():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 14, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 14, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
 
 
 def test_new_pub_price_change():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret is None
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 14, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 14, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret == 2
 
 
 def test_new_pub_initial_price_change():
     oracleTurn = getOracleTurnForPriceTesting()
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 10, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 12, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret == 2
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(1, 14, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret == 4
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1), priceWithTS(22.2, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 16, 11.1),
+                                                         priceWithTS(22.2, 0))
     assert ret == 0
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 18, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 18, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret == 2
-    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 20, 11.1), priceWithTS(11.1, 0))
+    ret = oracleTurn.price_follower.price_changed_blocks(oracleConf.oracle_turn_conf, oracleBCInfo1(2, 20, 11.1),
+                                                         priceWithTS(11.1, 0))
     assert ret == 4
+
 
 ###############################################################################
 # _is_oracle_turn_with_msg testing
@@ -183,12 +224,15 @@ selected_oracles = [
     FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cd535E', 'http://127.0.0.1:24000',
                         2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, False,
                         current_round_num)
-                        ]
+]
+
 
 def getOracleTurnForTurnTesting():
     return OracleTurn(oracleConf, "BTCUSD")
 
+
 valid_price_period_in_blocks = 60
+
 
 def oracleBCInfo2(os, block_num, last_pub_block, last_pub_block_hash, blockchain_price):
     return OracleBlockchainInfo(CoinPair('BTCUSD'), os, blockchain_price, block_num, last_pub_block,
@@ -200,25 +244,27 @@ def is_oracle_turn(oracleTurn, vi, oracle_addr, exchange_price):
                                              vi.selected_oracles)
     return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)[0]
 
+
 def is_oracle_turn_aux(oracleTurn,
                        oracle_addr,
                        block_num,
                        blockchain_price_diff=0,
                        exchange_price_diff=0):
-        last_pub_block = 1
-        last_pub_block_hash = "0x0000000000000000000000000001"
-        blockchain_price = 11.1 + blockchain_price_diff
-        exchange_price = 11.1 + exchange_price_diff
-        return is_oracle_turn(oracleTurn,
-                              oracleBCInfo2(selected_oracles,
-                                            block_num,
-                                            last_pub_block,
-                                            last_pub_block_hash,
-                                            blockchain_price),
-                              oracle_addr,
-                              priceWithTS(exchange_price, 0))
+    last_pub_block = 1
+    last_pub_block_hash = "0x0000000000000000000000000001"
+    blockchain_price = 11.1 + blockchain_price_diff
+    exchange_price = 11.1 + exchange_price_diff
+    return is_oracle_turn(oracleTurn,
+                          oracleBCInfo2(selected_oracles,
+                                        block_num,
+                                        last_pub_block,
+                                        last_pub_block_hash,
+                                        blockchain_price),
+                          oracle_addr,
+                          priceWithTS(exchange_price, 0))
 
-block_num_list = [12,14,16,18]
+
+block_num_list = [12, 14, 16, 18]
 
 # The last 2 oracles have selectedInCurrentRound set to False.
 len_unselected_oracles = 2
@@ -233,6 +279,7 @@ def test_is_never_oracle_12_turn_because_is_not_selected():
                               block_num_list[3],
                               oracleConf.oracle_turn_conf.price_delta_pct * .99) is False
 
+
 # Test random oracle is not selected because is not in list of oracles with selectedInCurrentRound set to True
 def test_an_address_that_is_not_selected():
     oracleTurn = getOracleTurnForTurnTesting()
@@ -241,10 +288,11 @@ def test_an_address_that_is_not_selected():
                               block_num_list[3],
                               oracleConf.oracle_turn_conf.price_delta_pct * .99) is False
 
+
 # Test that if the price doesn't change enough, it's no oracle's turn
 def test_is_oracle_turn_no_price_change():
     oracleTurn = getOracleTurnForTurnTesting()
-    
+
     for i in range(len(selected_oracles)):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
@@ -269,6 +317,7 @@ def test_is_oracle_turn_no_price_change():
                                   (11.1 * oracleConf.oracle_turn_conf.price_delta_pct) / 100 * .99,
                                   0) is False
 
+
 # Test the first oracle needs to wait ORACLE_PRICE_PUBLISH_BLOCKS blocks after price change to be selected.
 def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
     oracleTurn = getOracleTurnForTurnTesting()
@@ -287,7 +336,7 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
                               block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                               0,
                               3) is True
-    for i in range(1,selected_in_current_round_oracles_len):
+    for i in range(1, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
@@ -321,7 +370,7 @@ def test_is_oracle_turn_price_change():
                               block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                               0,
                               3) is True
-    for i in range(1,selected_in_current_round_oracles_len):
+    for i in range(1, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
@@ -336,7 +385,7 @@ def test_is_oracle_turn_price_change():
                                   0,
                                   3) is True
 
-    for i in range(3,selected_in_current_round_oracles_len):
+    for i in range(3, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1,
@@ -351,7 +400,7 @@ def test_is_oracle_turn_price_change():
                                   0,
                                   3) is True
 
-    for i in range(5,selected_in_current_round_oracles_len):
+    for i in range(5, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 2,
@@ -366,7 +415,7 @@ def test_is_oracle_turn_price_change():
                                   0,
                                   3) is True
 
-    for i in range(7,selected_in_current_round_oracles_len):
+    for i in range(7, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 3,
@@ -381,7 +430,7 @@ def test_is_oracle_turn_price_change():
                                   0,
                                   3) is True
 
-    for i in range(9,selected_in_current_round_oracles_len):
+    for i in range(9, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 4,
@@ -396,7 +445,7 @@ def test_is_oracle_turn_price_change():
                                   0,
                                   3) is True
 
-    for i in range(11,selected_in_current_round_oracles_len):
+    for i in range(11, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 5,
@@ -412,7 +461,7 @@ def test_is_oracle_turn_price_change():
                                   3) is True
 
     # The rest of the oracles have selectedInCurrentRound set as False so they are not selected ever.
-    for i in range(12,len(selected_oracles)):
+    for i in range(12, len(selected_oracles)):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list[0] + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 6,
@@ -459,7 +508,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                               selected_oracles[0].addr,
                               block_num_list_for_exp_period[2]) is True
 
-    for i in range(1,selected_in_current_round_oracles_len):
+    for i in range(1, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[2]) is False
@@ -471,7 +520,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[3]) is True
 
-    for i in range(3,selected_in_current_round_oracles_len):
+    for i in range(3, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[3]) is False
@@ -483,7 +532,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[4]) is True
 
-    for i in range(5,selected_in_current_round_oracles_len):
+    for i in range(5, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[4]) is False
@@ -495,7 +544,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[5]) is True
 
-    for i in range(7,selected_in_current_round_oracles_len):
+    for i in range(7, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[5]) is False
@@ -507,7 +556,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[6]) is True
 
-    for i in range(9,selected_in_current_round_oracles_len):
+    for i in range(9, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[6]) is False
@@ -519,7 +568,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[7]) is True
 
-    for i in range(11,selected_in_current_round_oracles_len):
+    for i in range(11, selected_in_current_round_oracles_len):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[7]) is False
@@ -532,7 +581,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
                                   block_num_list_for_exp_period[8]) is True
 
     # The rest of the oracles have selectedInCurrentRound set as False so they are not selected ever.
-    for i in range(selected_in_current_round_oracles_len,len(selected_oracles)):
+    for i in range(selected_in_current_round_oracles_len, len(selected_oracles)):
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[8]) is False
