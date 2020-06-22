@@ -94,6 +94,17 @@ class OracleTurn:
             logger.warning("PRICE will EXPIRE before oracles get to publish. Check configuration.")
         ####################################
 
+        # WARN if valid_price_period_in_blocks < trigger_valid_publication_blocks and return False
+        # as it may allow many oracles to publish without a price change
+        ####################################
+        if vi.valid_price_period_in_blocks < conf.trigger_valid_publication_blocks:
+            msg = "valid_price_period_in_blocks should be higher than trigger_valid_publication_blocks \
+                   %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
+                                                      conf.trigger_valid_publication_blocks)
+            logger.error(msg)
+            return False, msg
+        ####################################
+
         start_block_pub_period_before_price_expires = vi.last_pub_block + \
                                                       vi.valid_price_period_in_blocks - \
                                                       conf.trigger_valid_publication_blocks
@@ -137,7 +148,12 @@ class OracleTurn:
 
     @staticmethod
     def get_fallback_sequence(entering_fallbacks_amounts, selected_oracles_len):
-        entering_fallback_sequence = [x for x in entering_fallbacks_amounts]
+        # x + 1 so that when it's being used as index for the addresses' list,
+        # it can get the x addresses after the first one (the chosen oracle)
+        entering_fallback_sequence = [x + 1 for x in entering_fallbacks_amounts]
+        # Insert amount 1 at the beginning that it will be fetched by index 0 of 0 blocks since price change
+        # so that 0 fallbacks are chosen. See selected_fallbacks variable assignment.
+        entering_fallback_sequence.insert(0, 1)
         if len(entering_fallback_sequence) == 0 or entering_fallback_sequence[-1] < selected_oracles_len - 1:
             entering_fallback_sequence.append(selected_oracles_len)
         return entering_fallback_sequence
@@ -148,7 +164,7 @@ class OracleTurn:
             return True
         # Gets blocks since publication is allowed from blocks_since_pub_is_allowed and uses it as index in the amount
         # of entering fall backs sequence.
-        # Makes sure the index is within range of the list.
+        # Also makes sure the index is within range of the list.
         entering_fallback_sequence_index = blocks_since_pub_is_allowed \
             if blocks_since_pub_is_allowed is not None \
                and blocks_since_pub_is_allowed < len(entering_fallback_sequence) \
