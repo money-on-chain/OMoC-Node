@@ -4,11 +4,13 @@ from ethereum import utils
 from datetime import datetime
 import re, os, requests
 
-
 envMonitor = "monitor/backend/.env"
 envServer = "servers/.env"
-oracleDone = ""
-emailDone = ""
+
+actualAddress = "(Actual Adress: None)"
+actualEmail = "(Actual Email: None)"
+actualNode = "(Actual Node: None)"
+
 class Account(object):
     address = ""
     privateKey = ""
@@ -56,12 +58,21 @@ class Account(object):
 
 def addTo(filePath, search, addText):
     file = Path(filePath)
-    content = re.sub(re.escape(search) + r'.*',search + addText,file.read_text())
+    content = re.sub(r'\n' + re.escape(search) + r'.*',search + addText,file.read_text())
+    file.open('w').write(content)
+def NodeOption():
+    global envServer
+    print("///////////")
+    print("Now we will setup your RSK Node.")
+    print("Enter your RSK Node address in the form of 'http://<<IP>>:<<PORT>>'")
+    print("///////////")
+    node = input("node:")
+    addTo(envServer,'NODE_URL=', '"' + node  + '"')
     file.open('w').write(content)
 def oracleOption():
     global envMonitor
     global envServer
-    global oracleDone
+    global actualAddress
 
     oracle = Account.getAccount("oracle")
 
@@ -79,8 +90,6 @@ def oracleOption():
     #addTo(envServer,"SCHEDULER_SIGNING_ADDR = ",'"' + scheduler.address  + '"')
     #addTo(envServer,"SCHEDULER_SIGNING_KEY = ", '"' + scheduler.privateKey + '"')
     addTo(envMonitor,"ORACLE_SERVER_ADDRESS=",oracle.address)
-
-    oracleDone  = " (Done)"
 def emailOption():
     global envMonitor
     print("///////////")
@@ -114,21 +123,27 @@ def emailOption():
     addTo(envMonitor,"EMAIL_REPEAT_INTERVAL=", seconds)
 def checkStatus():
     global envMonitor
-    global oracleDone
-    global emailDone 
+    global envServer
+    global actualAddress
+    global actualEmail 
+    global actualNode
 
-    file = Path(envMonitor)
-    oracle = re.search('ORACLE_SERVER_ADDRESS=.*',file.read_text())
-    mail = re.search('SMTP_HOST=.*',file.read_text())
+    fileMonitor = Path(envMonitor)
+    fileServer  = Path(envServer)
+    oracle = re.search('ORACLE_SERVER_ADDRESS=.*',fileMonitor.read_text())
+    mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
+    node = re.search(r'^NODE_URL=.*',fileServer.read_text(),re.MULTILINE)
     if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="):
-        oracleDone = " (" + oracle.group().strip()[22:] + ")"
+        actualAddress = "(Actual Address: " + oracle.group().strip()[22:] + ")"
     if (mail.group().strip() != "SMTP_HOST=" ): 
-        emailDone = " (" + mail.group().strip()[10:] +")"
+        actualEmail = "(Actual Email:" + mail.group().strip()[10:] +")"
+    actualNode = "(Actual Node: " + node.group().strip()[10:-1] + ")"
 def main():
     global envMonitor
     global envServer
-    global oracleDone
-    global emailDone
+    global actualAddress
+    global actualEmail
+    global actualNode
 
     folders = os.getcwd().split("/")
     if ((folders[len(folders)-1] ) == "scripts"):
@@ -150,15 +165,17 @@ def main():
     while (quit ==False):
         checkStatus()
         print("Please, select what do you want to configure right now:")
-        print(" 1. Configure my oracle" + oracleDone)
-        print(" 2. Configure my email account" + emailDone)
-        print(" 3. I have done the two previous items. What are the following instructions?")
-        print(" 4. Exit")
+        print(" 1. Configure my oracle" + "--------" + actualAddress)
+        print(" 2. Configure my email account" + "--------" + actualEmail)
+        print(" 3. Set your custom RSK Node " + "--------" + actualNode)
+        print(" 4. I have done the two previous items. What are the following instructions?")
+        print(" 5. Exit")
+
         Menu = input()
-        if (Menu == "4" ): quit = True
         if (Menu == "1"): oracleOption()
         if (Menu == "2"): emailOption()
-        if (Menu == "3"): 
+        if (Menu == "3"): NodeOption()
+        if (Menu == "4"): 
             print("")
             print("////////")
             print("if everything is setup correctly, let's run the services.")
@@ -170,5 +187,6 @@ def main():
             print(" ")
             print("////////")
             quit = True
+        if (Menu == "5" ): quit = True
 if __name__ == "__main__":
     main()
