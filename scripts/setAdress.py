@@ -1,30 +1,32 @@
 from getpass import getpass
 from pathlib import Path
-from eth_account import Account
+from ethereum import utils
 from datetime import datetime
 import re, os, requests
 
-
 envMonitor = "monitor/backend/.env"
 envServer = "servers/.env"
-oracleDone = ""
-emailDone = ""
-class AccountLocal(object):
+
+actualAddress = "(Actual Adress: None)"
+actualEmail = "(Actual Email: None)"
+actualNode = "(Actual Node: None)"
+
+class Account(object):
     address = ""
     privateKey = ""
-    """Generete a privateKey/AccountLocal using  2 random numbers + date + an input words"""
-    def __init__(self, word=""):
-        super(AccountLocal, self).__init__()
+    """Generete a privateKey/Account using  2 random numbers + date + an input words"""
+    def __init__(self, word):
+        super(Account, self).__init__()
         if (word != ""):
             now = datetime.now()
             randomFromWeb = requests.get('https://www.random.org/integers/?num=1&min=1&max=4096&col=1&base=10&format=plain&rnd=new').text
-            seed_str =  str(randomFromWeb 
+            seed_str =  (randomFromWeb 
                          + str(os.urandom(4096))
                          + now.strftime("%d/%m/%Y %H:%M:%S")
                          + word)
-            acct =  Account.create(seed_str)
-            self.address = acct.address
-            self.privateKey = acct.privateKey.hex()
+            privKey_Raw = utils.sha3(seed_str)
+            self.address = utils.checksum_encode(utils.privtoaddr(privKey_Raw))
+            self.privateKey = utils.encode_hex(privKey_Raw)
     def setAddress(self,_address):
         self.address=_address
     def setPrivateKey(self,_privateKey):
@@ -39,7 +41,7 @@ class AccountLocal(object):
             print("2. I want to generate the pair")
             answer = input()
             if (answer == "1"):
-                account = AccountLocal()
+                account = Account("")
                 print("Enter the address of the " + _purpose +" wallet in RSK")
                 account.setAddress(input("Adress:")) 
                 print("Enter the private password that correspond to the address you just entered")
@@ -50,31 +52,46 @@ class AccountLocal(object):
                     print("Enter 2 or more words separated by spaces.")
                     print("We will use them as part of the seed used for generate a random privateKey")
                     words = input()
-                account = AccountLocal(words)
+                account = Account(words)
                 print("Your new address is: " + account.address)
         return (account)
 
 def addTo(filePath, search, addText):
     file = Path(filePath)
-    content = re.sub(re.escape(search) + r'.*',search + addText,file.read_text())
+    content = re.sub(r'\n' + re.escape(search) + r'.*'
+                    ,'\n' + search + addText,
+                    file.read_text())
     file.open('w').write(content)
+def NodeOption():
+    global envServer
+    print("///////////")
+    print("Now we will setup your RSK Node.")
+    print("Enter your RSK Node address in the form of 'http://<<IP>>:<<PORT>>'")
+    print("or press enter if you want to connect to the public node.")
+    print("///////////")
+    node = input("Node (default: public-node):")
+    if node =="": node="https://public-node.testnet.rsk.co:443"
+    addTo(envServer,'NODE_URL=', '"' + node  + '"')
 def oracleOption():
     global envMonitor
     global envServer
+    global actualAddress
 
-    oracle = AccountLocal.getAccount("oracle")
-    answ = input("You want to use the same address for the scheduler? (Yes/No) (default: Yes)").lower()
-    if (answ in ["no","n"]):
-        scheduler = AccountLocal.getAccount("scheduler")
-    else:
-        scheduler = AccountLocal()
-        scheduler.setAddress(oracle.address)
-        scheduler.setPrivateKey(oracle.privateKey)
+    oracle = Account.getAccount("oracle")
 
-    addTo(envServer,"ORACLE_ADDR=",'"' + oracle.address + '"')
+    ### NO SCheduler ###
+        #answ = input("You want to use the same address for the scheduler? (Yes/No) (default: Yes)").lower()
+        #if (answ in ["no","n"]):
+        #    scheduler = Account.getAccount("scheduler")
+        #else:
+        #    scheduler = Account("")
+        #    scheduler.setAddress(oracle.address)
+        #    scheduler.setPrivateKey(oracle.privateKey)
+
+    #addTo(envServer,"ORACLE_ADDR=",'"' + oracle.address + '"')
     addTo(envServer,"ORACLE_PRIVATE_KEY=",'"' + oracle.privateKey + '"' )
-    addTo(envServer,"SCHEDULER_SIGNING_ADDR = ",'"' + scheduler.address  + '"')
-    addTo(envServer,"SCHEDULER_SIGNING_KEY = ", '"' + scheduler.privateKey + '"')
+    #addTo(envServer,"SCHEDULER_SIGNING_ADDR = ",'"' + scheduler.address  + '"')
+    #addTo(envServer,"SCHEDULER_SIGNING_KEY = ", '"' + scheduler.privateKey + '"')
     addTo(envMonitor,"ORACLE_SERVER_ADDRESS=",oracle.address)
 def emailOption():
     global envMonitor
@@ -95,8 +112,9 @@ def emailOption():
     emailFrom = input("From:")
     print("What email account will receive the messages?")
     emailTo = input("to:")
-    print("How often, in seconds, are the emails sent?")
-    seconds = input("seconds: ")
+    print("How often, in minutes, are the emails sent?")
+    minutes = input("minutes (default:60): ")
+    seconds = str(int(minutes) * 60) if minutes.strip().isnumeric() else  str(60 * 60)
     #setup file
     addTo(envMonitor,"SMTP_HOST=", smtp_host)
     addTo(envMonitor,"SMTP_PORT=", smtp_port)
@@ -108,26 +126,32 @@ def emailOption():
     addTo(envMonitor,"EMAIL_REPEAT_INTERVAL=", seconds)
 def checkStatus():
     global envMonitor
-    global oracleDone
-    global emailDone 
-    oracleDone = ""
-    emailDone = ""
-    file = Path(envMonitor)
-    oracle = re.search('ORACLE_SERVER_ADDRESS=.*',file.read_text())
-    mail = re.search('SMTP_HOST=.*',file.read_text())
-    if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="): oracleDone = " (Done)"
-    if (mail.group().strip() != "SMTP_HOST=" ): emailDone = " (Done)"
+    global envServer
+    global actualAddress
+    global actualEmail 
+    global actualNode
+
+    fileMonitor = Path(envMonitor)
+    fileServer  = Path(envServer)
+    oracle = re.search('ORACLE_SERVER_ADDRESS=.*',fileMonitor.read_text())
+    mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
+    node = re.search(r'^NODE_URL=.*',fileServer.read_text(),re.MULTILINE)
+    if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="):
+        actualAddress = "(Actual Address: " + oracle.group().strip()[22:] + ")"
+    if (mail.group().strip() != "SMTP_HOST=" ): 
+        actualEmail = "(Actual Email:" + mail.group().strip()[10:] +")"
+    actualNode = "(Actual Node: " + node.group().strip()[10:-1] + ")"
 def main():
     global envMonitor
     global envServer
-    global oracleDone
-    global emailDone
+    global actualAddress
+    global actualEmail
+    global actualNode
 
     folders = os.getcwd().split("/")
     if ((folders[len(folders)-1] ) == "scripts"):
         envMonitor = "../" + envMonitor
         envServer = "../" + envServer
-    
     # Address  and privateKey
     print("///////////")
     print("We are going to configure your oracle. ")
@@ -139,20 +163,22 @@ def main():
     print("///////////")
     print("")
 
+
     quit = False
     while (quit ==False):
         checkStatus()
-
         print("Please, select what do you want to configure right now:")
-        print(" 1. Configure my oracle and scheduler" + oracleDone)
-        print(" 2. Configure my email account" + emailDone)
-        print(" 3. I have done the two previous items. What are the following instructions?")
-        print(" 4. Exit")
+        print(" 1. Configure my oracle" + "--------" + actualAddress)
+        print(" 2. Configure my email account" + "--------" + actualEmail)
+        print(" 3. Set your custom RSK Node " + "--------" + actualNode)
+        print(" 4. I have done the two previous items. What are the following instructions?")
+        print(" 5. Exit")
+
         Menu = input()
-        if (Menu == "4" ): quit = True
         if (Menu == "1"): oracleOption()
         if (Menu == "2"): emailOption()
-        if (Menu == "3"): 
+        if (Menu == "3"): NodeOption()
+        if (Menu == "4"): 
             print("")
             print("////////")
             print("if everything is setup correctly, let's run the services.")
@@ -164,5 +190,6 @@ def main():
             print(" ")
             print("////////")
             quit = True
+        if (Menu == "5" ): quit = True
 if __name__ == "__main__":
     main()
