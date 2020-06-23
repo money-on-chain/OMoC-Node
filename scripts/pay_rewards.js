@@ -4,6 +4,7 @@
  */
 const Web3 = require('web3');
 const HDWalletProvider = require("truffle-hdwallet-provider-privkey");
+require('dotenv').config()
 
 const ORACLE_MANAGER_ABI =
     [
