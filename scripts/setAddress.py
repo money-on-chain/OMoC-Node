@@ -70,7 +70,7 @@ def NodeOption():
     print("or press enter if you want to connect to the public node.")
     print("///////////")
     node = input("Node (default: public-node):")
-    if node =="": node="https://public-node.testnet.rsk.co"
+    if node =="": node="https://public-node.testnet.rsk.co:443"
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
 def oracleOption():
     global envMonitor
