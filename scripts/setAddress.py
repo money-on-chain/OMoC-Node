@@ -58,17 +58,20 @@ class Account(object):
 
 def addTo(filePath, search, addText):
     file = Path(filePath)
-    content = re.sub(r'\n' + re.escape(search) + r'.*',search + addText,file.read_text())
+    content = re.sub(r'\n' + re.escape(search) + r'.*'
+                    ,'\n' + search + addText,
+                    file.read_text())
     file.open('w').write(content)
 def NodeOption():
     global envServer
     print("///////////")
     print("Now we will setup your RSK Node.")
     print("Enter your RSK Node address in the form of 'http://<<IP>>:<<PORT>>'")
+    print("or press enter if you want to connect to the public node.")
     print("///////////")
-    node = input("node:")
+    node = input("Node (default: public-node):")
+    if node =="": node="https://public-node.testnet.rsk.co"
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
-    file.open('w').write(content)
 def oracleOption():
     global envMonitor
     global envServer
