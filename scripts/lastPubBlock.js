@@ -1,17 +1,18 @@
 /*
 This script queries the OracleManager for all the CoinPairPrice addresses then
     the block chain is searched for call to those contracts and transaction details are shown.
-    Example: ```NETWORK=ganche node lastPubBlock.js 0xE2e9570d9f3E63Ca1b6dAf7D0966C5dC151b03DF```
+    Example: ```NETWORK=ganche node lastPubBlock.js number_of_block_to_search_for```
 
  */
-const DEPTH_IN_BLOCKS = process.argv[3] ? parseInt(process.argv[3]) : 70;
-console.log("DEPTH_IN_BLOCKS", DEPTH_IN_BLOCKS);
-const config = require('./CONFIG');
 const helpers = require('./helpers');
 const txDecoder = require('ethereum-tx-decoder');
 const colors = require('colors/safe');
 const BigNumber = require('bignumber.js');
 const Table = require('cli-table');
+const config = require('./CONFIG');
+const ARGS = helpers.getScriptArgs(__filename);
+const DEPTH_IN_BLOCKS = isNaN(ARGS[0]) ? 70 : parseInt(ARGS[0]);
+console.log("DEPTH_IN_BLOCKS", DEPTH_IN_BLOCKS);
 
 async function getHistory(web3, fromBlk, toBlk, to) {
     const eth = web3.eth;

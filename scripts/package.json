@@ -16,6 +16,6 @@
     "ethereum-tx-decoder": "^3.0.0",
     "sqlite-async": "^1.0.12",
     "truffle-hdwallet-provider-privkey": "^0.3.0",
-    "web3": "^1.2.6"
+    "web3": "^1.2.9"
   }
 }
