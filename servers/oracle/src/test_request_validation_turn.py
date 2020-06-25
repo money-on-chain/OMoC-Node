@@ -60,7 +60,7 @@ def rv(oracle_turn, running_oracle, params):
     # Validated elsewhere
     publish_last_pub_block = 3231213
     blockchain_price = 1023
-    oracle_price_reject_delta_pct = 0.05
+    oracle_price_reject_delta_pct = 50
     exchange_price = blockchain_price * params["price_delta"]
     return RequestValidation(oracle_price_reject_delta_pct,
                              PublishPriceParams(version,
@@ -130,7 +130,7 @@ def test_success_oracle_turn_on_price_change():
     can_publish(oracleTurn, params, [0])
 
     # Price changes but still only the CHOSEN oracle has its turn validated.
-    params["price_delta"] = 1.000000001 * oracleConf.oracle_turn_conf.price_delta_pct / 100
+    params["price_delta"] = 1.000000001 + oracleConf.oracle_turn_conf.price_delta_pct / 100
     can_publish(oracleTurn, params, [0])
 
     # ORACLE_PRICE_PUBLISH_BLOCKS blocks pass since price change and still
