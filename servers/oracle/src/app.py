@@ -2,16 +2,33 @@ import logging
 import traceback
 
 from fastapi import Form, HTTPException
+from pydantic import BaseModel
 
 from common import settings, run_uvicorn
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.request_validation import ValidationFailure
+from fastapi import Request
+
 
 logger = logging.getLogger(__name__)
 main_executor = MainLoop()
 app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
+
+
+@app.middleware("http")
+def filter_ips_by_selected_oracles(request: Request, call_next):
+    (ip, port) = request.client
+    caller_internet_name = ip + ":" + port
+    body = request.json()
+    oracle_loop = main_executor.oracle_loop
+    blockchain_info_loop = oracle_loop.cpMap[body.coin_pair].blockchain_info_loop
+    selected_oracles = blockchain_info_loop.get().selected_oracles
+    internet_names = [oracle.internetName for oracle in selected_oracles]
+    if caller_internet_name not in internet_names:
+        #TODO shut off connection
+        pass
 
 
 @app.on_event("startup")
