@@ -4,18 +4,18 @@ from starlette.datastructures import Secret
 from common.ganache_accounts import GANACHE_ACCOUNTS
 from common.services.blockchain import BlockchainAccount
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
+from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
 from oracle.src.oracle_configuration import OracleTurnConfiguration
 from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.oracle_turn import OracleTurn
 from oracle.src.request_validation import RequestValidation, InvalidTurn
-from oracle.src import oracle_settings
-
 
 oracle_settings.ORACLE_PRICE_DELTA_PCT = 0.05
 oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS = 1
 oracle_settings.ORACLE_ENTERING_FALLBACKS_AMOUNTS = b'\x02\x04\x06\x08\n'
 oracle_settings.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS = 30
+
 
 class OracleConf:
     @property
@@ -24,6 +24,8 @@ class OracleConf:
                                        oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS,
                                        oracle_settings.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
                                        oracle_settings.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)
+
+
 oracleConf = OracleConf()
 
 valid_price_period_in_blocks = 60
@@ -89,6 +91,7 @@ def can_publish(oracleTurn, params, is_idx):
         with pytest.raises(InvalidTurn) as e:
             v.validate_turn()
 
+
 # Test that with no price change the chosen oracle has his turn validated but not the fallbacks
 def test_success_oracle_turn_no_price_change():
     oracleTurn = OracleTurn(oracleConf, cp)
@@ -98,7 +101,7 @@ def test_success_oracle_turn_no_price_change():
         "price_delta": 1,
         "blockchain_last_pub_block": 1,
         "last_pub_block_hash": "0x000000000000000000"
-        }
+    }
 
     # No price change. Only the CHOSEN oracle has its turn validated.
     can_publish(oracleTurn, params, [0])
@@ -119,7 +122,7 @@ def test_success_oracle_turn_on_price_change():
         "price_delta": 1,
         "blockchain_last_pub_block": 1,
         "last_pub_block_hash": "0x000000000000000000"
-        }
+    }
 
     # Account zero is not in selected group
     v = rv(oracleTurn, (accounts[0],), params)
@@ -141,22 +144,22 @@ def test_success_oracle_turn_on_price_change():
     # (ORACLE_PRICE_PUBLISH_BLOCKS + 1) blocks pass since price change so now
     # the CHOSEN oracle and the next TWO fallbacks have their turn validated.
     params["block_number"] = starting_block_num + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 1
-    can_publish(oracleTurn, params, [0,1,2])
+    can_publish(oracleTurn, params, [0, 1, 2])
 
     # (ORACLE_PRICE_PUBLISH_BLOCKS + 2) blocks pass since price change so now
     # the CHOSEN oracle and the next FOUR fallbacks have their turn validated.
     params["block_number"] = starting_block_num + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 2
-    can_publish(oracleTurn, params, [0,1,2,3,4])
+    can_publish(oracleTurn, params, [0, 1, 2, 3, 4])
 
     # (ORACLE_PRICE_PUBLISH_BLOCKS + 3) blocks pass since price change so now
     # the CHOSEN oracle and the next SIX fallbacks have their turn validated.
     params["block_number"] = starting_block_num + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 3
-    can_publish(oracleTurn, params, [0,1,2,3,4,5,6])
+    can_publish(oracleTurn, params, [0, 1, 2, 3, 4, 5, 6])
 
     # (ORACLE_PRICE_PUBLISH_BLOCKS + 4) blocks pass since price change so now
     # the CHOSEN oracle and the next EIGHT fallbacks have their turn validated.
     params["block_number"] = starting_block_num + oracle_settings.ORACLE_PRICE_PUBLISH_BLOCKS + 4
-    can_publish(oracleTurn, params, [0,1,2,3,4,5,6,7,8])
+    can_publish(oracleTurn, params, [0, 1, 2, 3, 4, 5, 6, 7, 8])
 
 
 # If price doesn't change, the chosen oracle and fallback 
@@ -170,7 +173,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
         "price_delta": 1,
         "blockchain_last_pub_block": 1,
         "last_pub_block_hash": "0x000000000000000000"
-        }
+    }
 
     last_pub_block = 1
     start_block_pub_period_before_price_expires = last_pub_block + \
@@ -204,22 +207,22 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
     # 1 block has passed since the starting block of period before price expires.
     # Only the first oracle and the next TWO fallbacks should have their turn validated.
     params["block_number"] = block_num_list_for_exp_period[2]
-    can_publish(oracleTurn, params, [0,1,2])
+    can_publish(oracleTurn, params, [0, 1, 2])
 
     # 2 blocks have passed since the starting block of period before price expires.
     # Only the first oracle and the next FOUR fallbacks should have their turn validated.
     params["block_number"] = block_num_list_for_exp_period[3]
-    can_publish(oracleTurn, params, [0,1,2,3,4])
+    can_publish(oracleTurn, params, [0, 1, 2, 3, 4])
 
     # 3 blocks have passed since the starting block of period before price expires.
     # Only the first oracle and the next SIX fallbacks should have their turn validated.
     params["block_number"] = block_num_list_for_exp_period[4]
-    can_publish(oracleTurn, params, [0,1,2,3,4,5,6])
+    can_publish(oracleTurn, params, [0, 1, 2, 3, 4, 5, 6])
 
     # 4 blocks have passed since the starting block of period before price expires.
     # Only the first oracle and the next EIGHT fallbacks should have their turn validated.
     params["block_number"] = block_num_list_for_exp_period[5]
-    can_publish(oracleTurn, params, [0,1,2,3,4,5,6,7,8])
+    can_publish(oracleTurn, params, [0, 1, 2, 3, 4, 5, 6, 7, 8])
 
 
 def test_fail_if_invalid_price():

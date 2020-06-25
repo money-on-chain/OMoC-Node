@@ -4,6 +4,7 @@ from random import randint
 from common.services.oracle_dao import FullOracleRoundInfo
 from oracle.src.select_next import select_next
 
+
 def test_next_publisher_loop():
     num_oracles = 32
     num_rounds = 12000

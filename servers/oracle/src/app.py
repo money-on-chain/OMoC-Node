@@ -56,7 +56,7 @@ async def sign(*, version: str = Form(...),
         }
 
     except ValidationFailure as e:
-        logger.error(e)
+        logger.warning(e)
         msg = str(e) if settings.DEBUG else "Invalid signature"
         raise HTTPException(status_code=500, detail=msg)
     except Exception as e:
