@@ -69,7 +69,7 @@ class CoinPairService:
         return await self.coin_pair_price_call("coinPair")
 
     async def get_last_pub_block(self) -> int:
-        return await self.coin_pair_price_call("getLastPublicationBlock")
+        return await self.coin_pair_price_call("lastPublicationBlock")
 
     async def get_round_info(self) -> RoundInfo:
         bc_data = await self.coin_pair_price_call("getRoundInfo")

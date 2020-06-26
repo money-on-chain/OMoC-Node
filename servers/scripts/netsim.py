@@ -131,7 +131,9 @@ async def main():
     print("0. Mint tokens.")
     print("-----------------------------")
     for oe in oracleList:
-        tx = await moc_token_service.mint(oe["owner"].addr, oe["stake"], account=oe["owner"], wait=True)
+        # tx = await moc_token_service.mint(oe["owner"].addr, oe["stake"], account=oe["owner"], wait=True)
+        tx = await moc_token_service.transfer(oe["owner"].addr, oe["stake"],
+                                              account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT, wait=True)
         if is_error(tx):
             print("ERROR IN APPROVE", tx)
             return

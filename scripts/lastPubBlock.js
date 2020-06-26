@@ -14,26 +14,13 @@ const ARGS = helpers.getScriptArgs(__filename);
 const DEPTH_IN_BLOCKS = isNaN(ARGS[0]) ? 70 : parseInt(ARGS[0]);
 console.log("DEPTH_IN_BLOCKS", DEPTH_IN_BLOCKS);
 
-async function getHistory(web3, fromBlk, toBlk, to) {
-    const eth = web3.eth;
-    const range = [...Array(toBlk - fromBlk + 1).keys()].map(i => i + fromBlk);
-    const blocks = await Promise.all(range.map(i => eth.getBlock(i, true)));
-    const f_blocks = blocks.filter(b => b != null && b.transactions != null)
-        .map(b => b.transactions.map(x => ({...x, timestamp: b.timestamp})));
-    const txs = [].concat.apply([], f_blocks)
-        .filter(tx => tx.to && tx.to.toLowerCase() == to.toLowerCase());
-    const txMap = txs.reduce((acc, tx) => {
-        acc[tx.hash] = tx;
-        return acc;
-    }, {});
-    const receipts = await Promise.all(txs.map(x => eth.getTransactionReceipt(x.hash)));
-    receipts.sort((a, b) => (b.blockNumber - a.blockNumber));
-    return receipts.map(r => ({...r, ...txMap[r.transactionHash]}));
-}
-
 async function historyForCoinPair(web3, abi, contract) {
     const fnDecoder = new txDecoder.FunctionDecoder(abi);
-    const lastPubBlock = parseInt(await contract.methods.getLastPublicationBlock().call());
+    const lpbm = contract.methods.lastPublicationBlock
+        ? contract.methods.lastPublicationBlock
+        : contract.methods.getLastPublicationBlock;
+
+    const lastPubBlock = parseInt(await lpbm().call());
     const currentBlock = parseInt(await web3.eth.getBlockNumber());
     const startBlockNumber = Math.max(0, lastPubBlock - DEPTH_IN_BLOCKS);
     const endBlockNumber = Math.min(currentBlock, lastPubBlock + DEPTH_IN_BLOCKS);
@@ -41,7 +28,8 @@ async function historyForCoinPair(web3, abi, contract) {
         + " last pub block " + lastPubBlock
         + " search txs from " + startBlockNumber + " to " + endBlockNumber
     ));
-    const txs = await getHistory(web3, startBlockNumber, endBlockNumber, contract.options.address);
+    const txs = await helpers.getHistory(web3, startBlockNumber, currentBlock,
+        tx => tx.to && tx.to.toLowerCase() == contract.options.address.toLowerCase());
     const pr = (x, st, el) => (x.status ? colors.green(st) : colors.red(el || st));
     // instantiate
     const table = new Table({
@@ -69,7 +57,7 @@ async function historyForCoinPair(web3, abi, contract) {
                 web3.utils.fromWei(args.price.toString()),
                 pr(x, "SUCCESS", "FAILED"),
             ]);
-            prev = args.blockNumber;
+            if (x.status) prev = args.blockNumber;
         } else {
             console.log("Invalid signature", args.signature);
         }

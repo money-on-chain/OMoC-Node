@@ -14,14 +14,7 @@ async def main():
         balance = await moc_token_service.balance_of(script_settings.SCRIPT_REWARD_BAG_ACCOUNT.addr)
         print(cp, " REWARD ACCOUNT BALANCE: ", balance)
         if balance < script_settings.REWARDS:
-            print(cp, " MINTING")
-            tx = await moc_token_service.mint(script_settings.SCRIPT_REWARD_BAG_ACCOUNT.addr,
-                                              script_settings.REWARDS,
-                                              account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
-                                              wait=True)
-            if is_error(tx):
-                print("ERROR IN MINT", tx)
-                return
+            raise Exception("WE MUST MINT BY GOBERNANZA, check contacts/scripts/mint_tokens.js!!!")
 
         tx = await moc_token_service.transfer(cps.addr, script_settings.REWARDS,
                                               account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
