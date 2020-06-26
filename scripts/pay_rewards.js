@@ -56,6 +56,22 @@ const ORACLE_MANAGER_ABI =
         },
     ];
 
+const SUPPORTERS_ABI = [
+    {
+        "inputs": [],
+        "name": "getAvailableMOC",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function",
+        "constant": true
+    },
+];
 
 const TOKEN_ABI = [
     {
@@ -72,14 +88,6 @@ const TOKEN_ABI = [
         "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
         "stateMutability": "nonpayable",
         "type": "function"
-    },
-    {
-        "name": "mint",
-        "inputs": [{"internalType": "address", "name": "user", "type": "address"},
-            {"internalType": "uint256", "name": "amount", "type": "uint256"}],
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
     }
 ];
 
@@ -90,18 +98,14 @@ function addBN(some_obj, k, val) {
     some_obj[k].add(val);
 }
 
-async function collect_info(to_pay, oracle_manager, amount) {
-    const supporters_addr = await oracle_manager.methods.supportersContract().call();
-    console.log("\tWill pay", amount.toString(), "weis to supporters", supporters_addr);
-    to_pay[supporters_addr] = amount;
-
+async function collect_coin_pair_info(to_pay, oracle_manager, oracles_amount) {
     const coin_pair_count = await oracle_manager.methods.getCoinPairCount().call();
     console.log("\tCoin pair count", coin_pair_count);
     for (let i = 0; i < coin_pair_count; i++) {
         const coin_pair = await oracle_manager.methods.getCoinPairAtIndex(i).call();
         const coin_pair_addr = await oracle_manager.methods.getContractAddress(coin_pair).call();
-        console.log("\tWill pay", amount.toString(), "weis to coinpair", Web3.utils.toAscii(coin_pair), "addr", coin_pair_addr);
-        to_pay[coin_pair_addr] = amount;
+        console.log("\tWill pay", oracles_amount.toString(), "weis to coinpair", Web3.utils.toAscii(coin_pair), "addr", coin_pair_addr);
+        to_pay[coin_pair_addr] = oracles_amount;
     }
     return to_pay;
 }
@@ -115,10 +119,18 @@ async function pay_with_token(token_addr, token, source_account, to_pay) {
     };
 
     const needed = Object.keys(to_pay).reduce((acc, val) => acc.add(to_pay[val]), Web3.utils.toBN(0));
-    console.log("Mint", needed.toString(), "token for", source_account, "in", token_addr);
-    await token.methods.mint(source_account, needed).send(tx_params)
+    const current_balance = Web3.utils.toBN(await token.methods.balanceOf(source_account).call());
+    if (current_balance.lt(needed)) {
+        console.log("NOT ENOUGH BALANCE IN SOURCE ACCOUNT", source_account
+            , "HAVE", current_balance.toString()
+            , "NEEDS", needed.toString()
+        )
+    }
+    // await token.methods.mint(source_account, needed).send(tx_params)
     for (let addr of Object.keys(to_pay)) {
-        console.log("Paying", to_pay[addr].toString(), "weis from", source_account, "to", addr, "using token", token_addr);
+        console.log("Paying", to_pay[addr].toString(),
+            "weis from", current_balance.toString(), "balance of", source_account,
+            "to", addr, "using token", token_addr);
         await token.methods.transfer(addr, to_pay[addr]).send(tx_params)
     }
 }
@@ -127,11 +139,11 @@ async function main() {
     if (!process.env.PRIVATE_KEY
         || !process.env.RSK_NODE_URL
         || !process.env.ORACLE_MANAGER_ADDRESSES
-        || !process.env.PAY_AMOUNT) {
-        throw new Error("We the following env variables: PRIVATE_KEY, RSK_NODE_URL, PAY_AMOUNT and ORACLE_MANAGER_ADDRESSES");
+        || !process.env.SUPPORTERS_FACTOR) {
+        throw new Error("We the following env variables: PRIVATE_KEY, RSK_NODE_URL, SUPPORTERS_FACTOR and ORACLE_MANAGER_ADDRESSES");
     }
     const unit = !process.env.PAY_UNIT ? "gwei" : process.env.PAY_UNIT;
-    const amount = Web3.utils.toWei(process.env.PAY_AMOUNT, unit)
+    const supporters_factor = Web3.utils.toBN(Web3.utils.toWei(process.env.SUPPORTERS_FACTOR, unit));
     const source_wallet = new HDWalletProvider([process.env.PRIVATE_KEY], process.env.RSK_NODE_URL);
     const oracle_manager_addresses = JSON.parse(process.env.ORACLE_MANAGER_ADDRESSES);
     if (!Array.isArray(oracle_manager_addresses)) {
@@ -149,7 +161,20 @@ async function main() {
             const oracle_manager = new web3.eth.Contract(ORACLE_MANAGER_ABI, oracle_manager_addr);
             const token_address = await oracle_manager.methods.token().call();
             console.log("\tToken addr", token_address);
-            payments[token_address] = await collect_info(payments[token_address] || {}, oracle_manager, Web3.utils.toBN(amount));
+
+            const supporters_addr = await oracle_manager.methods.supportersContract().call();
+            console.log("\tSupporters addr", token_address);
+            const supporters = new web3.eth.Contract(SUPPORTERS_ABI, supporters_addr);
+            const available_moc = await supporters.methods.getAvailableMOC().call();
+            const supporters_amount = Web3.utils.toBN(available_moc)
+                .mul(supporters_factor)
+                .div(Web3.utils.toBN(10 ** 18));
+            console.log("\tWill pay", supporters_amount.toString(), "weis to supporters", supporters_addr);
+
+            const payments_per_token = {};
+            payments_per_token[supporters_addr] = supporters_amount;
+            payments[token_address] = await collect_coin_pair_info(payments_per_token,
+                oracle_manager, supporters_amount);
         }
         for (const token_addr of Object.keys(payments)) {
             const token = new web3.eth.Contract(TOKEN_ABI, token_addr);
@@ -163,6 +188,6 @@ async function main() {
 }
 
 main().catch(err => {
-    console.error(err.message);
+    console.error(err);
     process.exit(1)
 });
