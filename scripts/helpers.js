@@ -97,3 +97,30 @@ function getScriptArgs(filename) {
 }
 
 module.exports.getScriptArgs = getScriptArgs;
+
+
+async function getHistory(web3, fromBlk, toBlk, tx_filter) {
+    const eth = web3.eth;
+    const blocks = [];
+    // Take in chunks of 100 blocks
+    const CHUNK_SIZE = 100;
+    for (let i = fromBlk; i < toBlk; i += CHUNK_SIZE) {
+        const promises = []
+        for (let j = 0; i + j < toBlk && j < CHUNK_SIZE; j++) {
+            promises.push(eth.getBlock(i + j, true));
+        }
+        blocks.push(...await Promise.all(promises));
+    }
+    const f_blocks = blocks.filter(b => b != null && b.transactions != null)
+        .map(b => b.transactions.map(x => ({...x, timestamp: b.timestamp})));
+    const txs = [].concat.apply([], f_blocks).filter(tx_filter);
+    const txMap = txs.reduce((acc, tx) => {
+        acc[tx.hash] = tx;
+        return acc;
+    }, {});
+    const receipts = await Promise.all(txs.map(x => eth.getTransactionReceipt(x.hash)));
+    receipts.sort((a, b) => (b.blockNumber - a.blockNumber));
+    return receipts.map(r => ({...r, ...txMap[r.transactionHash]}));
+}
+
+module.exports.getHistory = getHistory;
