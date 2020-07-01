@@ -35,6 +35,8 @@ LOG_LEVEL = config('LOG_LEVEL', cast=str, default="info")
 DEBUG_ENDPOINTS = config('DEBUG_ENDPOINTS', cast=bool, default=False)
 # Reload on source code change, used for development
 RELOAD = config('RELOAD', cast=bool, default=False)
+# Populate remote address info.
+PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=True)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version

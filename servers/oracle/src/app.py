@@ -1,15 +1,15 @@
 import logging
 import traceback
+import socket
+from urllib3 import util
 
-from fastapi import Form, HTTPException
-from pydantic import BaseModel
+from fastapi import Form, HTTPException, Response, status, Request
 
 from common import settings, run_uvicorn
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.request_validation import ValidationFailure
-from fastapi import Request
 
 
 logger = logging.getLogger(__name__)
@@ -17,18 +17,26 @@ main_executor = MainLoop()
 app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
 
 
+def getipaddresses(hostname):
+    try:
+        (hn, al, ipaddrlist) = socket.gethostbyname_ex(hostname)
+        return ipaddrlist
+    except socket.error:
+        raise HTTPException(status_code=403, detail="Cannot resolve to a valid IP address")
+
 @app.middleware("http")
-def filter_ips_by_selected_oracles(request: Request, call_next):
-    (ip, port) = request.client
-    caller_internet_name = ip + ":" + port
-    body = request.json()
-    oracle_loop = main_executor.oracle_loop
-    blockchain_info_loop = oracle_loop.cpMap[body.coin_pair].blockchain_info_loop
-    selected_oracles = blockchain_info_loop.get().selected_oracles
-    internet_names = [oracle.internetName for oracle in selected_oracles]
-    if caller_internet_name not in internet_names:
-        #TODO shut off connection
-        pass
+async def filter_ips_by_selected_oracles(request: Request, call_next):
+    (hostname, port) = request.client
+    caller_ipaddrlist = getipaddresses(hostname)
+    coin_pair_map = main_executor.oracle_loop.cpMap
+    for cp_key in coin_pair_map:
+        selected_oracles = coin_pair_map[cp_key].blockchain_info_loop.get().selected_oracles
+        oracles_ipaddrlists = [getipaddresses(util.parse_url(oracle.internetName).host) for oracle in selected_oracles]
+        for oracle_ipaddrlist in oracles_ipaddrlists:
+            if any(ipaddr in caller_ipaddrlist for ipaddr in oracle_ipaddrlist):
+                response = await call_next(request)
+                return response
+    raise HTTPException(status_code=403, detail="The request is not made by a selected oracle")
 
 
 @app.on_event("startup")
@@ -55,6 +63,13 @@ async def sign(*, version: str = Form(...),
                last_pub_block: str = Form(...),
                signature: str = Form(...)):
     try:
+        print(version)
+        print(coin_pair)
+        print(price)
+        print(price_timestamp)
+        print(oracle_addr)
+        print(last_pub_block)
+        print(signature)
         params = PublishPriceParams(int(version), CoinPair(coin_pair),
                                     PriceWithTimestamp(int(price),
                                                        float(price_timestamp)),
