@@ -1,7 +1,9 @@
 import logging
 import traceback
+import socket
+from urllib3 import util
 
-from fastapi import Form, HTTPException
+from fastapi import Form, HTTPException, Response, status, Request
 
 from common import settings, run_uvicorn
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
@@ -9,9 +11,40 @@ from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.request_validation import ValidationFailure
 
+
 logger = logging.getLogger(__name__)
 main_executor = MainLoop()
 app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
+
+
+def getipaddresses(hostname):
+    try:
+        (hn, al, ipaddrlist) = socket.gethostbyname_ex(hostname)
+        return ipaddrlist
+    except socket.error:
+        raise HTTPException(status_code=403, detail="Cannot resolve to a valid IP address")
+
+@app.middleware("http")
+async def filter_ips_by_selected_oracles(request: Request, call_next):
+    try:
+        (hostname, port) = request.client
+        caller_ipaddrlist = getipaddresses(hostname)
+        coin_pair_map = main_executor.oracle_loop.cpMap
+        for cp_key in coin_pair_map:
+            selected_oracles = coin_pair_map[cp_key].blockchain_info_loop.get().selected_oracles
+            oracles_ipaddrlists = [getipaddresses(util.parse_url(oracle.internetName).host) for oracle in selected_oracles]
+            for oracle_ipaddrlist in oracles_ipaddrlists:
+                if any(ipaddr in caller_ipaddrlist for ipaddr in oracle_ipaddrlist):
+                    response = await call_next(request)
+                    return response
+        not_authorized_msg = "The request was not made by a selected oracle."
+        logger.error(not_authorized_msg)
+        msg = not_authorized_msg if settings.DEBUG else "Invalid signature"
+        return Response(status_code=403, content=msg)
+    except Exception as e:
+        logger.error(e)
+        msg = str(e) if settings.DEBUG else "Invalid signature"
+        return Response(status_code=500, content=msg)
 
 
 @app.on_event("startup")
