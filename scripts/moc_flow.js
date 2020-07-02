@@ -99,9 +99,8 @@ const DRIP_ABI = [
 
 async function check_and_call(contract, tx_params, check_method, call_method, args = []) {
     const is_ready = await contract.methods[check_method](...args).call();
-    console.log("------------", is_ready)
     if (is_ready) {
-        console.log("Calling drop on addr", contract.address);
+        console.log("Calling", call_method + "(" + args.join(", ") + ")", "on", contract._address);
         await contract.methods[call_method](...args).send(tx_params);
     }
 }
@@ -151,7 +150,7 @@ async function main() {
     if (!Array.isArray(buffers)) {
         throw new Error("We the following env variable: MOC_FLOW_BUFFERS must contains a json array with addresses");
     }
-    if (drippers.length===0 && buffers.length===0 ) {
+    if (drippers.length === 0 && buffers.length === 0) {
         throw new Error("We need some drips or buffers to call");
     }
 
