@@ -174,7 +174,8 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
     except json.JSONDecodeError as err:
         logger.error(
             "%s : JSONDecodeError exception from %s, %s: %r for %r" % (
-                params.coin_pair, oracle.addr, oracle.internetName, err, response))
+                params.coin_pair, oracle.addr, oracle.internetName, err,
+                response if settings.DEBUG else "-"))
         logger.warning(traceback.format_exc())
         return
     except asyncio.CancelledError as e:
