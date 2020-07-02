@@ -77,7 +77,7 @@ class MainLoop(BgTaskExecutor):
             t.stop_bg_task()
         self.stop_bg_task()
 
-    def get_validation_data(self, params):
+    async def get_validation_data(self, params):
         if self.oracle_loop is None:
             return None
-        return self.oracle_loop.get_validation_data(params)
+        return await self.oracle_loop.get_validation_data(params)
