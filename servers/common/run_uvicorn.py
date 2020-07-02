@@ -24,4 +24,5 @@ def run_uvicorn(app, port):
     uvicorn.run(app, host="0.0.0.0",
                 port=port,
                 log_level=settings.LOG_LEVEL,
-                reload=settings.RELOAD)
+                reload=settings.RELOAD,
+                proxy_headers=settings.PROXY_HEADERS)

@@ -172,7 +172,8 @@ async def main():
                                 port=port,
                                 log_level="info",
                                 reload=settings.RELOAD,
-                                log_config=logging_config)
+                                log_config=logging_config,
+                                proxy_headers=settings.PROXY_HEADERS)
         server = MyServer(config, {"ORACLE_ADDR": addr, "ORACLE_PRIVATE_KEY": str(oe["account"].key)})
         supervisor.run(config, server.run, [config.bind_socket()])
 
