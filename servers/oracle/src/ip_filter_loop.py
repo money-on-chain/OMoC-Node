@@ -25,7 +25,6 @@ class IpFilterLoop(BgTaskExecutor):
         logger.info("IpFilterLoop loop start")
         now = time.time()
         info = await self.oracle_loop.get_full_blockchain_info()
-        print(info)
         # Populate the cache with new info
         for bi in info.values():
             for oracle in bi.selected_oracles:
