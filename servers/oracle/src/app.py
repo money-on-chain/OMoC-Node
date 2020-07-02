@@ -13,9 +13,10 @@ logger = logging.getLogger(__name__)
 main_executor = MainLoop()
 app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
 
+not_authorized_msg = "The request was not made by a selected oracle."
 
-def get_error_msg(msg):
-    return str(msg) if settings.DEBUG else "Invalid signature"
+def get_error_msg(msg=None):
+    return str(msg) if msg is not None and settings.DEBUG else "Invalid signature"
 
 
 @app.middleware("http")
@@ -24,11 +25,12 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
         (ip, port) = request.client
         logger.info("Got a connection from %r" % ip)
         if not main_executor.is_valid_ip(ip):
-            raise HTTPException(status_code=403, detail="The request was not made by a selected oracle.")
+            raise Exception(not_authorized_msg)
         return await call_next(request)
     except Exception as e:
-        logger.error(e)
-        return Response(status_code=500, content=get_error_msg(e))
+        error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg()
+        logger.error(error_msg)
+        return Response(status_code=500, content=error_msg)
 
 
 @app.on_event("startup")

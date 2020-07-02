@@ -168,9 +168,15 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
         obj = json.loads(response)
         if "signature" not in obj:
             logger.error(
-                "%s : Missing signature from: %s,%s" % (params.coin_pair, oracle.addr, oracle.internetName))
+                "%s : Missing signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
             return
         signature = HexBytes(obj["signature"])
+    except json.JSONDecodeError as err:
+        logger.error(
+            "%s : JSONDecodeError exception from %s, %s: %r for %r" % (
+                params.coin_pair, oracle.addr, oracle.internetName, err, response))
+        logger.warning(traceback.format_exc())
+        return
     except asyncio.CancelledError as e:
         raise e
     except asyncio.TimeoutError as e:
@@ -189,7 +195,7 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
         return
     except Exception as err:
         logger.error(
-            "%s : Unexpected exception from %s,%s: %r" % (
+            "%s : Unexpected exception from %s, %s: %r" % (
                 params.coin_pair, oracle.addr, oracle.internetName, err))
         logger.warning(traceback.format_exc())
         return
