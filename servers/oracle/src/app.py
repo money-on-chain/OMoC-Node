@@ -63,13 +63,6 @@ async def sign(*, version: str = Form(...),
                last_pub_block: str = Form(...),
                signature: str = Form(...)):
     try:
-        print(version)
-        print(coin_pair)
-        print(price)
-        print(price_timestamp)
-        print(oracle_addr)
-        print(last_pub_block)
-        print(signature)
         params = PublishPriceParams(int(version), CoinPair(coin_pair),
                                     PriceWithTimestamp(int(price),
                                                        float(price_timestamp)),
