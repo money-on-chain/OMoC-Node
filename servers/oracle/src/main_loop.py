@@ -5,6 +5,7 @@ from common import settings
 from common.bg_task_executor import BgTaskExecutor
 from common.services.contract_factory_service import ContractFactoryService
 from oracle.src import oracle_settings, monitor
+from oracle.src.ip_filter_loop import IpFilterLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_loop import OracleLoop
 from oracle.src.oracle_service import OracleService
@@ -21,6 +22,7 @@ class MainLoop(BgTaskExecutor):
         self.tasks: List[BgTaskExecutor] = []
         self.initialized = False
         self.oracle_loop: OracleLoop = None
+        self.ip_filter_loop: IpFilterLoop = None;
         super().__init__(name="MainLoop", main=self.run)
 
     async def web_server_startup(self):
@@ -50,6 +52,8 @@ class MainLoop(BgTaskExecutor):
         oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
         self.oracle_loop = OracleLoop(self.conf, oracle_service)
         self.tasks.append(self.oracle_loop)
+        self.ip_filter_loop = IpFilterLoop(self.oracle_loop, self.conf)
+        self.tasks.append(self.ip_filter_loop)
         if oracle_settings.ORACLE_MONITOR_RUN:
             monitor.log_setup()
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))
@@ -81,3 +85,6 @@ class MainLoop(BgTaskExecutor):
         if self.oracle_loop is None:
             return None
         return await self.oracle_loop.get_validation_data(params)
+
+    def is_valid_ip(self, ip):
+        return self.ip_filter_loop.is_valid_ip(ip)

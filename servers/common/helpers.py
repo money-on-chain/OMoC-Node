@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import os
+import socket
 import traceback
 from datetime import datetime
 
@@ -102,3 +103,8 @@ def run_main(main):
 
 def price_delta(price1, price2):
     return (abs(price1 - price2) / abs(min(price1, price2))) * 100
+
+
+def get_ip_addresses(hostname):
+    (hn, al, ipaddrlist) = socket.gethostbyname_ex(hostname)
+    return ipaddrlist
