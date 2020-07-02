@@ -5,7 +5,7 @@ import typing
 
 from decorator import decorator
 from eth_typing import Primitives, HexStr
-from pydantic import UrlStr
+from pydantic import AnyHttpUrl
 from starlette.datastructures import Secret
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
@@ -62,7 +62,7 @@ async def exec_with_catch_async(f, *arg, **kw):
         return BCError.Get(err)
 
 
-class BlockChainAddress(UrlStr):
+class BlockChainAddress(AnyHttpUrl):
     @classmethod
     def __get_validators__(cls) -> 'CallableGenerator':
         yield cls.validate
@@ -85,7 +85,7 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str), (
         return super(BlockchainAccount, cls).__new__(cls, addr, Secret(skey))
 
 
-class BlockChainPK(UrlStr):
+class BlockChainPK(AnyHttpUrl):
     @classmethod
     def __get_validators__(cls) -> 'CallableGenerator':
         yield cls.validate
