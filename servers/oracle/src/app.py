@@ -37,11 +37,14 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
                 if any(ipaddr in caller_ipaddrlist for ipaddr in oracle_ipaddrlist):
                     response = await call_next(request)
                     return response
-        raise HTTPException(status_code=403, detail="The request was not made by a selected oracle.")
-    except HTTPException as e:
+        not_authorized_msg = "The request was not made by a selected oracle."
+        logger.error(not_authorized_msg)
+        msg = not_authorized_msg if settings.DEBUG else "Invalid signature"
+        return Response(status_code=403, content=msg)
+    except Exception as e:
         logger.error(e)
         msg = str(e) if settings.DEBUG else "Invalid signature"
-        raise HTTPException(status_code=500, detail=msg)
+        return Response(status_code=500, content=msg)
 
 
 @app.on_event("startup")
