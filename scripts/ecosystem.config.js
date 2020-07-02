@@ -20,5 +20,13 @@ module.exports = {
             cron_restart: "0 */2 * * *",
             log_date_format: "YYYY-MM-DD HH:mm:ss Z",
         },
+        {
+            name: "moc_flow",
+            script: "./moc_flow.js",
+            watch: false,
+            autorestart: false,
+            cron_restart: "*/3 * * * *",
+            log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+        },
     ]
 }
