@@ -26,17 +26,22 @@ def getipaddresses(hostname):
 
 @app.middleware("http")
 async def filter_ips_by_selected_oracles(request: Request, call_next):
-    (hostname, port) = request.client
-    caller_ipaddrlist = getipaddresses(hostname)
-    coin_pair_map = main_executor.oracle_loop.cpMap
-    for cp_key in coin_pair_map:
-        selected_oracles = coin_pair_map[cp_key].blockchain_info_loop.get().selected_oracles
-        oracles_ipaddrlists = [getipaddresses(util.parse_url(oracle.internetName).host) for oracle in selected_oracles]
-        for oracle_ipaddrlist in oracles_ipaddrlists:
-            if any(ipaddr in caller_ipaddrlist for ipaddr in oracle_ipaddrlist):
-                response = await call_next(request)
-                return response
-    raise HTTPException(status_code=403, detail="The request is not made by a selected oracle")
+    try:
+        (hostname, port) = request.client
+        caller_ipaddrlist = getipaddresses(hostname)
+        coin_pair_map = main_executor.oracle_loop.cpMap
+        for cp_key in coin_pair_map:
+            selected_oracles = coin_pair_map[cp_key].blockchain_info_loop.get().selected_oracles
+            oracles_ipaddrlists = [getipaddresses(util.parse_url(oracle.internetName).host) for oracle in selected_oracles]
+            for oracle_ipaddrlist in oracles_ipaddrlists:
+                if any(ipaddr in caller_ipaddrlist for ipaddr in oracle_ipaddrlist):
+                    response = await call_next(request)
+                    return response
+        raise HTTPException(status_code=403, detail="The request was not made by a selected oracle.")
+    except HTTPException as e:
+        logger.error(e)
+        msg = str(e) if settings.DEBUG else "Invalid signature"
+        raise HTTPException(status_code=500, detail=msg)
 
 
 @app.on_event("startup")
