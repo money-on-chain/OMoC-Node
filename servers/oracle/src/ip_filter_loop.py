@@ -5,7 +5,7 @@ import typing
 
 import urllib3
 
-from common import helpers
+from common import helpers, settings
 from common.bg_task_executor import BgTaskExecutor
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_loop import OracleLoop
@@ -22,7 +22,6 @@ class IpFilterLoop(BgTaskExecutor):
         super().__init__(name="IpFilterLoop", main=self.run)
 
     async def run(self):
-        logger.info("IpFilterLoop loop start")
         now = time.time()
         info = await self.oracle_loop.get_full_blockchain_info()
         # Populate the cache with new info
@@ -39,6 +38,8 @@ class IpFilterLoop(BgTaskExecutor):
         for ip in self.valid_ips.keys():
             if now - self.valid_ips[ip] > self.conf.ORACLE_BLOCKCHAIN_INFO_INTERVAL * 2:
                 del self.valid_ips[ip]
+        # TODO: change level to debug
+        logger.info("Accepting connections from %r" % list(self.valid_ips.keys()))
         return self.conf.ORACLE_BLOCKCHAIN_INFO_INTERVAL
 
     def is_valid_ip(self, ip):
