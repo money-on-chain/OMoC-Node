@@ -52,8 +52,9 @@ class MainLoop(BgTaskExecutor):
         oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
         self.oracle_loop = OracleLoop(self.conf, oracle_service)
         self.tasks.append(self.oracle_loop)
-        self.ip_filter_loop = IpFilterLoop(self.oracle_loop, self.conf)
-        self.tasks.append(self.ip_filter_loop)
+        if oracle_settings.ORACLE_RUN_IP_FILTER:
+            self.ip_filter_loop = IpFilterLoop(self.oracle_loop, self.conf)
+            self.tasks.append(self.ip_filter_loop)
         if oracle_settings.ORACLE_MONITOR_RUN:
             monitor.log_setup()
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))

@@ -281,6 +281,9 @@ ORACLE_PORT = 5556
 # Flag that indicates if the monitor (a module that store information in logfiles) must be run
 ORACLE_MONITOR_RUN = False
 
+# Flag that indicates if we must filter requests to /sign by ip.
+ORACLE_RUN_IP_FILTER = True
+
 # Oracle-only parameters.
 # Account used to publish prices
 ORACLE_ADDR="0x..."
