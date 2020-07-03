@@ -2,6 +2,7 @@ import logging
 import traceback
 
 from fastapi import Form, HTTPException, Response, Request
+from starlette.responses import JSONResponse
 
 from common import settings, run_uvicorn
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
@@ -34,6 +35,8 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
     except Exception as e:
         error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(e)
         logger.error(error_msg)
+        if settings.DEBUG:
+            return JSONResponse(status_code=500, content=error_msg)
         return Response(status_code=500, content=error_msg)
 
 
