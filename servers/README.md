@@ -218,6 +218,10 @@ The following are optional:
 
     Add a swagger interface for the endpoints.
 
+- PROXY_HEADERS = False
+    
+    Populate remote address info.
+
 - RELOAD = False
     
     Reload the server automatically on a source code change.
@@ -329,6 +333,8 @@ ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
 # LOG_LEVEL = "info"
 # Add some development endpoints
 # DEBUG_ENDPOINTS = False
+# Populate remote address info.
+# PROXY_HEADERS = False
 # Reload on source code change, used for development
 # RELOAD = False
 # Print stack trace of errors, used for development
