@@ -22,7 +22,7 @@ async function historyForAddr(web3, addr) {
     console.log("-".repeat(10), colors.green("current block " + currentBlock
         + " search txs from " + startBlockNumber + " to " + currentBlock
     ));
-    const txs = await helpers.getHistory(web3, startBlockNumber, currentBlock,
+    const {txs} = await helpers.getHistory(web3, startBlockNumber, currentBlock,
         tx => tx.from && tx.from.toLowerCase() == addr.toLowerCase());
     const pr = (x, st, el) => (x.status ? colors.green(st) : colors.red(el || st));
     // instantiate

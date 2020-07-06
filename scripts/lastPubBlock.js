@@ -14,7 +14,7 @@ const ARGS = helpers.getScriptArgs(__filename);
 const DEPTH_IN_BLOCKS = isNaN(ARGS[0]) ? 70 : parseInt(ARGS[0]);
 console.log("DEPTH_IN_BLOCKS", DEPTH_IN_BLOCKS);
 
-async function historyForCoinPair(web3, abi, contract) {
+async function historyForCoinPair(web3, abi, contract, selected_oracles) {
     const fnDecoder = new txDecoder.FunctionDecoder(abi);
     const lpbm = contract.methods.lastPublicationBlock
         ? contract.methods.lastPublicationBlock
@@ -28,15 +28,19 @@ async function historyForCoinPair(web3, abi, contract) {
         + " last pub block " + lastPubBlock
         + " search txs from " + startBlockNumber + " to " + endBlockNumber
     ));
-    const txs = await helpers.getHistory(web3, startBlockNumber, currentBlock,
+    const {txs, blocks} = await helpers.getHistory(web3, startBlockNumber, currentBlock,
         tx => tx.to && tx.to.toLowerCase() == contract.options.address.toLowerCase());
+    const block_map = blocks.reduce((acc, val) => {
+        acc[val.number] = val.hash;
+        return acc;
+    }, {});
     const pr = (x, st, el) => (x.status ? colors.green(st) : colors.red(el || st));
     // instantiate
     const table = new Table({
-        head: ["timestamp", "blocknumber", "message last pub block", "from", "price", "status"]
+        head: ["timestamp", "blocknumber", "message last pub block", "from", "price", "status", "blockHash", "Selected"]
     });
     let prev = new BigNumber(endBlockNumber.toString());
-    txs.forEach(x => {
+    for (const x of txs) {
         const args = fnDecoder.decodeFn(x.input);
         const d = new Date(x.timestamp * 1000).toISOString();
         if (args.signature == "switchRound()") {
@@ -47,34 +51,64 @@ async function historyForCoinPair(web3, abi, contract) {
                 pr(x, x.from),
                 "SWITCH ROUND",
                 pr(x, "SUCCESS", "FAILED"),
+                "",
+                ""
             ]);
         } else if (args.signature == "publishPrice(uint256,bytes32,uint256,address,uint256,uint8[],bytes32[],bytes32[])") {
+            if (!block_map[args._blockNumber.toString()]) {
+                const blk = await web3.eth.getBlock(args._blockNumber, false);
+                block_map[blk.number] = blk.hash;
+            }
+            const block_hash = block_map[args._blockNumber.toString()];
             table.push([
                 pr(x, d),
                 pr(x, x.blockNumber),
-                pr(x, args.blockNumber.toString(10) + " - " + prev.sub(args.blockNumber).toString(10)),
+                pr(x, args._blockNumber.toString(10) + " - " + prev.sub(args._blockNumber).toString(10)),
                 pr(x, x.from),
-                web3.utils.fromWei(args.price.toString()),
+                web3.utils.fromWei(args._price.toString()),
                 pr(x, "SUCCESS", "FAILED"),
+                block_hash.substr(0, 6) + "...",
+                helpers.select_next(block_hash, selected_oracles)
+                    .map(x => x.substr(0, 4) + "..." + x.substr(-3)).toString()
+
             ]);
-            if (x.status) prev = args.blockNumber;
+            if (x.status) prev = args._blockNumber;
         } else {
             console.log("Invalid signature", args.signature);
         }
-    });
+    }
     console.log("" + table);
+}
+
+async function get_oracle_info_list(info_cache, oracle_manager_methods, coin_pair_price_methods) {
+    const roundInfo = await coin_pair_price_methods.getRoundInfo().call();
+    const selected_oracles = roundInfo.selectedOracles;
+    const oracle_info_list = [];
+    for (const s of selected_oracles) {
+        if (!info_cache[s]) {
+            const info = await oracle_manager_methods.getOracleRegistrationInfo(s).call();
+            info_cache[s] = {stake: info.stake, addr: s}
+        }
+        oracle_info_list.push(info_cache[s]);
+    }
+    return oracle_info_list;
 }
 
 async function principal(conf) {
     const {web3, coinPairPrice, oracleManager} = conf;
-    const cprMethods = oracleManager.contract.methods;
-    const coinCant = await cprMethods.getCoinPairCount().call();
+    const oracle_manager_methods = oracleManager.contract.methods;
+    const coinCant = await oracle_manager_methods.getCoinPairCount().call();
+    const info_cache = {};
     for (let i = 0; i < coinCant; i++) {
-        const coinPair = await cprMethods.getCoinPairAtIndex(i).call();
-        const addr = await cprMethods.getContractAddress(coinPair).call();
+        const coinPair = await oracle_manager_methods.getCoinPairAtIndex(i).call();
+        const addr = await oracle_manager_methods.getContractAddress(coinPair).call();
         console.log("-".repeat(20), colors.green(helpers.coinPairStr(coinPair) + " -> " + addr));
         coinPairPrice.contract.options.address = addr;
-        await historyForCoinPair(web3, coinPairPrice.abi, coinPairPrice.contract);
+        const oracle_info_list = await get_oracle_info_list(info_cache,
+            oracle_manager_methods,
+            coinPairPrice.contract.methods);
+        console.log("SELECTED ORACLES", oracle_info_list);
+        await historyForCoinPair(web3, coinPairPrice.abi, coinPairPrice.contract, oracle_info_list);
     }
 }
 
