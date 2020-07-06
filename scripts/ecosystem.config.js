@@ -14,7 +14,7 @@ module.exports = {
         },
         {
             name: "rewards",
-            script: "./pay_rewards.js",
+            script: "./scheduler_pay_rewards.js",
             watch: false,
             autorestart: false,
             cron_restart: "0 */2 * * *",
@@ -22,10 +22,17 @@ module.exports = {
         },
         {
             name: "moc_flow",
-            script: "./moc_flow.js",
+            script: "./scheduler_moc_flow.js",
             watch: false,
             autorestart: false,
             cron_restart: "*/3 * * * *",
+            log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+        },
+        {
+            name: "scheduler",
+            script: "./scheduler.js",
+            watch: true,
+            autorestart: true,
             log_date_format: "YYYY-MM-DD HH:mm:ss Z",
         },
     ]
