@@ -1,6 +1,8 @@
 import logging
 from typing import List
 
+from hexbytes import HexBytes
+
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
 from common.services.coin_pair_price_service import CoinPairService
 from common.services.info_getter_service import InfoGetterService
@@ -110,11 +112,13 @@ class OracleCoinPairService:
         (round_number, start_block, lock_period_end_block, total_points,
          selected_oracles_info,
          current_price, current_block,
-         last_publication_block, last_publication_block_hash,
+         last_publication_block, last_hash,
          valid_price_period_in_blocks
          ) = data
-        if int.from_bytes(last_publication_block_hash, byteorder='big') == 0:
+        if int.from_bytes(last_hash, byteorder='big') == 0:
             last_publication_block_hash = await self.get_last_pub_block_hash(last_publication_block)
+        else:
+            last_publication_block_hash = HexBytes(last_hash)
         s_oracles = []
         for so in selected_oracles_info:
             (stake, points, addr, owner, name) = so

@@ -44,6 +44,7 @@
 #
 
 import logging
+from decimal import Decimal
 from typing import List
 
 from hexbytes import HexBytes
@@ -75,18 +76,21 @@ def select_next(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo
         oracle_item = l1.pop(sel_index)
         total_stake += get_capped_stake(oracle_item)
         l2.append(oracle_item)
-        stake_buckets.append((oracle_item.internetName,
-                              last_range_limit + get_capped_stake(oracle_item) - 1))
+        stake_buckets.append(last_range_limit + get_capped_stake(oracle_item) - 1)
         last_range_limit += get_capped_stake(oracle_item)
         idx += 1
 
     # Select from L2 according to stake weight
     # rnd_stake = int(last_block_hash, 16) % total_stake
     # i've got hexbytes string in hash, so:
-    last_block_hash = int(hb.hex(), 16)
-    rnd_stake = last_block_hash % total_stake
+    hb_int = int(hb.hex(), 16)
+
+    # rnd_stake = hb_int % total_stake
+    max_int = HexBytes('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+    rnd_stake = Decimal(total_stake) * Decimal(hb_int) / Decimal(int(max_int.hex(), 16))
+
     idx = 0
-    while rnd_stake > stake_buckets[idx][1]:
+    while rnd_stake > stake_buckets[idx]:
         idx += 1
     return [l2[(idx + i) % len(l2)] for i in range(len(l2))]
 
