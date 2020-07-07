@@ -131,7 +131,9 @@ async def main():
     print("0. Mint tokens.")
     print("-----------------------------")
     for oe in oracleList:
-        tx = await moc_token_service.mint(oe["owner"].addr, oe["stake"], account=oe["owner"], wait=True)
+        # tx = await moc_token_service.mint(oe["owner"].addr, oe["stake"], account=oe["owner"], wait=True)
+        tx = await moc_token_service.transfer(oe["owner"].addr, oe["stake"],
+                                              account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT, wait=True)
         if is_error(tx):
             print("ERROR IN APPROVE", tx)
             return
@@ -170,7 +172,8 @@ async def main():
                                 port=port,
                                 log_level="info",
                                 reload=settings.RELOAD,
-                                log_config=logging_config)
+                                log_config=logging_config,
+                                proxy_headers=settings.PROXY_HEADERS)
         server = MyServer(config, {"ORACLE_ADDR": addr, "ORACLE_PRIVATE_KEY": str(oe["account"].key)})
         supervisor.run(config, server.run, [config.bind_socket()])
 

@@ -15,6 +15,10 @@ class CoinPairService:
     def __init__(self, contract: BlockChainContract):
         self._contract = contract
 
+    @property
+    def addr(self):
+        return self._contract.addr
+
     async def coin_pair_price_call(self, method, *args, account: BlockchainAccount = None, **kw):
         return await self._contract.bc_call(method, *args, account=account, **kw)
 
@@ -26,6 +30,9 @@ class CoinPairService:
 
     async def get_round_lock_period_in_blocks(self):
         return await self.coin_pair_price_call("roundLockPeriodInBlocks")
+
+    async def get_valid_price_period_in_blocks(self):
+        return await self.coin_pair_price_call("validPricePeriodInBlocks")
 
     async def get_max_oracles_per_rounds(self):
         return await self.coin_pair_price_call("maxOraclesPerRound")
@@ -62,7 +69,7 @@ class CoinPairService:
         return await self.coin_pair_price_call("coinPair")
 
     async def get_last_pub_block(self) -> int:
-        return await self.coin_pair_price_call("getLastPublicationBlock")
+        return await self.coin_pair_price_call("lastPublicationBlock")
 
     async def get_round_info(self) -> RoundInfo:
         bc_data = await self.coin_pair_price_call("getRoundInfo")

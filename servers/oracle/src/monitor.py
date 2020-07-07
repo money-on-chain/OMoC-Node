@@ -31,7 +31,7 @@ class MonitorLoopByCoinPair:
             self._logger.error("Error getting oracles %r" % (oracles,))
             return 5
         self._logger.info("block %r published price: %r " % (pubblock_nr, price))
-        sorted_oracles = select_next(self._conf.ORACLE_STAKE_LIMIT_MULTIPLICATOR, _pubblock_hash, oracles)
+        sorted_oracles = select_next(pubblock_hash, oracles)
         for idx, oracle_addr in enumerate(sorted_oracles):
             self._logger.debug(" turn: %d  oracle: %s " % (idx, oracle_addr))
         self._logger.debug("---------")

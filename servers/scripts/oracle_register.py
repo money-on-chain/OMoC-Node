@@ -19,10 +19,10 @@ async def main():
     moc_balance = await moc_token_service.balance_of(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr)
     print("Oracle owner moc balance ", moc_balance)
     if moc_balance < script_settings.INITIAL_STAKE * 2:
-        tx = await moc_token_service.mint(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr,
-                                          script_settings.INITIAL_STAKE * 2,
-                                          account=script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
-                                          wait=True)
+        tx = await moc_token_service.transfer(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr,
+                                              script_settings.INITIAL_STAKE * 2,
+                                              account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
+                                              wait=True)
         if is_error(tx):
             print("ERROR IN APPROVE", tx)
             return
@@ -32,9 +32,9 @@ async def main():
     print("price fetcher coinbase balance", balance)
     if balance < script_settings.NEEDED_GAS:
         tx = await script_settings.blockchain.bc_transfer(oracle_addr,
-                                          script_settings.NEEDED_GAS,
-                                          account=script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
-                                          wait=True)
+                                                          script_settings.NEEDED_GAS,
+                                                          account=script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
+                                                          wait=True)
         print("rbtc transfer", tx)
 
     # register oracle

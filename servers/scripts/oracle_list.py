@@ -38,6 +38,7 @@ async def main():
             print("\t\tselectedInCurrentRound", round_info.selectedInCurrentRound,
                   "\tpoints", round_info.points)
             print("\t\tIS SUBSCRIBED", await oracle_manager_service.is_subscribed(cp, o))
+            print("\t\tCAN BE REMOVED", await oracle_manager_service.can_remove(o))
 
 
 if __name__ == '__main__':

@@ -41,4 +41,5 @@ class MocTokenService:
         return await self.moc_execute("decreaseAllowance", spender, subtracted_value, account=account, wait=wait)
 
     async def mint(self, user: BlockChainAddress, amount: int, account: BlockchainAccount = None, wait=False):
-        return await self.moc_execute("mint", user, amount, account=account, wait=wait)
+        raise Exception("WE MUST MINT BY GOBERNANZA, check contacts/scripts/mint_tokens.js!!!")
+        # return await self.moc_execute("mint", user, amount, account=account, wait=wait)

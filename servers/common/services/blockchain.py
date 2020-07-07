@@ -5,7 +5,7 @@ import typing
 
 from decorator import decorator
 from eth_typing import Primitives, HexStr
-from pydantic import UrlStr
+from pydantic import AnyHttpUrl
 from starlette.datastructures import Secret
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
@@ -33,6 +33,8 @@ BCSuccess = typing.NamedTuple("BCSuccess", [("state", STATE), ("hash", str)])
 class BCError(typing.NamedTuple("BCError", [("state", STATE), ("hash", str), ("error", str)])):
 
     def __new__(cls, err, hash):
+        if err.startswith("Could not decode") and "return data b'\\x00'" in err:
+            err = "Check your NODE_URL configuration, most probably we are using the wrong block chain node : " + err
         return super(BCError, cls).__new__(cls, STATE.ERROR, hash, err)
 
     @classmethod
@@ -60,7 +62,7 @@ async def exec_with_catch_async(f, *arg, **kw):
         return BCError.Get(err)
 
 
-class BlockChainAddress(UrlStr):
+class BlockChainAddress(AnyHttpUrl):
     @classmethod
     def __get_validators__(cls) -> 'CallableGenerator':
         yield cls.validate
@@ -83,7 +85,7 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str), (
         return super(BlockchainAccount, cls).__new__(cls, addr, Secret(skey))
 
 
-class BlockChainPK(UrlStr):
+class BlockChainPK(AnyHttpUrl):
     @classmethod
     def __get_validators__(cls) -> 'CallableGenerator':
         yield cls.validate
@@ -209,8 +211,13 @@ class BlockChain:
 class BlockChainContract:
 
     def __init__(self, blockchain: BlockChain, addr, abi):
+        self._addr = addr
         self._blockchain = blockchain
         self._contract = blockchain.get_contract(addr, abi)
+
+    @property
+    def addr(self):
+        return self._addr
 
     @exec_with_catch_async
     async def bc_call(self, method, *args, account: BlockchainAccount = None, **kw):

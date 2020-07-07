@@ -7,6 +7,8 @@ from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.request_validation import RequestValidation, ValidationFailure, \
     NoBlockchainData, DifferentLastPubBlock
 
+oracle_settings.ORACLE_PRICE_REJECT_DELTA_PCT = 50
+
 cp = CoinPair("BTCUSD")
 price_ts_utc = 1
 # Checked elsewhere
@@ -22,7 +24,7 @@ validated_by_is_oracle_turn = {
 
 def rv(publish_price, exchange_price, publish_last_pub_block, blockchain_last_pub_block):
     version = 1
-    oracle_price_reject_delta_pct = 0.05
+    oracle_price_reject_delta_pct = 50
     return RequestValidation(oracle_price_reject_delta_pct,
                              PublishPriceParams(version,
                                                 cp,
@@ -38,28 +40,34 @@ def rv(publish_price, exchange_price, publish_last_pub_block, blockchain_last_pu
                                                   validated_by_is_oracle_turn["blockchain_price"],
                                                   validated_by_is_oracle_turn["block_number"],
                                                   blockchain_last_pub_block,
-                                                  validated_by_is_oracle_turn["last_pub_block_hash"]))
+                                                  validated_by_is_oracle_turn["last_pub_block_hash"],
+                                                  300))
 
-    def test_fail_if_no_exchange_price():
-        with pytest.raises(NoBlockchainData) as e:
-            rv(11.1, None, 10, 10).validate_params()
-        assert "Still don't have a valid price" in str(e)
 
-    def test_fail_if_no_publish_price():
-        with pytest.raises(ValidationFailure) as e:
-            rv(None, 11.1, 10, 10).validate_params()
+def test_fail_if_no_exchange_price():
+    with pytest.raises(NoBlockchainData) as e:
+        rv(11.1, None, 10, 10).validate_params()
+    assert "Still don't have a valid price" in str(e)
 
-    def test_fail_if_different_publication_blocks():
-        with pytest.raises(DifferentLastPubBlock) as e:
-            rv(11.1, 11.1, 19, 10).validate_params()
 
-    def test_fail_if_price_changed_too_much():
-        with pytest.raises(ValidationFailure) as e:
-            rv(11.1, 11.1 * (1.0001 + oracle_settings.ORACLE_PRICE_REJECT_DELTA_PCT / 100),
-               10, 10).validate_params()
+def test_fail_if_no_publish_price():
+    with pytest.raises(ValidationFailure) as e:
+        rv(None, 11.1, 10, 10).validate_params()
 
-    def test_success():
-        rv(11.1, 11.1, 10, 10).validate_params()
-        rv(11.1, 11.1 * (
-                1 + oracle_settings.ORACLE_PRICE_REJECT_DELTA_PCT / 100),
+
+def test_fail_if_different_publication_blocks():
+    with pytest.raises(DifferentLastPubBlock) as e:
+        rv(11.1, 11.1, 19, 10).validate_params()
+
+
+def test_fail_if_price_changed_too_much():
+    with pytest.raises(ValidationFailure) as e:
+        rv(11.1, 11.1 * (1.0001 + oracle_settings.ORACLE_PRICE_REJECT_DELTA_PCT / 100),
            10, 10).validate_params()
+
+
+def test_success():
+    rv(11.1, 11.1, 10, 10).validate_params()
+    rv(11.1, 11.1 * (
+            1 + oracle_settings.ORACLE_PRICE_REJECT_DELTA_PCT / 100),
+       10, 10).validate_params()

@@ -11,10 +11,10 @@ from common.settings import config
 logger = logging.getLogger(__name__)
 
 OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
-                                            [("stake_limit_multiplicator", int),
-                                             ("price_fallback_delta_pct", int),
-                                             ("price_fallback_blocks", int),
+                                            [("price_delta_pct", int),
                                              ("price_publish_blocks", int),
+                                             ("entering_fallbacks_amounts", bytes),
+                                             ("trigger_valid_publication_blocks", int)
                                              ])
 
 
@@ -32,16 +32,28 @@ class OracleConfiguration:
             raise ValueError("Missing ORACLE_REGISTRY_ADDR!!!")
         logger.info("Configuration Registry address: %s" % registry_addr)
         self._eternal_storage_service = cf.get_eternal_storage(registry_addr)
-        supporters_vested_addr = cf.get_addr("SUPPORTERS")
-        oracle_manager_addr = cf.get_addr("ORACLE_MANAGER")
 
         self.parameters = {
             "SUPPORTERS_VESTED_ADDR": {
                 "priority": self.Order.configuration_default_blockchain,
                 "configuration": lambda: config('SUPPORTERS_VESTED_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters vested address, called by scheduler",
-                "default": supporters_vested_addr
+                "description": "Supporters vested address, USED ONLY BY SCRIPTS",
+                "default": cf.get_addr("SUPPORTERS_VESTED")
+            },
+            "SUPPORTERS_ADDR": {
+                "priority": self.Order.configuration_default_blockchain,
+                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Supporters whitelisted address, called by scheduler to switch rounds",
+                "default": cf.get_addr("SUPPORTERS")
+            },
+            "INFO_ADDR": {
+                "priority": self.Order.configuration_default_blockchain,
+                "configuration": lambda: config('INFO_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Info address, contract to get all the information at once",
+                "default": cf.get_addr("INFO_GETTER")
             },
             "ORACLE_MANAGER_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -49,7 +61,7 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Oracle manager address, used in OracleLoop to get coin"
                                "pairs and CoinPairPrice addresses",
-                "default": oracle_manager_addr
+                "default": cf.get_addr("ORACLE_MANAGER")
             },
             "ORACLE_PRICE_FETCH_RATE": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -143,21 +155,11 @@ class OracleConfiguration:
                 "description": "Version field of the message that is send to the blockchain",
                 "default": 3,
             },
-            "ORACLE_STAKE_LIMIT_MULTIPLICATOR": {
+            "ORACLE_PRICE_DELTA_PCT": {
                 "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_STAKE_LIMIT_MULTIPLICATOR', cast=int),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "This is used to limit the difference in participation between selected oracles,"
-                               "the maximum stake used is the minimum multiplied by this factor"
-                               "(even if some oracle has more stake participating)",
-                "default": 2,
-            },
-            "ORACLE_PRICE_FALLBACK_DELTA_PCT": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_PRICE_FALLBACK_DELTA_PCT', cast=Decimal),
+                "configuration": lambda: config('ORACLE_PRICE_DELTA_PCT', cast=Decimal),
                 "blockchain": lambda p: self._eternal_storage_service.get_decimal(p),
-                "description": "If the price delta percentage has changed and more than"
-                               " ORACLE_PRICE_FALLBACK_BLOCKS pass we act as fallbacks.",
+                "description": "Wait for this price change to start publishing a price",
                 "default": Decimal("0.05"),
             },
             "ORACLE_PRICE_PUBLISH_BLOCKS": {
@@ -167,13 +169,20 @@ class OracleConfiguration:
                 "description": "Selected oracle publishes after  ORACLE_PRICE_PUBLISH_BLOCKS  blocks of a price change.",
                 "default": 1,
             },
-            "ORACLE_PRICE_FALLBACK_BLOCKS": {
+            "ORACLE_ENTERING_FALLBACKS_AMOUNTS": {
                 "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_PRICE_FALLBACK_BLOCKS', cast=int),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Fallback oracle try to publish ORACLE_PRICE_FALLBACK_BLOCKS  blocks after price change.",
-                "default": 2,
+                "configuration": lambda: config('ORACLE_ENTERING_FALLBACKS_AMOUNTS', cast=bytes),
+                "blockchain": lambda p: self._eternal_storage_service.get_bytes(p),
+                "description": "Each int in the ORACLE_ENTERING_FALLBACKS_AMOUNTS sequence is the number of fallbacks that will be allowed to publish next.",
+                "default": b'\x02\x04\x06\x08\n',
             },
+            "ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS', cast=int),
+                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
+                "description": "Period in which selected oracle or fallbacks will publish before the price expires.",
+                "default": 30,
+            }
         }
         self.from_conf = set()
         self.from_default = set()
@@ -245,5 +254,7 @@ class OracleConfiguration:
 
     @property
     def oracle_turn_conf(self):
-        return OracleTurnConfiguration(self.ORACLE_STAKE_LIMIT_MULTIPLICATOR, self.ORACLE_PRICE_FALLBACK_DELTA_PCT,
-                                       self.ORACLE_PRICE_FALLBACK_BLOCKS, self.ORACLE_PRICE_PUBLISH_BLOCKS)
+        return OracleTurnConfiguration(self.ORACLE_PRICE_DELTA_PCT,
+                                       self.ORACLE_PRICE_PUBLISH_BLOCKS,
+                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
+                                       self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)

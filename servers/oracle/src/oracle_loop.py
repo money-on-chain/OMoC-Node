@@ -33,7 +33,7 @@ class OracleLoop(BgTaskExecutor):
         self.conf = conf
         self.oracle_addr = oracle_settings.get_oracle_account().addr
         self.oracle_service = oracle_service
-        self.cpMap = {}
+        self.cpMap: typing.Dict[str, OracleLoopTasks] = {}
         super().__init__(name="OracleLoop", main=self.run)
 
     def stop_bg_task(self):
@@ -58,7 +58,7 @@ class OracleLoop(BgTaskExecutor):
             tasks.extend([pf_loop, bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
                                                  cp_loop, pf_loop, bl_loop,
-                                                 OracleTurn(self.conf.oracle_turn_conf, cp_service.coin_pair))
+                                                 OracleTurn(self.conf, cp_service.coin_pair))
         if oracle_settings.SCHEDULER_RUN_ORACLE_SCHEDULER:
             tasks.append(SchedulerCoinPairLoop(self.conf, cp_service))
         for x in tasks:
@@ -94,3 +94,7 @@ class OracleLoop(BgTaskExecutor):
         oracle_price_reject_delta_pct = self.conf.ORACLE_PRICE_REJECT_DELTA_PCT
         return RequestValidation(oracle_price_reject_delta_pct, params, tasks.oracle_turn, exchange_price,
                                  blockchain_info)
+
+    async def get_full_blockchain_info(self) -> typing.Dict[str, OracleBlockchainInfo]:
+        return {cp_key: task.blockchain_info_loop.get()
+                for (cp_key, task) in self.cpMap.items()}

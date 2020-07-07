@@ -165,31 +165,25 @@ The rest of the parameters are optional. If they are missing they are taken from
     When an Oracle ask for a signature if the price difference percentage is grater than this value
     we reject the request by not signing.
     
-- ORACLE_PRICE_FALLBACK_DELTA_PCT = 0.05
+- ORACLE_PRICE_DELTA_PCT = 0.05
     
     To decide when to publish the Oracle check for the price difference percentage between the currently
     published price in the blockchain and the last price from the exchanges. It the change is more than
-    `ORACLE_PRICE_FALLBACK_DELTA_PCT` the Oracle starts to count blocks. After `ORACLE_PRICE_PUBLISH_BLOCKS`
-    the selected Oracle try to publish and after `ORACLE_PRICE_FALLBACK_BLOCKS` the first fallback Oracle
-    try to publish, after `ORACLE_PRICE_FALLBACK_BLOCKS + 1` the second fallback Oracle try to publish, etc.
+    `ORACLE_PRICE_DELTA_PCT` the Oracle starts to count blocks. After `ORACLE_PRICE_PUBLISH_BLOCKS`
+    the selected Oracle try to publish and after `ORACLE_ENTERING_FALLBACKS_AMOUNTS` list is used to 
+    check how many fall back oracles try to publish.
 
 - ORACLE_PRICE_PUBLISH_BLOCKS = 1
 
     The selected oracle publishes after `ORACLE_PRICE_PUBLISH_BLOCKS` blocks after a price change.
 
-- ORACLE_PRICE_FALLBACK_BLOCKS = 3
+- ORACLE_ENTERING_FALLBACKS_AMOUNTS = b'\x02\x04\x06\x08\n'
 
-    The fallback oracle try to publish `ORACLE_PRICE_FALLBACK_BLOCKS` blocks after a price change.
+    See ORACLE_PRICE_DELTA_PCT explanation bellow.
 
 - ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
 
     Timeout used when requesting signatures fom other oracles.
-
-- ORACLE_STAKE_LIMIT_MULTIPLICATOR = 2
-
-    This parameter is used to limit the difference in participation between the Oracles. The maximum
-    stake taken into consideration to choose the selected Oracle is the minimum stake multiplied by 
-    this factor (even if some oracle has more stake).
 
 - ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
 
@@ -197,6 +191,15 @@ The rest of the parameters are optional. If they are missing they are taken from
     even if the Oracle is subscribed to them. **An empty value `[]`) means: to monitor all coin pairs**.
 
 #### Server configuration: parameters for development 
+
+Besides the minimal set of variables previously mentioned, the following parameters are also needed for development:
+
+- SCRIPT_ORACLE_OWNER_ADDR="0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9"
+- SCRIPT_ORACLE_OWNER_PRIVATE_KEY="0xe485d098507f54e7733a205420dfddbe58db035fa577fc294ebd14db90767a52"
+- SCRIPT_REWARD_BAG_ADDR="0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+- SCRIPT_REWARD_BAG_PRIVATE_KEY="4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
+
+The following are optional:
 
 - DEBUG = False
 
@@ -214,6 +217,10 @@ The rest of the parameters are optional. If they are missing they are taken from
 - DEBUG_ENDPOINTS = False
 
     Add a swagger interface for the endpoints.
+
+- PROXY_HEADERS = False
+    
+    Populate remote address info.
 
 - RELOAD = False
     
@@ -278,6 +285,9 @@ ORACLE_PORT = 5556
 # Flag that indicates if the monitor (a module that store information in logfiles) must be run
 ORACLE_MONITOR_RUN = False
 
+# Flag that indicates if we must filter requests to /sign by ip.
+ORACLE_RUN_IP_FILTER = True
+
 # Oracle-only parameters.
 # Account used to publish prices
 ORACLE_ADDR="0x..."
@@ -298,21 +308,17 @@ ORACLE_PRICE_FETCH_RATE = "5 secs"
 # If the price delta percentage is grater than this we reject by not signing
 ORACLE_PRICE_REJECT_DELTA_PCT = 50
 
-# If the price delta percentage has changed and more than ORACLE_PRICE_FALLBACK_BLOCKS pass we act as fallbacks.
-ORACLE_PRICE_FALLBACK_DELTA_PCT = 0.05
+# Try to publish if the price has changed more than this percentage  
+ORACLE_PRICE_DELTA_PCT = 0.05
 
 # Selected oracle publishes after ORACLE_PRICE_PUBLISH_BLOCKS  blocks of a price change.
 ORACLE_PRICE_PUBLISH_BLOCKS = 1
 
-# Fallback oracle try to publish ORACLE_PRICE_FALLBACK_BLOCKS blocks after price change.
-ORACLE_PRICE_FALLBACK_BLOCKS = 3
+#
+ORACLE_ENTERING_FALLBACKS_AMOUNTS=
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
-
-# This is used to limit the difference in participation between selected oracles, the maximum stake used
-# is the minimum multiplied by this factor (even if some oracle has more stake participating)
-ORACLE_STAKE_LIMIT_MULTIPLICATOR = 2
 
 # If configured (json array of strings) only publish for those coinpairs in the list
 ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
@@ -327,6 +333,8 @@ ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
 # LOG_LEVEL = "info"
 # Add some development endpoints
 # DEBUG_ENDPOINTS = False
+# Populate remote address info.
+# PROXY_HEADERS = False
 # Reload on source code change, used for development
 # RELOAD = False
 # Print stack trace of errors, used for development

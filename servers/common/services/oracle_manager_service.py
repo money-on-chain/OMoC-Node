@@ -12,6 +12,10 @@ class OracleManagerService:
     def __init__(self, contract: BlockChainContract):
         self._contract = contract
 
+    @property
+    def addr(self):
+        return self._contract.addr
+
     async def oracle_manager_call(self, method, *args, **kw):
         return await self._contract.bc_call(method, *args, **kw)
 
@@ -50,17 +54,20 @@ class OracleManagerService:
     async def subscribe_coin_pair(self, coin_pair: CoinPair, address: BlockChainAddress,
                                   account: BlockchainAccount = None,
                                   wait=False):
-        return await self.oracle_manager_execute("suscribeCoinPair", address, coin_pair.longer(), account=account,
+        return await self.oracle_manager_execute("subscribeCoinPair", address, coin_pair.longer(), account=account,
                                                  wait=wait)
 
     async def unsubscribe_coin_pair(self, coin_pair: CoinPair, address: BlockChainAddress,
                                     account: BlockchainAccount = None,
                                     wait=False):
-        return await self.oracle_manager_execute("unsuscribeCoinPair", address, coin_pair.longer(), account=account,
+        return await self.oracle_manager_execute("unsubscribeCoinPair", address, coin_pair.longer(), account=account,
                                                  wait=wait)
 
     async def is_subscribed(self, coin_pair: CoinPair, address: BlockChainAddress) -> bool:
-        return await self.oracle_manager_call("isSuscribed", address, coin_pair.longer())
+        return await self.oracle_manager_call("isSubscribed", address, coin_pair.longer())
+
+    async def can_remove(self, address: BlockChainAddress) -> bool:
+        return await self.oracle_manager_call("canRemoveOracle", address)
 
     async def get_registered_oracle_head(self):
         return await self.oracle_manager_call("getRegisteredOracleHead")

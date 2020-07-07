@@ -48,21 +48,19 @@ from typing import List
 
 from hexbytes import HexBytes
 
-from oracle.src.oracle_coin_pair_service import FullOracleRoundInfo
+from common.services.oracle_dao import FullOracleRoundInfo
 
 logger = logging.getLogger("fastapi")
 
 
-def select_next(stake_limit_multiplicator, last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo]):
+def select_next(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo]):
     if len(oracle_info_list) == 0:
         return []
     if len(oracle_info_list) > 32:
         raise Exception('Cant have more than 32 oracles, the hash is 32 bytes long')
 
-    min_stake = min([int(o.stake) for o in oracle_info_list])
-
     def get_capped_stake(oi):
-        return min(int(oi.stake), min_stake * stake_limit_multiplicator)
+        return int(oi.stake)
 
     l1 = oracle_info_list.copy()
     total_stake = 0
@@ -91,3 +89,8 @@ def select_next(stake_limit_multiplicator, last_block_hash: str, oracle_info_lis
     while rnd_stake > stake_buckets[idx][1]:
         idx += 1
     return [l2[(idx + i) % len(l2)] for i in range(len(l2))]
+
+
+def select_next_addresses(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo]):
+    ordered_oracle_selection = select_next(last_block_hash, oracle_info_list)
+    return [x.addr for x in ordered_oracle_selection]

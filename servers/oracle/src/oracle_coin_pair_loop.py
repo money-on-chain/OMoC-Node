@@ -35,7 +35,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
         self._oracle_addr = oracle_settings.get_oracle_account().addr
         self._cps = cps
         self._coin_pair = cps.coin_pair
-        self._oracle_turn = OracleTurn(self._conf.oracle_turn_conf, cps.coin_pair)
+        self._oracle_turn = OracleTurn(self._conf, cps.coin_pair)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
@@ -63,8 +63,9 @@ class OracleCoinPairLoop(BgTaskExecutor):
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
-            logger.info("%r : OracleCoinPairLoop ------------> Is my turn I'm chosen: %s block %r" %
-                        (self._coin_pair, self._oracle_addr, blockchain_info.block_num))
+            logger.info("%r : OracleCoinPairLoop ------------> Is my turn I'm chosen: %s block %r, %r, %r" %
+                        (self._coin_pair, self._oracle_addr, blockchain_info.block_num,
+                         blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
             publish_success = await self.publish(blockchain_info.selected_oracles,
                                                  PublishPriceParams(self._conf.MESSAGE_VERSION,
                                                                     self._coin_pair,
@@ -75,8 +76,9 @@ class OracleCoinPairLoop(BgTaskExecutor):
                 # retry immediately.
                 return 1
         else:
-            logger.info("%r : OracleCoinPairLoop ------------> Is NOT my turn: %s block %r" %
-                        (self._coin_pair, self._oracle_addr, blockchain_info.block_num))
+            logger.info("%r : OracleCoinPairLoop ------------> Is NOT my turn: %s block %r, %r, %r" %
+                        (self._coin_pair, self._oracle_addr, blockchain_info.block_num,
+                         blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
     async def publish(self, oracles, params: PublishPriceParams):
@@ -168,9 +170,16 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
         obj = json.loads(response)
         if "signature" not in obj:
             logger.error(
-                "%s : Missing signature from: %s,%s" % (params.coin_pair, oracle.addr, oracle.internetName))
+                "%s : Missing signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
             return
         signature = HexBytes(obj["signature"])
+    except json.JSONDecodeError as err:
+        logger.error(
+            "%s : JSONDecodeError exception from %s, %s: %r for %r" % (
+                params.coin_pair, oracle.addr, oracle.internetName, err,
+                response if settings.DEBUG else "-"))
+        logger.warning(traceback.format_exc())
+        return
     except asyncio.CancelledError as e:
         raise e
     except asyncio.TimeoutError as e:
@@ -189,7 +198,7 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
         return
     except Exception as err:
         logger.error(
-            "%s : Unexpected exception from %s,%s: %r" % (
+            "%s : Unexpected exception from %s, %s: %r" % (
                 params.coin_pair, oracle.addr, oracle.internetName, err))
         logger.warning(traceback.format_exc())
         return

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const Web3 = require('web3');
 
 
 async function printSingle(msg, contract, name) {
@@ -85,3 +86,86 @@ function coinPairStr(hex) {
 
 module.exports.coinPairStr = coinPairStr;
 
+function getScriptArgs(filename) {
+    const scriptName = path.basename(filename);
+    const script_in_args = process.argv.map(x => x.indexOf(scriptName) > 0);
+    const idx = script_in_args.indexOf(true);
+    if (idx < 0) {
+        console.error("INVALID ARGS", script_in_args);
+        process.exit();
+    }
+    return process.argv.splice(idx + 1);
+}
+
+module.exports.getScriptArgs = getScriptArgs;
+
+
+async function getHistory(web3, fromBlk, toBlk, tx_filter) {
+    const eth = web3.eth;
+    const blocks = [];
+    // Take in chunks of 100 blocks
+    const CHUNK_SIZE = 100;
+    for (let i = fromBlk; i < toBlk; i += CHUNK_SIZE) {
+        const promises = []
+        for (let j = 0; i + j < toBlk && j < CHUNK_SIZE; j++) {
+            promises.push(eth.getBlock(i + j, true));
+        }
+        blocks.push(...await Promise.all(promises));
+    }
+    const f_blocks = blocks.filter(b => b != null && b.transactions != null)
+        .map(b => b.transactions.map(x => ({...x, timestamp: b.timestamp})));
+    const txs = [].concat.apply([], f_blocks).filter(tx_filter);
+    const txMap = txs.reduce((acc, tx) => {
+        acc[tx.hash] = tx;
+        return acc;
+    }, {});
+    const receipts = await Promise.all(txs.map(x => eth.getTransactionReceipt(x.hash)));
+    receipts.sort((a, b) => (b.blockNumber - a.blockNumber));
+    return {txs: receipts.map(r => ({...r, ...txMap[r.transactionHash]})), blocks};
+}
+
+module.exports.getHistory = getHistory;
+
+function select_next(last_block_hash, oracle_info_list) {
+    if (oracle_info_list.length == 0) {
+        return [];
+    }
+
+    if (oracle_info_list.length > 32) {
+        throw  new Error('Cant have more than 32 oracles, the hash is 32 bytes long');
+    }
+    oracle_info_list.sort((a, b) => Web3.utils.toBN(b.stake).cmp(Web3.utils.toBN(a.stake)));
+    const l1 = oracle_info_list.slice()
+    let total_stake = Web3.utils.toBN(0);
+    const l2 = []
+    const stake_buckets = []
+    const lbh_with_x = last_block_hash.startsWith("0x") ?
+        last_block_hash :
+        "0x" + last_block_hash
+    const hb = Web3.utils.hexToBytes(lbh_with_x);
+    const last_block_hash_as_int = Web3.utils.toBN(lbh_with_x);
+    for (let idx = 0; idx < oracle_info_list.length; idx++) {
+        // Take an element in a random place of l1 and push it to l2
+        const sel_index = hb[idx] % l1.length
+        const oracle_item = l1[sel_index];
+        l1.splice(sel_index, 1)
+        l2.push(oracle_item.addr)
+
+        const stake = Web3.utils.toBN(oracle_item["stake"]);
+        total_stake = total_stake.add(stake);
+        stake_buckets.push(total_stake.subn(1))
+    }
+    // Select from L2 according to stake weight
+    // rnd_stake = int(last_block_hash, 16) % total_stake
+    // i've got hexbytes string in hash, so:
+    const rnd_stake = last_block_hash_as_int.mod(total_stake);
+    // stake_buckets is a growing array of numbers, search the first bigger than rnd_stake
+    for (let idx = 0; ; idx++) {
+        if (rnd_stake.lte(stake_buckets[idx])) {
+            // reorder the l2 array starting with idx
+            return l2.map((val, i) => l2[(idx + i) % l2.length]);
+        }
+    }
+}
+
+module.exports.select_next = select_next;

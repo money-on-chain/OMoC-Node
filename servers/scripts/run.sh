@@ -21,5 +21,8 @@ if [ $# -eq 0 ]; then
 fi
 
 for i in "$@"; do
-  python -m "scripts.$i"
+    filename=$(basename -- "$i")
+    filename="${filename%.*}"
+    echo "RUNNING $filename"
+    python -m "scripts.$filename"
 done

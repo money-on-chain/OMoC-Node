@@ -8,6 +8,7 @@ from common import settings, helpers
 from common.services.blockchain import BlockChain, BlockChainContract, parse_addr
 from common.services.coin_pair_price_service import CoinPairService
 from common.services.eternal_storage_service import EternalStorageService
+from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
 from common.services.oracle_manager_service import OracleManagerService
 from common.services.supporters_service import SupportersService
@@ -47,7 +48,13 @@ class ContractFactoryService:
     def get_oracle_manager(self, addr) -> OracleManagerService:
         raise Exception("Unimplemented")
 
+    def get_info_service(self, addr) -> InfoGetterService:
+        raise Exception("Unimplemented")
+
     def get_supporters(self, addr) -> SupportersService:
+        raise Exception("Unimplemented")
+
+    def get_abi(self, name):
         raise Exception("Unimplemented")
 
     def get_addr(self, name):
@@ -85,9 +92,16 @@ class MocContractFactoryService(ContractFactoryService):
         abi = self._read_abi('OracleManager.abi')
         return OracleManagerService(self._get_contract(addr, abi))
 
+    def get_info_service(self, addr) -> InfoGetterService:
+        abi = self._read_abi('InfoGetter.abi')
+        return InfoGetterService(self._get_contract(addr, abi))
+
     def get_supporters(self, addr) -> SupportersService:
-        abi = self._read_abi('SupportersVested.abi')
+        abi = self._read_abi('SupportersWhitelisted.abi')
         return SupportersService(self._get_contract(addr, abi))
+
+    def get_abi(self, name):
+        return self._read_abi(name)
 
     def get_addr(self, name):
         if name == "ETERNAL_STORAGE" and "EternalStorageGobernanza" in self.addresses:
@@ -102,9 +116,11 @@ class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
         "ETERNAL_STORAGE": "EternalStorageGobernanza.json"
         , "MOC_ERC20": "TestMOC.json"
-        , "SUPPORTERS": "SupportersVested.json"
+        , "SUPPORTERS": "SupportersWhitelisted.json"
+        , "SUPPORTERS_VESTED": "SupportersVested.json"
         , "ORACLE_MANAGER": "OracleManager.json"
         , "COIN_PAIR_PRICE": "CoinPairPrice.json"
+        , "INFO_GETTER": "InfoGetter.json"
     }
     DATA = dict()
 
@@ -130,6 +146,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
         data = self._read_data("ORACLE_MANAGER")
         return OracleManagerService(self._get_contract(addr, data["abi"]))
 
+    def get_info_service(self, addr) -> InfoGetterService:
+        data = self._read_data("INFO_GETTER")
+        return InfoGetterService(self._get_contract(addr, data["abi"]))
+
     def get_supporters(self, addr) -> SupportersService:
         data = self._read_data("SUPPORTERS")
         return SupportersService(self._get_contract(addr, data["abi"]))
@@ -145,6 +165,11 @@ class BuildDirContractFactoryService(ContractFactoryService):
             raise Exception("Configure DEVELOP_NETWORK_ID environment variable")
         logger.info("Using network id %r for %s" % (network_id, name))
         return parse_addr(data["networks"][str(network_id)]["address"])
+
+    @classmethod
+    def get_abi(cls, name):
+        data = cls._read_data(name)
+        return data["abi"]
 
     @classmethod
     def _read_data(cls, name):

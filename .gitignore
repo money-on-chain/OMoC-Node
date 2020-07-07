@@ -9,6 +9,7 @@ coverage
 contracts/zos.dev*.json
 contracts/contracts/Oracle_*.sol
 .idea
+.vscode
 .env
 venv
 .cache

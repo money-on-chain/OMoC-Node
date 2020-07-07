@@ -16,6 +16,9 @@ ORACLE_RUN = config('ORACLE_RUN', cast=bool, default=True)
 # Flag that indicates if the monitor (a module that store information in logfiles) must be run
 ORACLE_MONITOR_RUN = config('ORACLE_MONITOR_RUN', cast=bool, default=False)
 
+# Flag that indicates if we must filter requests to /sign by ip.
+ORACLE_RUN_IP_FILTER = config('ORACLE_RUN_IP_FILTER', cast=bool, default=True)
+
 # Run the oracle round scheduler?
 SCHEDULER_RUN_ORACLE_SCHEDULER = config('SCHEDULER_RUN_ORACLE_SCHEDULER', cast=bool, default=True)
 

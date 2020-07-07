@@ -1,10 +1,12 @@
 import logging
 import traceback
 
-from fastapi import Form, HTTPException
+from fastapi import Form, HTTPException, Response, Request
+from starlette.responses import JSONResponse
 
 from common import settings, run_uvicorn
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
+from oracle.src import oracle_settings
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
 from oracle.src.request_validation import ValidationFailure
@@ -12,6 +14,30 @@ from oracle.src.request_validation import ValidationFailure
 logger = logging.getLogger(__name__)
 main_executor = MainLoop()
 app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
+
+not_authorized_msg = "The request was not made by a selected oracle."
+
+
+def get_error_msg(msg=None):
+    return str(msg) if msg is not None and settings.DEBUG else "Invalid signature"
+
+
+@app.middleware("http")
+async def filter_ips_by_selected_oracles(request: Request, call_next):
+    if not oracle_settings.ORACLE_RUN_IP_FILTER:
+        return await call_next(request)
+    try:
+        (ip, port) = request.client
+        logger.info("Got a connection from %r" % ip)
+        if not main_executor.is_valid_ip(ip):
+            raise Exception("%s %r" % (not_authorized_msg, ip))
+        return await call_next(request)
+    except Exception as e:
+        error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(e)
+        logger.error(error_msg)
+        if settings.DEBUG:
+            return JSONResponse(status_code=500, content=error_msg)
+        return Response(status_code=500, content=error_msg)
 
 
 @app.on_event("startup")
@@ -56,12 +82,10 @@ async def sign(*, version: str = Form(...),
         }
 
     except ValidationFailure as e:
-        logger.error(e)
-        msg = str(e) if settings.DEBUG else "Invalid signature"
-        raise HTTPException(status_code=500, detail=msg)
+        logger.warning(e)
+        raise HTTPException(status_code=500, detail=get_error_msg(e))
     except Exception as e:
         logger.error(e)
         if settings.ON_ERROR_PRINT_STACK_TRACE:
             logger.error("\n".join(traceback.format_exception(type(e), e, e.__traceback__)))
-        msg = str(e) if settings.DEBUG else "Invalid signature"
-        raise HTTPException(status_code=500, detail=msg)
+        raise HTTPException(status_code=500, detail=get_error_msg(e))

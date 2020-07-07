@@ -5,6 +5,7 @@ from common import settings
 from common.bg_task_executor import BgTaskExecutor
 from common.services.contract_factory_service import ContractFactoryService
 from oracle.src import oracle_settings, monitor
+from oracle.src.ip_filter_loop import IpFilterLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_loop import OracleLoop
 from oracle.src.oracle_service import OracleService
@@ -21,6 +22,7 @@ class MainLoop(BgTaskExecutor):
         self.tasks: List[BgTaskExecutor] = []
         self.initialized = False
         self.oracle_loop: OracleLoop = None
+        self.ip_filter_loop: IpFilterLoop = None;
         super().__init__(name="MainLoop", main=self.run)
 
     async def web_server_startup(self):
@@ -34,27 +36,30 @@ class MainLoop(BgTaskExecutor):
     async def run(self):
         logger.info("MainExecutor loop start")
         if not self.initialized:
-            if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_VESTED_ADDR is None:
+            if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_ADDR is None:
                 logger.info("MainExecutor waiting to get configuration from blockchain")
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
             self.initialized = True
             self._print_info()
-            self._startup(self.conf.SUPPORTERS_VESTED_ADDR, self.conf.ORACLE_MANAGER_ADDR)
+            self._startup()
 
         await self.conf.update()
         # TODO: react to a change in addresses.
         logger.info("MainExecutor loop done")
         return self.conf.ORACLE_CONFIGURATION_TASK_INTERVAL
 
-    def _startup(self, supporters_vested_addr, oracle_manager_addr):
-        oracle_service = OracleService(self.cf, oracle_manager_addr)
+    def _startup(self):
+        oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
         self.oracle_loop = OracleLoop(self.conf, oracle_service)
         self.tasks.append(self.oracle_loop)
+        if oracle_settings.ORACLE_RUN_IP_FILTER:
+            self.ip_filter_loop = IpFilterLoop(self.oracle_loop, self.conf)
+            self.tasks.append(self.ip_filter_loop)
         if oracle_settings.ORACLE_MONITOR_RUN:
             monitor.log_setup()
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))
         if oracle_settings.SCHEDULER_RUN_SUPPORTERS_SCHEDULER:
-            supporters_service = self.cf.get_supporters(supporters_vested_addr)
+            supporters_service = self.cf.get_supporters(self.conf.SUPPORTERS_ADDR)
             self.tasks.append(SchedulerSupportersLoop(self.conf, supporters_service))
         for t in self.tasks:
             t.start_bg_task()
@@ -77,7 +82,10 @@ class MainLoop(BgTaskExecutor):
             t.stop_bg_task()
         self.stop_bg_task()
 
-    def get_validation_data(self, params):
+    async def get_validation_data(self, params):
         if self.oracle_loop is None:
             return None
-        return self.oracle_loop.get_validation_data(params)
+        return await self.oracle_loop.get_validation_data(params)
+
+    def is_valid_ip(self, ip):
+        return self.ip_filter_loop.is_valid_ip(ip)

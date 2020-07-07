@@ -7,6 +7,7 @@ async def mint(moc_token_service, addr):
     print(addr, "AVAILABLE MOCS BEFORE: ",
           await moc_token_service.balance_of(addr))
 
+    raise Exception("WE MUST MINT BY GOBERNANZA, check contacts/scripts/mint_tokens.js!!!")
     tx = await moc_token_service.mint(addr,
                                       script_settings.INITIAL_STAKE,
                                       account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
