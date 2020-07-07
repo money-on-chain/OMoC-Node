@@ -158,10 +158,17 @@ function select_next(last_block_hash, oracle_info_list) {
     // Select from L2 according to stake weight
     // rnd_stake = int(last_block_hash, 16) % total_stake
     // i've got hexbytes string in hash, so:
-    const rnd_stake = last_block_hash_as_int.mod(total_stake);
+    // const rnd_stake = last_block_hash_as_int.mod(total_stake);
+
+    //const rnd_stake = last_block_hash_as_int.mod(total_stake);
+    const max_int = Web3.utils.toBN('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    // bn don't support decimals => scale it up.
+    const scale = Web3.utils.toBN("1" + "0".repeat(30));
+    const rnd_stake = total_stake.mul(last_block_hash_as_int).mul(scale).div(max_int);
+
     // stake_buckets is a growing array of numbers, search the first bigger than rnd_stake
     for (let idx = 0; ; idx++) {
-        if (rnd_stake.lte(stake_buckets[idx])) {
+        if (rnd_stake.lte(stake_buckets[idx].mul(scale))) {
             // reorder the l2 array starting with idx
             return l2.map((val, i) => l2[(idx + i) % l2.length]);
         }
