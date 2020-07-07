@@ -41,6 +41,10 @@ async function scheduler_main(tasks) {
     const scheduler = require('node-schedule');
     const provider = get_provider();
     const web3 = new Web3(provider);
+    console.log("USING transactionBlockTimeout", web3.eth.transactionBlockTimeout);
+    web3.eth.transactionPollingTimeout = 1500;
+    console.log("USING transactionPollingTimeout", web3.eth.transactionPollingTimeout);
+
     const accounts = await web3.eth.getAccounts();
     const source_account = accounts[0];
 
