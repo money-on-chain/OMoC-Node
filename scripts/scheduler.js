@@ -37,6 +37,36 @@ function run_main(main_func) {
 
 module.exports.run_main = run_main;
 
+async function transfer_main(web3, source_account) {
+    if (!process.env.TRANSFER_DESTINATIONS) {
+        console.log("Skipping transfers");
+    }
+    const destinations = JSON.parse(process.env.TRANSFER_DESTINATIONS);
+    if (!Array.isArray(destinations)) {
+        throw new Error("We the following env variable: TRANSFER_DESTINATIONS must contains " +
+            "a json array with addresses");
+    }
+    const unit = !process.env.TRANSFER_UNIT ? "gwei" : process.env.TRANSFER_UNIT;
+    let amounts = destinations.map(x => 1);
+    if (process.env.TRANSFER_AMOUNTS) {
+        const a = JSON.parse(process.env.TRANSFER_AMOUNTS);
+        if (!Array.isArray(a) || a.length != destinations.length) {
+            throw new Error("We the following env variable: TRANSFER_AMOUNTS must contains a " +
+                "json array of the same size as TRANSFER_DESTINATIONS");
+        }
+        amounts = a;
+    }
+    for (const d of destinations) {
+        const amount = Web3.utils.toBN(Web3.utils.toWei(process.env.TRANSFER_UNIT, unit));
+        await web3.eth.sendTransaction({
+            to: Web3.utils.toChecksumAddress(d),
+            value: amount,
+            from: source_account
+        });
+    }
+}
+
+
 async function scheduler_main(tasks) {
     const scheduler = require('node-schedule');
     const provider = get_provider();
@@ -93,13 +123,7 @@ if (require.main === module) {
         },
         "transfer": {
             spec: '*/10 * * * *',
-            async_func: async (web3, source_account) => {
-                await web3.eth.sendTransaction({
-                    to: "0xC69FBF17f088235085fa0D29E229D7C7b2C209f8",
-                    value: Web3.utils.toWei("1", "gwei"),
-                    from: source_account
-                });
-            }
+            async_func: async (web3, source_account) => transfer_main
         }
     }
     scheduler_main(TASKS).catch(err => {
