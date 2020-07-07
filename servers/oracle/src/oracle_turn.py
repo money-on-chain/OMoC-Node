@@ -88,6 +88,10 @@ class OracleTurn:
         entering_fallback_sequence = self.get_fallback_sequence(conf.entering_fallbacks_amounts,
                                                                 len(vi.selected_oracles))
 
+        logger.info("%r : 1 ---> %r" % (self._coin_pair, vi))
+        logger.info("%r : 1 ---> %r %r" % (self._coin_pair, oracle_addr, exchange_price))
+        logger.info("%r : 1 ---> %r %r" % (self._coin_pair, oracle_addresses, entering_fallback_sequence))
+
         # WARN if oracles won't get to publish before price expires
         ####################################
         if conf.trigger_valid_publication_blocks < len(entering_fallback_sequence) + 1:
@@ -130,6 +134,9 @@ class OracleTurn:
             logger.warning(msg)
             return False, msg
 
+        logger.info("%r : 2 ---> %r %r %r %r %r" % (self._coin_pair, blocks_since_price_change,
+                                                    conf.price_publish_blocks, oracle_addr, oracle_addresses,
+                                                    entering_fallback_sequence))
         can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
                                                 oracle_addr, oracle_addresses, entering_fallback_sequence)
         if can_I_publish:
