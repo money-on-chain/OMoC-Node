@@ -29,7 +29,7 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
         + " search txs from " + startBlockNumber + " to " + endBlockNumber
     ));
     const {txs, blocks} = await helpers.getHistory(web3, startBlockNumber, currentBlock,
-        tx => tx.to && tx.to.toLowerCase() == contract.options.address.toLowerCase());
+        tx => tx.to && tx.to.toLowerCase() === contract.options.address.toLowerCase());
     const block_map = blocks.reduce((acc, val) => {
         acc[val.number] = val.hash;
         return acc;
@@ -43,7 +43,7 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
     for (const x of txs) {
         const args = fnDecoder.decodeFn(x.input);
         const d = new Date(x.timestamp * 1000).toISOString();
-        if (args.signature == "switchRound()") {
+        if (args.signature === "switchRound()") {
             table.push([
                 pr(x, d),
                 pr(x, x.blockNumber),
@@ -54,12 +54,14 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
                 "",
                 ""
             ]);
-        } else if (args.signature == "publishPrice(uint256,bytes32,uint256,address,uint256,uint8[],bytes32[],bytes32[])") {
+        } else if (args.signature === "publishPrice(uint256,bytes32,uint256,address,uint256,uint8[],bytes32[],bytes32[])") {
             if (!block_map[args._blockNumber.toString()]) {
                 const blk = await web3.eth.getBlock(args._blockNumber, false);
                 block_map[blk.number] = blk.hash;
             }
             const block_hash = block_map[args._blockNumber.toString()];
+            const selected = helpers.select_next(block_hash, selected_oracles)
+            const printable_selected = selected.map(x => x.substr(0, 4) + "..." + x.substr(-3)).toString()
             table.push([
                 pr(x, d),
                 pr(x, x.blockNumber),
@@ -68,9 +70,8 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
                 web3.utils.fromWei(args._price.toString()),
                 pr(x, "SUCCESS", "FAILED"),
                 block_hash.substr(0, 6) + "...",
-                helpers.select_next(block_hash, selected_oracles)
-                    .map(x => x.substr(0, 4) + "..." + x.substr(-3)).toString()
-
+                (selected[0] === x.from ? printable_selected :
+                    (x.status ? colors.blue(printable_selected) : colors.red(printable_selected))),
             ]);
             if (x.status) prev = args._blockNumber;
         } else {
