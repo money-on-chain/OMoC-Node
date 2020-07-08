@@ -153,7 +153,7 @@ function select_next(last_block_hash, oracle_info_list) {
 
         const stake = Web3.utils.toBN(oracle_item["stake"]);
         total_stake = total_stake.add(stake);
-        stake_buckets.push(total_stake.subn(1))
+        stake_buckets.push(total_stake)
     }
     // Select from L2 according to stake weight
     // rnd_stake = int(last_block_hash, 16) % total_stake
@@ -161,14 +161,14 @@ function select_next(last_block_hash, oracle_info_list) {
     // const rnd_stake = last_block_hash_as_int.mod(total_stake);
 
     //const rnd_stake = last_block_hash_as_int.mod(total_stake);
-    const max_int = Web3.utils.toBN('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    const max_int = Web3.utils.toBN('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    const hb_int = last_block_hash_as_int.xor(last_block_hash_as_int.shrn(16)).and(max_int)
     // bn don't support decimals => scale it up.
     const scale = Web3.utils.toBN("1" + "0".repeat(30));
-    const rnd_stake = total_stake.mul(last_block_hash_as_int).mul(scale).div(max_int);
-
+    const rnd_stake = total_stake.mul(hb_int).mul(scale).div(max_int);
     // stake_buckets is a growing array of numbers, search the first bigger than rnd_stake
     for (let idx = 0; ; idx++) {
-        if (rnd_stake.lte(stake_buckets[idx].mul(scale))) {
+        if (idx === l2.length - 1 || rnd_stake.lte(stake_buckets[idx].mul(scale))) {
             // reorder the l2 array starting with idx
             return l2.map((val, i) => l2[(idx + i) % l2.length]);
         }
