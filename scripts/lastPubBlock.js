@@ -15,6 +15,7 @@ const DEPTH_IN_BLOCKS = isNaN(ARGS[0]) ? 70 : parseInt(ARGS[0]);
 console.log("DEPTH_IN_BLOCKS", DEPTH_IN_BLOCKS);
 
 async function historyForCoinPair(web3, abi, contract, selected_oracles) {
+    const ret = {};
     const fnDecoder = new txDecoder.FunctionDecoder(abi);
     const lpbm = contract.methods.lastPublicationBlock
         ? contract.methods.lastPublicationBlock
@@ -37,7 +38,7 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
     const pr = (x, st, el) => (x.status ? colors.green(st) : colors.red(el || st));
     // instantiate
     const table = new Table({
-        head: ["timestamp", "blocknumber", "message last pub block", "from", "price", "status", "blockHash", "Selected"]
+        head: ["blocknumber", "timestamp", "message last pub block", "from", "price", "status", "blockHash", "Selected"]
     });
     let prev = new BigNumber(endBlockNumber.toString());
     for (const x of txs) {
@@ -45,8 +46,8 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
         const d = new Date(x.timestamp * 1000).toISOString();
         if (args.signature === "switchRound()") {
             table.push([
-                pr(x, d),
                 pr(x, x.blockNumber),
+                pr(x, d),
                 pr(x, "SWITCH ROUND"),
                 pr(x, x.from),
                 "SWITCH ROUND",
@@ -62,9 +63,10 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
             const block_hash = block_map[args._blockNumber.toString()];
             const selected = helpers.select_next(block_hash, selected_oracles)
             const printable_selected = selected.map(x => x.substr(0, 4) + "..." + x.substr(-3)).toString()
+            ret[block_hash] = selected[0];
             table.push([
-                pr(x, d),
                 pr(x, x.blockNumber),
+                pr(x, d),
                 pr(x, args._blockNumber.toString(10) + " - " + prev.sub(args._blockNumber).toString(10)),
                 pr(x, x.from),
                 web3.utils.fromWei(args._price.toString()),
@@ -79,6 +81,7 @@ async function historyForCoinPair(web3, abi, contract, selected_oracles) {
         }
     }
     console.log("" + table);
+    return ret;
 }
 
 async function get_oracle_info_list(info_cache, oracle_manager_methods, coin_pair_price_methods) {
@@ -109,7 +112,17 @@ async function principal(conf) {
             oracle_manager_methods,
             coinPairPrice.contract.methods);
         console.log("SELECTED ORACLES", oracle_info_list);
-        await historyForCoinPair(web3, coinPairPrice.abi, coinPairPrice.contract, oracle_info_list);
+        // TODO: Instead of searching block for every coinpair, search for all of them at once
+        const r = await historyForCoinPair(web3, coinPairPrice.abi, coinPairPrice.contract, oracle_info_list);
+        console.log("SELECTION ORDER", r);
+        const selected_addresses = oracle_info_list.map(x => x.addr);
+        console.log("STATS", Object.values(r)
+            .reduce((acc, val) => {
+                const idx = selected_addresses.indexOf(val);
+                if (!acc[idx]) acc[idx] = 0;
+                acc[idx]++;
+                return acc;
+            }, {}));
     }
 }
 
