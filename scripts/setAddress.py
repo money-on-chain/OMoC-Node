@@ -62,6 +62,7 @@ def addTo(filePath, search, addText):
                     ,'\n' + search + addText,
                     file.read_text())
     file.open('w').write(content)
+
 def NodeOption():
     global envServer
     print("///////////")
@@ -72,6 +73,7 @@ def NodeOption():
     node = input("Node (default: public-node):")
     if node =="": node="https://public-node.testnet.rsk.co:443"
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
+
 def oracleOption():
     global envMonitor
     global envServer
@@ -93,6 +95,7 @@ def oracleOption():
     #addTo(envServer,"SCHEDULER_SIGNING_ADDR = ",'"' + scheduler.address  + '"')
     #addTo(envServer,"SCHEDULER_SIGNING_KEY = ", '"' + scheduler.privateKey + '"')
     addTo(envMonitor,"ORACLE_SERVER_ADDRESS=",oracle.address)
+
 def emailOption():
     global envMonitor
     print("///////////")
@@ -124,6 +127,7 @@ def emailOption():
     addTo(envMonitor,"SMTP_From=", emailFrom)
     addTo(envMonitor,"ALERT_EMAILS=", emailTo)
     addTo(envMonitor,"EMAIL_REPEAT_INTERVAL=", seconds)
+
 def checkStatus():
     global envMonitor
     global envServer
@@ -141,6 +145,7 @@ def checkStatus():
     if (mail.group().strip() != "SMTP_HOST=" ): 
         actualEmail = "(Actual Email:" + mail.group().strip()[10:] +")"
     actualNode = "(Actual Node: " + node.group().strip()[10:-1] + ")"
+
 def main():
     global envMonitor
     global envServer
@@ -162,7 +167,6 @@ def main():
     print("Note: Private data (private keys and passwords) given by the user will not be displayed on the console")
     print("///////////")
     print("")
-
 
     quit = False
     while (quit ==False):
@@ -191,5 +195,6 @@ def main():
             print("////////")
             quit = True
         if (Menu == "5" ): quit = True
+
 if __name__ == "__main__":
     main()
