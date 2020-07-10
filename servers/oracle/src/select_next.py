@@ -87,10 +87,8 @@ def select_next(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo
     # hb_int = int(hb.hex(), 16)
     # rnd_stake = hb_int % total_stake
 
-    max_int = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-    h = int(hb.hex(), 16)
-    hb_int = (h ^ (h >> 16)) & max_int
-    rnd_stake = Decimal(total_stake) * Decimal(hb_int) / Decimal(max_int)
+    max_int = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+    rnd_stake = Decimal(total_stake) * Decimal(int(hb.hex(), 16)) / Decimal(max_int)
 
     idx = 0
     while idx < len(stake_buckets) and rnd_stake > stake_buckets[idx]:
