@@ -5,7 +5,7 @@ Running the following commands you will upgrade your server.
 
 1. Stop services:
 
-`supervisorctl stop backend ; supervisorctl stop oracle`
+	`supervisorctl stop backend ; supervisorctl stop oracle`
 	
 2. Update code to latest version:
 
