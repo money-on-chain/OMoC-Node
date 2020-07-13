@@ -34,7 +34,7 @@ Visit [https://faucet.rsk.co/](https://faucet.rsk.co/) and complete the form to 
    
 
 ###2) Registration (Mint->Allow->Register)
-To register your Oracle, you will need to allow the contract to use your MoCTokens. To do that, go to the Oracle tab and subtab Registration, and mint MoC Token (will be assigned to your account). After that allow part or the total of your MoCToken to the contract. For the last step, register your Oracle using the Oracle address, the network address and stake the total or part of what you allow, in the allow step.
+To register your Oracle, you will need to allow the contract to use your MoCTokens. To do that, first you'll need to have tokens or get them from MoC foundation. Then go to the Oracle tab and subtab Registration, and allow part or the total of your MoCToken to the contract. For the last step, register your Oracle using the Oracle address, the network address and stake the total or part of what you allow, in the allow step.
 
 ![dapp](./images/GUIA03-05.png)
 ![dapp](./images/GUIA03-06.png)
