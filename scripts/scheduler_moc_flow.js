@@ -136,15 +136,15 @@ async function buffer_run(web3, buf_addr, tx_params) {
 async function moc_flow_main(web3, source_account) {
     if (!process.env.MOC_FLOW_DRIPPERS
         || !process.env.MOC_FLOW_BUFFERS) {
-        throw new Error("We the following env variables: MOC_FLOW_DRIPPERS and MOC_FLOW_BUFFERS");
+        throw new Error("We need the following env variables: MOC_FLOW_DRIPPERS and MOC_FLOW_BUFFERS");
     }
     const drippers = JSON.parse(process.env.MOC_FLOW_DRIPPERS);
     if (!Array.isArray(drippers)) {
-        throw new Error("We the following env variable: MOC_FLOW_DRIPPERS must contains a json array with addresses");
+        throw new Error("We need the following env variable: MOC_FLOW_DRIPPERS must contains a json array with addresses");
     }
     const buffers = JSON.parse(process.env.MOC_FLOW_BUFFERS);
     if (!Array.isArray(buffers)) {
-        throw new Error("We the following env variable: MOC_FLOW_BUFFERS must contains a json array with addresses");
+        throw new Error("We need the following env variable: MOC_FLOW_BUFFERS must contains a json array with addresses");
     }
     if (drippers.length === 0 && buffers.length === 0) {
         throw new Error("We need some drips or buffers to call");

@@ -130,13 +130,13 @@ async function pay_with_token(token_addr, token, source_account, to_pay) {
 async function pay_rewards_main(web3, source_account) {
     if (!process.env.ORACLE_MANAGER_ADDRESSES
         || !process.env.SUPPORTERS_FACTOR) {
-        throw new Error("We the following env variables: SUPPORTERS_FACTOR and ORACLE_MANAGER_ADDRESSES");
+        throw new Error("We need the following env variables: SUPPORTERS_FACTOR and ORACLE_MANAGER_ADDRESSES");
     }
     const unit = !process.env.PAY_UNIT ? "gwei" : process.env.PAY_UNIT;
     const supporters_factor = Web3.utils.toBN(Web3.utils.toWei(process.env.SUPPORTERS_FACTOR, unit));
     const oracle_manager_addresses = JSON.parse(process.env.ORACLE_MANAGER_ADDRESSES);
     if (!Array.isArray(oracle_manager_addresses)) {
-        throw new Error("We the following env variable: ORACLE_MANAGER_ADDRESSES must contains a json array with addresses");
+        throw new Error("We need the following env variable: ORACLE_MANAGER_ADDRESSES must contains a json array with addresses");
     }
 
     const payments = {};

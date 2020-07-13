@@ -5,6 +5,9 @@
 # The server starts with reasonable defaults and then gets the parameters from the blockchain.
 # The server expect to find in "build/contracts" the files with the abis and addresses of contracts
 
+# Contracts ABI folder location
+CONTRACT_ROOT_FOLDER=../contracts/
+
 # Ganache cli
 # NODE_URL="http://localhost:8545"
 # CHAIN_ID=1
