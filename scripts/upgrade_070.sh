@@ -24,7 +24,21 @@ pip install -r requirements.txt
 deactivate
 cd ..
 
-# Still pending
-#	1. change contract folder location @ .env (see dotenv_example)
-#	2. update server to run from RSK public node
-#	3. fix log folder for backend
+# Add contract folder location at the end of ".env" file
+server_env="./servers/.env"
+echo "" >> ${server_env}
+echo "# Contracts ABI folder location" >> ${server_env}
+echo "CONTRACT_ROOT_FOLDER=../contracts/" >> ${server_env}
+
+# Update server to run from RSK public node
+search="NODE_URL" ; replace="#NODE_URL" ; sed -i "s/${search}/${replace}/g" ${server_env}
+echo "" >> ${server_env}
+echo "# RSK testnet node" >> ${server_env}
+echo "NODE_URL=\"https://public-node.testnet.rsk.co:443\"" >> ${server_env}
+
+# Fix log folder for backend
+backend_env="/home/ubuntu/OMoC-Node/monitor/backend/.env"
+search="ALERT_LOG_FILENAME" ; replace="#ALERT_LOG_FILENAME" ; sed -i "s/${search}/${replace}/g" ${backend_env}
+echo "" >> ${backend_env}
+echo "# Log file reporting" >> ${backend_env}
+echo "ALERT_LOG_FILENAME=/var/log/supervisor/monitor.log" >> ${backend_env}

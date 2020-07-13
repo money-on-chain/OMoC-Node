@@ -7,4 +7,4 @@ Send an email to [omoc@moneyonchain.com](omoc@moneyonchain.com) with your AWS Ac
 ###&nbsp;&nbsp;1.C) [Setup your oracle service](./step03.html)
 ###&nbsp;&nbsp;1.D) [Register your oracle with the Dapp](./step04.html)
 ##2) [Remove your Oracle](./removeOracle.html)
-
+##3) [Upgrade your Oracle](./upgrade.html)
