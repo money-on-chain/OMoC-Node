@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const Web3 = require('web3');
 
 
@@ -139,11 +140,15 @@ function select_next(last_block_hash, oracle_info_list) {
     let total_stake = Web3.utils.toBN(0);
     const l2 = []
     const stake_buckets = []
-    const lbh_with_x = last_block_hash.startsWith("0x") ?
-        last_block_hash :
-        "0x" + last_block_hash
-    const hb = Web3.utils.hexToBytes(lbh_with_x);
-    const last_block_hash_as_int = Web3.utils.toBN(lbh_with_x);
+
+    const hash_buf = Buffer.from(
+        last_block_hash.startsWith("0x") ? last_block_hash.substring(2) : last_block_hash,
+        "hex")
+    const algo = crypto.createHash('sha256');
+    algo.update(hash_buf);
+    const hash = "0x" + algo.digest().toString("hex");
+    const hb = Web3.utils.hexToBytes(hash);
+    const last_block_hash_as_int = Web3.utils.toBN(hash);
     for (let idx = 0; idx < oracle_info_list.length; idx++) {
         // Take an element in a random place of l1 and push it to l2
         const sel_index = hb[idx] % l1.length

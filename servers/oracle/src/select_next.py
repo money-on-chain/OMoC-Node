@@ -42,7 +42,7 @@
 #
 # * Choose fallback to next in the list (A)
 #
-
+import hashlib
 import logging
 from decimal import Decimal
 from typing import List
@@ -70,7 +70,9 @@ def select_next(last_block_hash: str, oracle_info_list: List[FullOracleRoundInfo
 
     idx = 0
     last_range_limit = 0
-    hb = HexBytes(last_block_hash)
+
+    # Take an extra hash to prevent block chain biases. Instead of: hb = HexBytes(last_block_hash)
+    hb = HexBytes(hashlib.sha256(HexBytes(last_block_hash)).hexdigest())
     while len(l1) > 0:
         sel_index = hb[idx] % len(l1)
         oracle_item = l1.pop(sel_index)

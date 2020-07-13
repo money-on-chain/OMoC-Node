@@ -3,8 +3,6 @@ from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
 from oracle.src.oracle_configuration import OracleTurnConfiguration
 from oracle.src.oracle_turn import OracleTurn
-from oracle.src.select_next import select_next_addresses
-
 
 ###############################################################################
 ###############################################################################
@@ -96,8 +94,9 @@ def oracleBCInfo2(os, block_num, last_pub_block, last_pub_block_hash, blockchain
 
 
 def is_oracle_turn(oracleTurn, vi, oracle_addr, exchange_price):
-    oracle_addresses = select_next_addresses(vi.last_pub_block_hash,
-                                             vi.selected_oracles)
+    # fixed hash, fixed selected_oracles => same addresses.
+    oracle_addresses = [x.addr for x in selected_oracles]
+    # select_next_addresses(vi.last_pub_block_hash, vi.selected_oracles)
     return oracleTurn._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)[0]
 
 
