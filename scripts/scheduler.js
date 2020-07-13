@@ -9,7 +9,7 @@ require('dotenv').config()
 
 function get_provider() {
     if (!process.env.PRIVATE_KEY || !process.env.RSK_NODE_URL) {
-        throw new Error("We the following env variables: PRIVATE_KEY and RSK_NODE_URL");
+        throw new Error("We need the following env variables: PRIVATE_KEY and RSK_NODE_URL");
     }
     return new HDWalletProvider([process.env.PRIVATE_KEY], process.env.RSK_NODE_URL);
 }
@@ -43,7 +43,7 @@ async function transfer_main(web3, source_account) {
     }
     const destinations = JSON.parse(process.env.TRANSFER_DESTINATIONS);
     if (!Array.isArray(destinations)) {
-        throw new Error("We the following env variable: TRANSFER_DESTINATIONS must contains " +
+        throw new Error("We need the following env variable: TRANSFER_DESTINATIONS must contains " +
             "a json array with addresses");
     }
     const unit = !process.env.TRANSFER_UNIT ? "gwei" : process.env.TRANSFER_UNIT;
@@ -51,15 +51,18 @@ async function transfer_main(web3, source_account) {
     if (process.env.TRANSFER_AMOUNTS) {
         const a = JSON.parse(process.env.TRANSFER_AMOUNTS);
         if (!Array.isArray(a) || a.length != destinations.length) {
-            throw new Error("We the following env variable: TRANSFER_AMOUNTS must contains a " +
+            throw new Error("We need the following env variable: TRANSFER_AMOUNTS must contains a " +
                 "json array of the same size as TRANSFER_DESTINATIONS");
         }
         amounts = a;
     }
-    for (const d of destinations) {
-        const amount = Web3.utils.toBN(Web3.utils.toWei(process.env.TRANSFER_UNIT, unit));
+    for (let i = 0; i < destinations.length; i++) {
+        const d = destinations[i];
+        const amount = Web3.utils.toBN(Web3.utils.toWei(amounts[i].toString(), unit));
+        const dest = Web3.utils.toChecksumAddress(d);
+        console.log("Transfer rbtc from", source_account, "to", dest, "amount", amount.toString());
         await web3.eth.sendTransaction({
-            to: Web3.utils.toChecksumAddress(d),
+            to: dest,
             value: amount,
             from: source_account
         });
@@ -86,10 +89,13 @@ async function scheduler_main(tasks) {
             return;
         }
         processing = true;
-        const task = queue.pop();
-        task()
-            .catch(console.error)
+        const {task, name} = queue.pop();
+        console.log("calling", name)
+        const func = task["async_func"];
+        func(web3, source_account)
+            .catch((err) => console.error("ERROR IN TASK", name, err))
             .then(() => {
+                console.log("calling", name, "done")
                 processing = false;
                 process_queue();
             });
@@ -98,11 +104,7 @@ async function scheduler_main(tasks) {
     for (const name in tasks) {
         const task = tasks[name]
         scheduler.scheduleJob(task["spec"], () => {
-            queue.push(async () => {
-                console.log("calling", name)
-                await task["async_func"](web3, source_account);
-                console.log("calling", name, "done")
-            })
+            queue.push({task, name})
             process_queue()
         });
     }
@@ -112,6 +114,7 @@ async function scheduler_main(tasks) {
 if (require.main === module) {
     const scheduler_pay_rewards = require("./scheduler_pay_rewards");
     const scheduler_moc_flow = require("./scheduler_moc_flow");
+
     const TASKS = {
         "pay_rewards_main": {
             spec: "0 */2 * * *",
@@ -122,8 +125,8 @@ if (require.main === module) {
             async_func: scheduler_moc_flow.moc_flow_main
         },
         "transfer": {
-            spec: '*/10 * * * *',
-            async_func: async (web3, source_account) => transfer_main
+            spec: '*/1 * * * *',
+            async_func: transfer_main
         }
     }
     scheduler_main(TASKS).catch(err => {
