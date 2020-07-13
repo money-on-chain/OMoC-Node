@@ -125,7 +125,7 @@ if (require.main === module) {
             async_func: scheduler_moc_flow.moc_flow_main
         },
         "transfer": {
-            spec: '*/1 * * * *',
+            spec: '*/10 * * * *',
             async_func: transfer_main
         }
     }
