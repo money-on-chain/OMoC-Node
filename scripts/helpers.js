@@ -135,18 +135,21 @@ function select_next(last_block_hash, oracle_info_list) {
     if (oracle_info_list.length > 32) {
         throw  new Error('Cant have more than 32 oracles, the hash is 32 bytes long');
     }
+    
     oracle_info_list.sort((a, b) => Web3.utils.toBN(b.stake).cmp(Web3.utils.toBN(a.stake)));
     const l1 = oracle_info_list.slice()
     let total_stake = Web3.utils.toBN(0);
     const l2 = []
     const stake_buckets = []
-
+    // const hash = last_block_hash.startsWith("0x") ? last_block_hash : "0x" + last_block_hash
     const hash_buf = Buffer.from(
         last_block_hash.startsWith("0x") ? last_block_hash.substring(2) : last_block_hash,
         "hex")
     const algo = crypto.createHash('sha256');
     algo.update(hash_buf);
     const hash = "0x" + algo.digest().toString("hex");
+
+
     const hb = Web3.utils.hexToBytes(hash);
     const last_block_hash_as_int = Web3.utils.toBN(hash);
     for (let idx = 0; idx < oracle_info_list.length; idx++) {
