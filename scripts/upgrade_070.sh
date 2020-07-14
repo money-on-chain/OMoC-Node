@@ -36,9 +36,13 @@ echo "" >> ${server_env}
 echo "# RSK testnet node" >> ${server_env}
 echo "NODE_URL=\"https://public-node.testnet.rsk.co:443\"" >> ${server_env}
 
-# Fix log folder for backend
+# Remove log folder for backend
 backend_env="/home/ubuntu/OMoC-Node/monitor/backend/.env"
 search="ALERT_LOG_FILENAME" ; replace="#ALERT_LOG_FILENAME" ; sed -i "s/${search}/${replace}/g" ${backend_env}
-echo "" >> ${backend_env}
-echo "# Log file reporting" >> ${backend_env}
-echo "ALERT_LOG_FILENAME=/var/log/supervisor/monitor.log" >> ${backend_env}
+#echo "" >> ${backend_env}
+#echo "# Log file reporting" >> ${backend_env}
+#echo "ALERT_LOG_FILENAME=/var/log/supervisor/monitor.log" >> ${backend_env}
+#-- Another option is to do as follow (but requires sudo): --
+#sudo touch /var/log/supervisor/monitor.log
+#sudo chown ubuntu:ubuntu /var/log/supervisor/monitor.log
+#-- Fixed on the AMI, not included in the upgrade

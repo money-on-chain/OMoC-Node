@@ -23,8 +23,6 @@ Running the following commands you will upgrade your server.
 
 	`supervisorctl status`
 
-6. We also changed the contracts, so you'll need to unsubscribe from old DAPP:
+6. We also changed the contracts, so you'll need to subscribe into a new DAPP:
 
-	Visit [old DAPP version](https://oracles.testnet.moneyonchain.com/) and [Remove your Oracle](./removeOracle.html)
-
-	Visit [new DAPP version](https://oracles.testnet.moneyonchain.com/) and [register your Oracle again](./step04.html)
+	Visit the [new DAPP version](https://oracles.testnet.moneyonchain.com/) (at the same URL) and [register your Oracle](./step04.html) (as you did before).
