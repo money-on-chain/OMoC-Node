@@ -114,13 +114,12 @@ class MocContractFactoryService(ContractFactoryService):
 
 class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
-        "ETERNAL_STORAGE": "EternalStorageGobernanza.json"
-        , "MOC_ERC20": "TestMOC.json"
-        , "SUPPORTERS": "SupportersWhitelisted.json"
-        , "SUPPORTERS_VESTED": "SupportersVested.json"
-        , "ORACLE_MANAGER": "OracleManager.json"
-        , "COIN_PAIR_PRICE": "CoinPairPrice.json"
+        "ETERNAL_STORAGE": "IRegistry.json"
+        , "MOC_ERC20": "IERC20.json"
+        , "ORACLE_MANAGER": "IOracleManager.json"
+        , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
         , "INFO_GETTER": "InfoGetter.json"
+        , "SUPPORTERS": "ISupporters.json"
     }
     DATA = dict()
 

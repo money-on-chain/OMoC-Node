@@ -96,6 +96,9 @@ class OracleCoinPairService:
     async def get_coin_pair(self) -> str:
         return await self._coin_pair_service.get_coin_pair()
 
+    async def get_token_addr(self) -> str:
+        return await self._coin_pair_service.get_token_addr()
+
     async def get_last_pub_block(self) -> int:
         return await self._coin_pair_service.get_last_pub_block()
 

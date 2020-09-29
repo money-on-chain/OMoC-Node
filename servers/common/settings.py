@@ -23,6 +23,7 @@ CONTRACT_ROOT_FOLDER = config('CONTRACT_ROOT_FOLDER', cast=pathlib.Path,
 # The server expect to find in this folder the *.json files with the abi an addresses of contracts
 CONTRACT_FOLDER = config('CONTRACT_FOLDER', cast=pathlib.Path,
                          default=os.path.join(CONTRACT_ROOT_FOLDER, "build", "contracts"))
+ETERNAL_STORAGE_ADDR = config('ETERNAL_STORAGE_ADDR', cast=str)
 
 # Timeout used when connection to the blockchain node
 WEB3_TIMEOUT = parseTimeDelta(config('WEB3_TIMEOUT ', cast=str, default="30 secs"))

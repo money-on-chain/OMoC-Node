@@ -11,6 +11,7 @@ from common.settings import config
 from oracle.src import oracle_settings
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_service import OracleService
+from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +37,20 @@ async def configure_oracle():
     conf = OracleConfiguration(cf)
     await conf.initialize()
     oracle_service = OracleService(cf, conf.ORACLE_MANAGER_ADDR, conf.INFO_ADDR)
-    addr = await oracle_service.get_token_addr()
+    coin_pairs = await oracle_service.oracle_manager_service.get_all_coin_pair()
+    coin_pair_info = await oracle_service.oracle_manager_service.get_coin_pair_info(coin_pairs[0])
+    oracle_coin_pair_service = OracleCoinPairService(cf.get_blockchain(),
+                                                     cf.get_coin_pair_price(coin_pair_info.addr),
+                                                     oracle_service.info_service,
+                                                     oracle_service.oracle_manager_service,
+                                                     coin_pair_info)
+    addr = await oracle_coin_pair_service.get_token_addr()
     if is_error(addr):
         logger.error("ERROR GETTING TOKEN ADDR", addr)
-        raise Exception(addr);
+        raise Exception(addr)
     moc_token_service = cf.get_moc_token(addr)
     oracle_manager_service = cf.get_oracle_manager(conf.ORACLE_MANAGER_ADDR)
-    oracle_manager_addr = cf.get_addr("ORACLE_MANAGER")
-    return conf, oracle_service, moc_token_service, oracle_manager_service, oracle_manager_addr
+    return conf, oracle_service, moc_token_service, oracle_manager_service, conf.ORACLE_MANAGER_ADDR
 
 
 class SupportersVestedService:

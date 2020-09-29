@@ -68,6 +68,9 @@ class CoinPairService:
     async def get_coin_pair(self) -> str:
         return await self.coin_pair_price_call("coinPair")
 
+    async def get_token_addr(self) -> str:
+        return await self.coin_pair_price_call("getToken")
+
     async def get_last_pub_block(self) -> int:
         return await self.coin_pair_price_call("lastPublicationBlock")
 
