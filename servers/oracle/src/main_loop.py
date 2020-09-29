@@ -36,7 +36,7 @@ class MainLoop(BgTaskExecutor):
     async def run(self):
         logger.info("MainExecutor loop start")
         if not self.initialized:
-            if self.conf.ORACLE_MANAGER_ADDR is None:# or self.conf.SUPPORTERS_ADDR is None:
+            if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_ADDR is None:
                 logger.info("MainExecutor waiting to get configuration from blockchain")
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
             self.initialized = True

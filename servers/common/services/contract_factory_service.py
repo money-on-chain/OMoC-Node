@@ -10,6 +10,7 @@ from common.services.coin_pair_price_service import CoinPairService
 from common.services.eternal_storage_service import EternalStorageService
 from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
+from common.services.staking_machine_service import StakingMachineService
 from common.services.oracle_manager_service import OracleManagerService
 from common.services.supporters_service import SupportersService
 
@@ -116,6 +117,7 @@ class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
         "ETERNAL_STORAGE": "IRegistry.json"
         , "MOC_ERC20": "IERC20.json"
+        , "STAKING_MACHINE": "IStakingMachine.json"
         , "ORACLE_MANAGER": "IOracleManager.json"
         , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
         , "INFO_GETTER": "InfoGetter.json"
@@ -140,6 +142,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
     def get_moc_token(self, addr) -> MocTokenService:
         data = self._read_data("MOC_ERC20")
         return MocTokenService(self._get_contract(addr, data["abi"]))
+
+    def get_staking_machine(self, addr) -> StakingMachineService:
+        data = self._read_data("STAKING_MACHINE")
+        return StakingMachineService(self._get_contract(addr, data["abi"]))
 
     def get_oracle_manager(self, addr) -> OracleManagerService:
         data = self._read_data("ORACLE_MANAGER")
