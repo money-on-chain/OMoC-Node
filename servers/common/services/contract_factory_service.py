@@ -121,7 +121,7 @@ class BuildDirContractFactoryService(ContractFactoryService):
         , "SUPPORTERS": "ISupporters.json"
         , "ORACLE_MANAGER": "IOracleManager.json"
         , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
-        , "INFO_GETTER": "IInfoGetter.json"
+        , "INFO_GETTER": "IOracleInfoGetter.json"
     }
     DATA = dict()
 

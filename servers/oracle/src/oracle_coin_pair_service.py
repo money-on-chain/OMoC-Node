@@ -141,5 +141,6 @@ class OracleCoinPairService:
     async def switch_round(self, account: BlockchainAccount = None, wait=False):
         return await self._coin_pair_service.switch_round(account=account, wait=wait)
 
-    async def get_last_block(self):
-        return await self._blockchain.get_last_block()
+    async def get_last_block_timestamp(self):
+        data = await self._blockchain.get_last_block_data()
+        return data["timestamp"]

@@ -25,8 +25,8 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
             return self._conf.SCHEDULER_POOL_DELAY
         self.log("Round %r" % (round_info,))
 
-        block_number = await self._cps.get_last_block()
-        if not self._is_right_block(round_info, block_number):
+        block_timestamp = await self._cps.get_last_block_timestamp()
+        if not self._is_right_block(round_info, block_timestamp):
             return self._conf.SCHEDULER_POOL_DELAY
 
         receipt = await self._cps.switch_round(account=oracle_settings.get_oracle_scheduler_account(), wait=True)
@@ -37,16 +37,15 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         self.log("round switched %r" % (receipt.hash,))
         return self._conf.SCHEDULER_ROUND_DELAY
 
-
-    def _is_right_block(self, round_info, block_number):
-        if is_error(block_number):
-            self.error("error get_last_block error %r" % (block_number,))
+    def _is_right_block(self, round_info, block_timestamp):
+        if is_error(block_timestamp):
+            self.error("error get_last_block error %r" % (block_timestamp,))
             return False
-        if round_info.lockPeriodEndBlock > block_number:
+        if round_info.lockPeriodTimestamp > block_timestamp:
             self.log("The round is running, wait %r < %r " %
-                     (block_number, round_info.lockPeriodEndBlock))
+                     (block_timestamp, round_info.lockPeriodTimestamp))
             return False
-        self.log("Current block %r" % (block_number,))
+        self.log("Current block %r" % (block_timestamp,))
         return True
 
     def log(self, msg):

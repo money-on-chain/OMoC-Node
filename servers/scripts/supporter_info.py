@@ -12,9 +12,6 @@ async def main():
     currentblock = await script_settings.blockchain.get_last_block()
     print("current block: ", currentblock)
 
-    print("BALANCE OF SCHEDULER_ACCOUNT: ", script_settings.SCRIPT_ORACLE_ACCOUNT.addr, " is ",
-          await supporters_service.detailed_balance_of(script_settings.SCRIPT_ORACLE_ACCOUNT.addr))
-
     print("MOC BALANCE OF SCHEDULER_ACCOUNT: ", script_settings.SCRIPT_ORACLE_ACCOUNT.addr, " is ",
           await moc_token_service.balance_of(script_settings.SCRIPT_ORACLE_ACCOUNT.addr))
 
