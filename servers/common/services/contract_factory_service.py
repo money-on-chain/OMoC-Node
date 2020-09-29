@@ -81,7 +81,7 @@ class MocContractFactoryService(ContractFactoryService):
         return CoinPairService(self._get_contract(addr, abi))
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
-        abi = self._read_abi('EternalStorageGobernanza.abi')
+        abi = self._read_abi('IRegistry.abi')
         return EternalStorageService(self._get_contract(addr, abi))
 
     def get_moc_token(self, addr) -> MocTokenService:
@@ -97,7 +97,7 @@ class MocContractFactoryService(ContractFactoryService):
         return InfoGetterService(self._get_contract(addr, abi))
 
     def get_supporters(self, addr) -> SupportersService:
-        abi = self._read_abi('SupportersWhitelisted.abi')
+        abi = self._read_abi('ISupporters.abi')
         return SupportersService(self._get_contract(addr, abi))
 
     def get_abi(self, name):
@@ -116,10 +116,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
         "ETERNAL_STORAGE": "IRegistry.json"
         , "MOC_ERC20": "IERC20.json"
+        , "SUPPORTERS": "ISupporters.json"
         , "ORACLE_MANAGER": "IOracleManager.json"
         , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
-        , "INFO_GETTER": "InfoGetter.json"
-        , "SUPPORTERS": "ISupporters.json"
+        , "INFO_GETTER": "IInfoGetter.json"
     }
     DATA = dict()
 

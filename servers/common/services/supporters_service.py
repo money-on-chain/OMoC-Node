@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from common.services.blockchain import BlockChainAddress, BlockchainAccount, BlockChainContract, is_error
+from common.services.blockchain import BlockchainAccount, BlockChainContract
 
 logger = logging.getLogger(__name__)
 
@@ -31,29 +31,11 @@ class SupportersService:
     async def distribute(self, account: BlockchainAccount = None, wait=False):
         return await self.supporters_execute("distribute", account=account, wait=wait)
 
-    async def get_moc_balance_at(self, user: BlockChainAddress, addr: BlockChainAddress):
-        return await self.supporters_call("getMOCBalanceAt", user, addr)
-
-    async def get_token_balance_at(self, user: BlockChainAddress, addr: BlockChainAddress):
-        return await self.supporters_call("getBalanceAt", user, addr)
-
-    async def vesting_info_of(self, user: BlockChainAddress, addr: BlockChainAddress) -> SupportersDetailedBalance:
-        data = await self.supporters_call("vestingInfoOf", user, addr)
-        if is_error(data):
-            return data
-        return SupportersDetailedBalance(*data)
-
     async def get_total_tokens(self):
-        return await self.supporters_call("getTokens")
+        return await self.supporters_call("totalToken")
 
     async def get_total_mocs(self):
-        return await self.supporters_call("getAvailableMOC")
+        return await self.supporters_call("totalMoc")
 
-    async def get_earning_at(self, block):
-        return await self.supporters_call("getEarningsAt", block)
-
-    async def get_locked_at(self, block):
-        return await self.supporters_call("getLockedAt", block)
-
-    async def get_earnings_info(self, block):
-        return await self.supporters_call("getEarningsInfo", block)
+    async def get_priod(self):
+        return await self.supporters_call("period")
