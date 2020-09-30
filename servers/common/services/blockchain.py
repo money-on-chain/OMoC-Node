@@ -116,6 +116,10 @@ class BlockChain:
         return await run_in_executor(lambda: self.W3.eth.blockNumber)
 
     @exec_with_catch_async
+    async def get_last_block_data(self):
+        return await run_in_executor(lambda: self.W3.eth.getBlock("latest"))
+
+    @exec_with_catch_async
     async def get_block_by_number(self, block_number, full=False):
         return await run_in_executor(lambda: self.W3.eth.getBlock(block_number, full))
 

@@ -1,8 +1,7 @@
 import logging
-from typing import List
 
-from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChainContract
-from common.services.oracle_dao import CoinPair, CoinPairInfo, OracleRegistrationInfo
+from common.services.blockchain import BlockChainAddress, BlockchainAccount, BlockChainContract
+from common.services.oracle_dao import CoinPair
 
 logger = logging.getLogger(__name__)
 
@@ -67,26 +66,24 @@ class StakingMachineService:
     async def get_coin_pair_index(self, coin_pair: CoinPair, hint: int) -> int:
         return await self.staking_machine_call("getCoinPairIndex", coin_pair, hint)
 
-
-
     async def lock_mocs(self, moc_holder: BlockChainAddress, until_timestamp: int,
-                              account: BlockchainAccount = None,
-                              wait=False):
+                        account: BlockchainAccount = None,
+                        wait=False):
         return await self.staking_machine_execute("lockMocs", moc_holder, until_timestamp, account=account, wait=wait)
 
     async def deposit(self, mocs: int, destination: BlockChainAddress,
-                              account: BlockchainAccount = None,
-                              wait=False):
+                      account: BlockchainAccount = None,
+                      wait=False):
         return await self.staking_machine_execute("deposit", mocs, destination, account=account, wait=wait)
 
     async def deposit_from(self, mocs: int, destination: BlockChainAddress, source: BlockChainAddress,
-                              account: BlockchainAccount = None,
-                              wait=False):
+                           account: BlockchainAccount = None,
+                           wait=False):
         return await self.staking_machine_execute("depositFrom", mocs, destination, source, account=account, wait=wait)
 
     async def withdraw(self, mocs: int,
-                              account: BlockchainAccount = None,
-                              wait=False):
+                       account: BlockchainAccount = None,
+                       wait=False):
         return await self.staking_machine_execute("withdraw", mocs, account=account, wait=wait)
 
     async def register_oracle(self, oracle_addr: BlockChainAddress, name: str,
@@ -108,16 +105,16 @@ class StakingMachineService:
         return await self.staking_machine_execute("removeOracle", account=account, wait=wait)
 
     async def subscribe_to_coin_pair(self, coin_pair: CoinPair,
-                                  account: BlockchainAccount = None,
-                                  wait=False):
+                                     account: BlockchainAccount = None,
+                                     wait=False):
         return await self.staking_machine_execute("subscribeToCoinPair", coin_pair.longer(), account=account,
-                                                 wait=wait)
+                                                  wait=wait)
 
     async def unsubscribe_from_coin_pair(self, coin_pair: CoinPair,
-                                    account: BlockchainAccount = None,
-                                    wait=False):
+                                         account: BlockchainAccount = None,
+                                         wait=False):
         return await self.staking_machine_execute("unSubscribeFromCoinPair", coin_pair.longer(), account=account,
-                                                 wait=wait)
+                                                  wait=wait)
 
     async def is_subscribed(self, owner_addr: BlockChainAddress, coin_pair: CoinPair) -> bool:
         return await self.staking_machine_call("isSubscribed", owner_addr, coin_pair.longer())

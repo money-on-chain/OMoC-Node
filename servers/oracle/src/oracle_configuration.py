@@ -24,29 +24,28 @@ class OracleConfiguration:
         configuration_blockchain_default = 2
         configuration_default_blockchain = 3
         configuration_default = 4
+        configuration_blockchain = 5
 
     def __init__(self, cf: ContractFactoryService):
-        registry_addr = config('ETERNAL_STORAGE_ADDR', cast=str)
+        registry_addr = config('REGISTRY_ADDR', cast=str)
         if registry_addr is None:
-            raise ValueError("Missing ETERNAL_STORAGE_ADDR!!!")
+            raise ValueError("Missing REGISTRY_ADDR!!!")
         logger.info("Configuration Registry address: %s" % registry_addr)
         self._eternal_storage_service = cf.get_eternal_storage(registry_addr)
 
         self.parameters = {
             "ORACLE_MANAGER_ADDR": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_MANAGER_ADDR', cast=str),
+                "priority": self.Order.configuration_blockchain,
+                "configuration": lambda: config('ORACLE_MANAGER_ADDR', cast=str, default=""),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Oracle manager address, used in OracleLoop to get coin"
-                               "pairs and CoinPairPrice addresses",
-                "default": config('ORACLE_MANAGER_ADDR', cast=str)
+                               "pairs and CoinPairPrice addresses"
             },
             "SUPPORTERS_ADDR": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
+                "priority": self.Order.configuration_blockchain,
+                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str, default=""),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters address, called by scheduler to switch rounds",
-                "default": config('SUPPORTERS_ADDR', cast=str)
+                "description": "Supporters address, called by scheduler to switch rounds"
             },
             "STAKING_MACHINE_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -56,11 +55,10 @@ class OracleConfiguration:
                 "default": config('STAKING_MACHINE_ADDR', cast=str)
             },
             "INFO_ADDR": {
-                "priority": self.Order.configuration_default,
-                "configuration": lambda: config('INFO_ADDR', cast=str),
+                "priority": self.Order.configuration_blockchain,
+                "configuration": lambda: config('INFO_ADDR', cast=str, default=""),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Info address, contract to get all the information at once",
-                "default": config('INFO_ADDR', cast=str, default=None)
+                "description": "Info address, contract to get all the information at once"
             },
             "ORACLE_PRICE_FETCH_RATE": {
                 "priority": self.Order.configuration_blockchain_default,

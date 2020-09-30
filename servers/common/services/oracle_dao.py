@@ -47,8 +47,9 @@ OracleRoundInfo = typing.NamedTuple("OracleRoundInfo",
 
 RoundInfo = typing.NamedTuple("RoundInfo", [('round', int),
                                             ("startBlock", int),
-                                            ("lockPeriodEndBlock", int),
+                                            ("lockPeriodTimestamp", int),
                                             ("totalPoints", int),
+                                            ("selectedOwners", List[str]),
                                             ("selectedOracles", List[str])])
 
 FullOracleRoundInfo = typing.NamedTuple("FullOracleRoundInfo",
