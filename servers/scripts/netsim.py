@@ -84,7 +84,8 @@ class MyMultiprocess:
 
 async def register_oracles(oracle_manager_service, staking_machine_service, staking_machine_addr, moc_token_service, oe):
     info = await oracle_manager_service.get_oracle_registration_info(oe["owner"].addr)
-    if not is_error(info):
+    print("oracle_registration_info", info)
+    if not is_error(info) and info.owner != "0x0000000000000000000000000000000000000000":
         if info.internetName != oe["name"]:
             tx = await staking_machine_service.set_oracle_name(oe["name"], account=oe["owner"],
                                                               wait=True)
@@ -94,7 +95,7 @@ async def register_oracles(oracle_manager_service, staking_machine_service, stak
 
     print("Registering oracle name=" + oe["name"] + " address=" + oe["account"].addr + " owner=" + oe["owner"].addr)
     tx = await staking_machine_service.register_oracle(
-        oe["account"],
+        oe["account"].addr,
         oe["name"],
         account=oe["owner"],
         wait=True
@@ -112,7 +113,7 @@ async def register_oracles(oracle_manager_service, staking_machine_service, stak
     print("Making deposit for owner=" + oe["owner"].addr + " with oracle address=" + oe["account"].addr)
     tx = await staking_machine_service.deposit(
         oe["stake"],
-        oe["owner"],
+        oe["owner"].addr,
         account=oe["owner"],
         wait=True
         )
