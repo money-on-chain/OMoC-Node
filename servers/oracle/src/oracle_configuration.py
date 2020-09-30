@@ -24,7 +24,6 @@ class OracleConfiguration:
         configuration_blockchain_default = 2
         configuration_default_blockchain = 3
         configuration_default = 4
-        configuration_blockchain = 5
 
     def __init__(self, cf: ContractFactoryService):
         registry_addr = config('REGISTRY_ADDR', cast=str)
@@ -35,28 +34,27 @@ class OracleConfiguration:
 
         self.parameters = {
             "ORACLE_MANAGER_ADDR": {
-                "priority": self.Order.configuration_blockchain,
-                "configuration": lambda: config('ORACLE_MANAGER_ADDR', cast=str, default=""),
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('ORACLE_MANAGER_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Oracle manager address, used in OracleLoop to get coin"
                                "pairs and CoinPairPrice addresses"
             },
             "SUPPORTERS_ADDR": {
-                "priority": self.Order.configuration_blockchain,
-                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str, default=""),
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Supporters address, called by scheduler to switch rounds"
             },
             "STAKING_MACHINE_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: config('STAKING_MACHINE_ADDR', cast=str),
-                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "blockchain": lambda p: self._eternal_storage_service.get_address("moc.staking-machine"),
                 "description": "Staking machine address, used to call oracle and staking operations",
-                "default": config('STAKING_MACHINE_ADDR', cast=str)
             },
             "INFO_ADDR": {
-                "priority": self.Order.configuration_blockchain,
-                "configuration": lambda: config('INFO_ADDR', cast=str, default=""),
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('INFO_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Info address, contract to get all the information at once"
             },
