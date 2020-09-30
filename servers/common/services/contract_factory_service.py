@@ -118,6 +118,7 @@ class BuildDirContractFactoryService(ContractFactoryService):
         "ETERNAL_STORAGE": "IRegistry.json"
         , "MOC_ERC20": "IERC20.json"
         , "STAKING_MACHINE": "IStakingMachine.json"
+        , "STAKING_MACHINE_ORACLES": "IStakingMachineOracles.json"
         , "SUPPORTERS": "ISupporters.json"
         , "ORACLE_MANAGER": "IOracleManager.json"
         , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
@@ -144,8 +145,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
         return MocTokenService(self._get_contract(addr, data["abi"]))
 
     def get_staking_machine(self, addr) -> StakingMachineService:
-        data = self._read_data("STAKING_MACHINE")
-        return StakingMachineService(self._get_contract(addr, data["abi"]))
+        i_staking_data = self._read_data("STAKING_MACHINE")
+        i_staking_oracles_data = self._read_data("STAKING_MACHINE_ORACLES")
+        abi = i_staking_data['abi'] + i_staking_oracles_data['abi']
+        return StakingMachineService(self._get_contract(addr, abi))
 
     def get_oracle_manager(self, addr) -> OracleManagerService:
         data = self._read_data("ORACLE_MANAGER")

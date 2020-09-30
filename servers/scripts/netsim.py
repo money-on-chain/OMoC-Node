@@ -82,39 +82,50 @@ class MyMultiprocess:
             process.join()
 
 
-async def register_oracles(oracle_manager_addr, oracle_manager_service, moc_token_service, oe):
-    addr = oe["account"].addr
-    print("Registering oracle name=" + oe["name"] + " address=" + addr + " owner=" + oe["owner"].addr)
-    info = await oracle_manager_service.get_oracle_registration_info(addr)
+async def register_oracles(oracle_manager_service, staking_machine_service, staking_machine_addr, moc_token_service, oe):
+    info = await oracle_manager_service.get_oracle_registration_info(oe["owner"].addr)
     if not is_error(info):
         if info.internetName != oe["name"]:
-            tx = await oracle_manager_service.set_oracle_name(oe["account"].addr, oe["name"], account=oe["owner"],
+            tx = await staking_machine_service.set_oracle_name(oe["name"], account=oe["owner"],
                                                               wait=True)
             print("set name", tx)
         print("DONE", info)
         return True
 
-    token_approved = await moc_token_service.allowance(oe["owner"].addr, oracle_manager_addr)
-    print("tokenApproved", token_approved)
-    if token_approved < oe["stake"]:
-        tx = await moc_token_service.approve(oracle_manager_addr,
-                                             oe["stake"],
-                                             account=oe["owner"],
-                                             wait=True)
-        print("token approve", tx)
-        if is_error(tx):
-            return False
-
-    tx = await oracle_manager_service.register_oracle(addr, oe["name"], oe["stake"], account=oe["owner"], wait=True)
+    print("Registering oracle name=" + oe["name"] + " address=" + oe["account"].addr + " owner=" + oe["owner"].addr)
+    tx = await staking_machine_service.register_oracle(
+        oe["account"],
+        oe["name"],
+        account=oe["owner"],
+        wait=True
+        )
     print("RegisterOracle TX:", tx)
     if is_error(tx):
         return False
-    print("oracle %s already registered" % addr)
+    print("oracle %s already registered" % oe["account"].addr)
+    tx = await moc_token_service.approve(
+        staking_machine_addr,
+        oe["stake"],
+        account=oe["owner"],
+        wait=True
+        )
+    print("Making deposit for owner=" + oe["owner"].addr + " with oracle address=" + oe["account"].addr)
+    tx = await staking_machine_service.deposit(
+        oe["stake"],
+        oe["owner"],
+        account=oe["owner"],
+        wait=True
+        )
+    print("Deposit TX:", tx)
+    if is_error(tx):
+        return False
+    print("Deposit for oracle %s already made" % oe["account"].addr)
+
     return True
 
 
 async def main():
-    conf, oracle_service, moc_token_service, oracle_manager_service, oracle_manager_addr = await script_settings.configure_oracle()
+    oracle_manager_service, moc_token_service, staking_machine_service, staking_machine_addr = await script_settings.configure_oracle()
     print()
     print("MoC Oracle Network Simulator")
     print("=================================")
@@ -140,8 +151,12 @@ async def main():
 
     print("1. Oracle registration stage.")
     print("-----------------------------")
-    registration = [await register_oracles(oracle_manager_addr, oracle_manager_service, moc_token_service, oe) for oe in
-                    oracleList]
+    registration = [await register_oracles(
+        oracle_manager_service,
+        staking_machine_service,
+        staking_machine_addr,
+        moc_token_service,
+        oe) for oe in oracleList]
     if not all(registration):
         quit(1)
 
@@ -149,7 +164,7 @@ async def main():
     print("-----------------------------")
     for coin_pair in script_settings.USE_COIN_PAIR:
         for oe in oracleList:
-            tx = await oracle_manager_service.subscribe_coin_pair(coin_pair, oe["account"].addr, account=oe["owner"],
+            tx = await staking_machine_service.subscribe_to_coin_pair(coin_pair, account=oe["owner"],
                                                                   wait=True)
             if is_error(tx):
                 print("Already subscribed ", oe["account"].addr)

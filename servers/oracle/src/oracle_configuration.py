@@ -48,6 +48,13 @@ class OracleConfiguration:
                 "description": "Supporters address, called by scheduler to switch rounds",
                 "default": config('SUPPORTERS_ADDR', cast=str)
             },
+            "STAKING_MACHINE_ADDR": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('STAKING_MACHINE_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Staking machine address, used to call oracle and staking operations",
+                "default": config('STAKING_MACHINE_ADDR', cast=str)
+            },
             "INFO_ADDR": {
                 "priority": self.Order.configuration_default,
                 "configuration": lambda: config('INFO_ADDR', cast=str),
