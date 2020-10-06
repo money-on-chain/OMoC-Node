@@ -25,12 +25,6 @@ class CoinPairService:
     async def coin_pair_price_execute(self, method, *args, account: BlockchainAccount = None, wait=False, **kw):
         return await self._contract.bc_execute(method, *args, account=account, wait=wait, **kw)
 
-    async def get_num_idle_rounds(self):
-        return await self.coin_pair_price_call("numIdleRounds")
-
-    async def get_round_lock_period_in_blocks(self):
-        return await self.coin_pair_price_call("roundLockPeriodInBlocks")
-
     async def get_valid_price_period_in_blocks(self):
         return await self.coin_pair_price_call("getValidPricePeriodInBlocks")
 

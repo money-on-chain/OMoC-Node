@@ -62,7 +62,7 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
 
         cors = [self._cps.get_selected_oracles_info(),
                 self._cps.get_price(),
-                self._cps.get_last_block(),
+                self._cps.get_last_pub_block(),
                 _get_last_pub_data(),
                 self._cps.get_valid_price_period_in_blocks()]
         ret = await asyncio.gather(*cors, return_exceptions=True)

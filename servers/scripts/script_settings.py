@@ -51,13 +51,13 @@ async def configure_oracle():
     moc_token_service = cf.get_moc_token(addr)
     staking_machine_service = cf.get_staking_machine(conf.STAKING_MACHINE_ADDR)
     oracle_manager_service = cf.get_oracle_manager(conf.ORACLE_MANAGER_ADDR)
-    return oracle_manager_service, moc_token_service, staking_machine_service, conf.STAKING_MACHINE_ADDR
+    return conf, oracle_service, oracle_manager_service, moc_token_service, staking_machine_service, conf.STAKING_MACHINE_ADDR
 
 
 async def configure_supporter():
     cf = ContractFactoryService.get_contract_factory_service()
     conf = OracleConfiguration(cf)
     await conf.initialize()
-    supporters_service = SupportersService(cf, conf)
+    supporters_service = cf.get_supporters(conf.SUPPORTERS_ADDR)
     moc_token_service = cf.get_moc_token(await supporters_service.get_token_addr())
     return conf, supporters_service, moc_token_service

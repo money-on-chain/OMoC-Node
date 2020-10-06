@@ -62,11 +62,9 @@ class OracleCoinPairService:
     async def get_price(self):
         return await self._coin_pair_service.get_price()
 
-    async def get_num_idle_rounds(self):
-        return await self._coin_pair_service.get_num_idle_rounds()
-
-    async def get_round_lock_period_in_blocks(self):
-        return await self._coin_pair_service.get_round_lock_period_in_blocks()
+    async def get_lock_period_timestamp(self):
+        round_info: RoundInfo = await self.get_round_info()
+        return round_info.lockPeriodTimestamp
 
     async def get_max_oracles_per_rounds(self):
         return await self._coin_pair_service.get_max_oracles_per_rounds()

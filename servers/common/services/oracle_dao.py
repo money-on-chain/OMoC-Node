@@ -41,8 +41,7 @@ OracleRegistrationInfo = typing.NamedTuple("OracleRegistrationInfo",
 
 OracleRoundInfo = typing.NamedTuple("OracleRoundInfo",
                                     [("points", int),
-                                     ("selectedInCurrentRound", bool),
-                                     ("selectedInRound", int)
+                                     ("selectedInCurrentRound", bool)
                                      ])
 
 RoundInfo = typing.NamedTuple("RoundInfo", [('round', int),
@@ -58,8 +57,7 @@ FullOracleRoundInfo = typing.NamedTuple("FullOracleRoundInfo",
                                          ("stake", int),
                                          ("owner", str),
                                          ("points", int),
-                                         ("selectedInCurrentRound", bool),
-                                         ("selectedInRound", int)
+                                         ("selectedInCurrentRound", bool)
                                          ])
 
 OracleBlockchainInfo = typing.NamedTuple("OracleBlockchainInfo",

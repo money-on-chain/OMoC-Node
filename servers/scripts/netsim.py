@@ -126,7 +126,7 @@ async def register_oracles(oracle_manager_service, staking_machine_service, stak
 
 
 async def main():
-    oracle_manager_service, moc_token_service, staking_machine_service, staking_machine_addr = await script_settings.configure_oracle()
+    conf, oracle_service, oracle_manager_service, moc_token_service, staking_machine_service, staking_machine_addr = await script_settings.configure_oracle()
     print()
     print("MoC Oracle Network Simulator")
     print("=================================")

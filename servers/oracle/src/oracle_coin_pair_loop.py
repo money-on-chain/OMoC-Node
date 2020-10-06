@@ -119,9 +119,15 @@ class OracleCoinPairLoop(BgTaskExecutor):
             if is_error(tx):
                 logger.info("%r : OracleCoinPairLoop %r ERROR PUBLISHING %r" % (self._coin_pair, self._oracle_addr, tx))
                 return False
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
             logger.info(
                 "%r : OracleCoinPairLoop %r --------------------> PRICE PUBLISHED %r" % (
                     self._coin_pair, self._oracle_addr, tx))
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
             # Last pub block has changed, force an update of the block chain info.
             await self.vi_loop.force_update()
             return True

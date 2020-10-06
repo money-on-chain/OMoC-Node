@@ -37,5 +37,5 @@ class SupportersService:
     async def get_total_mocs(self):
         return await self.supporters_call("totalMoc")
 
-    async def get_priod(self):
+    async def get_period(self):
         return await self.supporters_call("period")

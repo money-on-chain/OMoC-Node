@@ -21,16 +21,16 @@ class OracleService:
 
     async def get_all_oracles_info(self):
         oracles = {}
-        it = await self.oracle_manager_service.get_registered_oracle_head()
-        if is_error(it):
-            return it
-        while it != ZERO_ADDR:
-            oracle = await self.oracle_manager_service.get_oracle_registration_info(it)
+        registered_oracles_len = await self.oracle_manager_service.get_registered_oracles_len()
+        if is_error(registered_oracles_len):
+            return registered_oracles_len
+        for oracle_idx in range(registered_oracles_len):
+            registered_oracle = await self.oracle_manager_service.get_registered_oracle_at_index(oracle_idx)
+            if is_error(registered_oracle):
+                return registered_oracle
+            oracle = await self.oracle_manager_service.get_oracle_registration_info(registered_oracle[0])
             if is_error(oracle):
                 return oracle
-            it = await self.oracle_manager_service.get_registered_oracle_next(it)
-            if is_error(it):
-                return it
             oracles[oracle.addr] = oracle
         return oracles
 
