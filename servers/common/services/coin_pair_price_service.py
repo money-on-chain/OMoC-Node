@@ -79,6 +79,7 @@ class CoinPairService:
 
     async def get_oracle_round_info(self, address: BlockChainAddress) -> OracleRoundInfo:
         bc_data = await self.coin_pair_price_call("getOracleRoundInfo", address)
+        round_info_data = await self.get_round_info()
         if is_error(bc_data):
             return bc_data
-        return OracleRoundInfo(*bc_data)
+        return OracleRoundInfo(*bc_data, round_info_data.round)
