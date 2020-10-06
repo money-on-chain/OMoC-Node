@@ -72,9 +72,6 @@ class OracleCoinPairService:
     async def can_remove_oracle(self, addr: BlockChainAddress):
         return await self._coin_pair_service.can_remove_oracle(addr)
 
-    async def get_price(self):
-        return await self._coin_pair_service.get_price()
-
     async def get_available_reward_fees(self):
         return await self._coin_pair_service.get_available_reward_fees()
 
