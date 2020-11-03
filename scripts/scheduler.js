@@ -56,12 +56,17 @@ async function transfer_main(web3, source_account) {
         }
         amounts = a;
     }
+    let gas = 4200000;
+    if (process.env.TRANSFER_GAS && !isNaN(parseInt(process.env.TRANSFER_GAS))) {
+        gas = parseInt(process.env.TRANSFER_GAS);
+    }
     for (let i = 0; i < destinations.length; i++) {
         const d = destinations[i];
         const amount = Web3.utils.toBN(Web3.utils.toWei(amounts[i].toString(), unit));
         const dest = Web3.utils.toChecksumAddress(d);
         console.log("Transfer rbtc from", source_account, "to", dest, "amount", amount.toString());
         await web3.eth.sendTransaction({
+            gas,
             to: dest,
             value: amount,
             from: source_account
@@ -125,7 +130,7 @@ if (require.main === module) {
             async_func: scheduler_moc_flow.moc_flow_main
         },
         "transfer": {
-            spec: '*/1 * * * *',
+            spec: '*/10 * * * *',
             async_func: transfer_main
         }
     }

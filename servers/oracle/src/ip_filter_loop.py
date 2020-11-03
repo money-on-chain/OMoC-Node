@@ -5,7 +5,7 @@ import typing
 
 import urllib3
 
-from common import helpers, settings
+from common import helpers
 from common.bg_task_executor import BgTaskExecutor
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_loop import OracleLoop
@@ -26,6 +26,9 @@ class IpFilterLoop(BgTaskExecutor):
         info = await self.oracle_loop.get_full_blockchain_info()
         # Populate the cache with new info
         for bi in info.values():
+            # Can happen during startup
+            if bi is None:
+                continue
             for oracle in bi.selected_oracles:
                 try:
                     name = urllib3.util.parse_url(oracle.internetName).host

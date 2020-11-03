@@ -25,14 +25,8 @@ class CoinPairService:
     async def coin_pair_price_execute(self, method, *args, account: BlockchainAccount = None, wait=False, **kw):
         return await self._contract.bc_execute(method, *args, account=account, wait=wait, **kw)
 
-    async def get_num_idle_rounds(self):
-        return await self.coin_pair_price_call("numIdleRounds")
-
-    async def get_round_lock_period_in_blocks(self):
-        return await self.coin_pair_price_call("roundLockPeriodInBlocks")
-
     async def get_valid_price_period_in_blocks(self):
-        return await self.coin_pair_price_call("validPricePeriodInBlocks")
+        return await self.coin_pair_price_call("getValidPricePeriodInBlocks")
 
     async def get_max_oracles_per_rounds(self):
         return await self.coin_pair_price_call("maxOraclesPerRound")
@@ -68,8 +62,11 @@ class CoinPairService:
     async def get_coin_pair(self) -> str:
         return await self.coin_pair_price_call("coinPair")
 
+    async def get_token_addr(self) -> str:
+        return await self.coin_pair_price_call("getToken")
+
     async def get_last_pub_block(self) -> int:
-        return await self.coin_pair_price_call("lastPublicationBlock")
+        return await self.coin_pair_price_call("getLastPublicationBlock")
 
     async def get_round_info(self) -> RoundInfo:
         bc_data = await self.coin_pair_price_call("getRoundInfo")
@@ -82,6 +79,7 @@ class CoinPairService:
 
     async def get_oracle_round_info(self, address: BlockChainAddress) -> OracleRoundInfo:
         bc_data = await self.coin_pair_price_call("getOracleRoundInfo", address)
+        round_info_data = await self.get_round_info()
         if is_error(bc_data):
             return bc_data
-        return OracleRoundInfo(*bc_data)
+        return OracleRoundInfo(*bc_data, round_info_data.round)

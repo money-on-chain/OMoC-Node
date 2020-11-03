@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const Web3 = require('web3');
 
 
@@ -134,16 +135,23 @@ function select_next(last_block_hash, oracle_info_list) {
     if (oracle_info_list.length > 32) {
         throw  new Error('Cant have more than 32 oracles, the hash is 32 bytes long');
     }
+    
     oracle_info_list.sort((a, b) => Web3.utils.toBN(b.stake).cmp(Web3.utils.toBN(a.stake)));
     const l1 = oracle_info_list.slice()
     let total_stake = Web3.utils.toBN(0);
     const l2 = []
     const stake_buckets = []
-    const lbh_with_x = last_block_hash.startsWith("0x") ?
-        last_block_hash :
-        "0x" + last_block_hash
-    const hb = Web3.utils.hexToBytes(lbh_with_x);
-    const last_block_hash_as_int = Web3.utils.toBN(lbh_with_x);
+    // const hash = last_block_hash.startsWith("0x") ? last_block_hash : "0x" + last_block_hash
+    const hash_buf = Buffer.from(
+        last_block_hash.startsWith("0x") ? last_block_hash.substring(2) : last_block_hash,
+        "hex")
+    const algo = crypto.createHash('sha256');
+    algo.update(hash_buf);
+    const hash = "0x" + algo.digest().toString("hex");
+
+
+    const hb = Web3.utils.hexToBytes(hash);
+    const last_block_hash_as_int = Web3.utils.toBN(hash);
     for (let idx = 0; idx < oracle_info_list.length; idx++) {
         // Take an element in a random place of l1 and push it to l2
         const sel_index = hb[idx] % l1.length
@@ -153,15 +161,21 @@ function select_next(last_block_hash, oracle_info_list) {
 
         const stake = Web3.utils.toBN(oracle_item["stake"]);
         total_stake = total_stake.add(stake);
-        stake_buckets.push(total_stake.subn(1))
+        stake_buckets.push(total_stake)
     }
     // Select from L2 according to stake weight
     // rnd_stake = int(last_block_hash, 16) % total_stake
     // i've got hexbytes string in hash, so:
-    const rnd_stake = last_block_hash_as_int.mod(total_stake);
+    // const rnd_stake = last_block_hash_as_int.mod(total_stake);
+
+    //const rnd_stake = last_block_hash_as_int.mod(total_stake);
+    const max_int = Web3.utils.toBN('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    // bn don't support decimals => scale it up.
+    const scale = Web3.utils.toBN("1" + "0".repeat(30));
+    const rnd_stake = total_stake.mul(last_block_hash_as_int).mul(scale).div(max_int);
     // stake_buckets is a growing array of numbers, search the first bigger than rnd_stake
     for (let idx = 0; ; idx++) {
-        if (rnd_stake.lte(stake_buckets[idx])) {
+        if (idx === l2.length - 1 || rnd_stake.lte(stake_buckets[idx].mul(scale))) {
             // reorder the l2 array starting with idx
             return l2.map((val, i) => l2[(idx + i) % l2.length]);
         }

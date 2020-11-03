@@ -149,20 +149,27 @@ async function moc_flow_main(web3, source_account) {
     if (drippers.length === 0 && buffers.length === 0) {
         throw new Error("We need some drips or buffers to call");
     }
-
+    let drip_gas = 4200000;
+    if (process.env.DRIP_GAS && !isNaN(parseInt(process.env.DRIP_GAS))) {
+        drip_gas = parseInt(process.env.DRIP_GAS);
+    }
     for (const drip of drippers) {
         const drip_addr = Web3.utils.toChecksumAddress(drip);
         await drip_run(web3, drip_addr, {
             from: source_account,
-            gas: 100 * 1000,
+            gas: drip_gas,
             gasPrice: 59240000
         });
+    }
+    let buffer_gas = 4200000;
+    if (process.env.BUFFER_GAS && !isNaN(parseInt(process.env.BUFFER_GAS))) {
+        buffer_gas = parseInt(process.env.DRIP_GAS);
     }
     for (const buf of buffers) {
         const buf_addr = Web3.utils.toChecksumAddress(buf);
         await buffer_run(web3, buf_addr, {
             from: source_account,
-            gas: 100 * 1000,
+            gas: buffer_gas,
             gasPrice: 59240000
         });
     }

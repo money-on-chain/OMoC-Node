@@ -4,6 +4,12 @@ from random import randint
 from common.services.oracle_dao import FullOracleRoundInfo
 from oracle.src.select_next import select_next
 
+# Select next result for some specific hashes, tests here used elsewhere.
+SELECT_NEXT_ORDER = {"0x000000": [0, 2, 1],
+                     "0x010000": [1, 2, 0],
+                     "0x000100": [2, 1, 0],
+                     "0x000001": [1, 2, 0]}
+
 
 def test_next_publisher_loop():
     num_oracles = 32
@@ -58,21 +64,9 @@ def test_select_next():
         FullOracleRoundInfo('0x28a8746e75304c0780E011BEd21C72cD78cd535E', 'http://127.0.0.1:24000',
                             2000000000000000000, '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', 0, False, 0)]
 
-    last_block_hash = "0x000000"
-    s = select_next(last_block_hash, oracle_info_list)
-    assert s == [oracle_info_list[0], oracle_info_list[1], oracle_info_list[2]]
-
-    last_block_hash = "0x010000"
-    s = select_next(last_block_hash, oracle_info_list)
-    assert s == [oracle_info_list[1], oracle_info_list[0], oracle_info_list[2]]
-
-    last_block_hash = "0x000100"
-    s = select_next(last_block_hash, oracle_info_list)
-    assert s == [oracle_info_list[0], oracle_info_list[2], oracle_info_list[1]]
-
-    last_block_hash = "0x000001"
-    s = select_next(last_block_hash, oracle_info_list)
-    assert s == [oracle_info_list[0], oracle_info_list[1], oracle_info_list[2]]
+    for last_block_hash in SELECT_NEXT_ORDER.keys():
+        s = select_next(last_block_hash, oracle_info_list)
+        assert s == [oracle_info_list[k] for k in SELECT_NEXT_ORDER[last_block_hash]]
 
 
 def test_check_stake_limit():

@@ -1,3 +1,5 @@
+import pytest
+
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
@@ -77,6 +79,16 @@ selected_oracles = [
 ]
 
 
+@pytest.fixture
+def mock_select_next(monkeypatch):
+    """select_next.select_next mocked to the selected_oracles order"""
+
+    def mock(*args, **kwargs):
+        return selected_oracles
+
+    monkeypatch.setattr("oracle.src.select_next.select_next", mock)
+
+
 def getOracleTurnForTurnTesting():
     return OracleTurn(oracleConf, "BTCUSD")
 
@@ -115,7 +127,7 @@ selected_in_current_round_oracles_len = len(selected_oracles) - len_unselected_o
 
 
 # Test oracle of index 12 is not selected because has selectedInCurrentRound set to False
-def test_is_never_oracle_12_turn_because_is_not_selected():
+def test_is_never_oracle_12_turn_because_is_not_selected(mock_select_next):
     oracleTurn = getOracleTurnForTurnTesting()
     assert is_oracle_turn_aux(oracleTurn,
                               selected_oracles[12].addr,
@@ -124,7 +136,7 @@ def test_is_never_oracle_12_turn_because_is_not_selected():
 
 
 # Test random oracle is not selected because is not in list of oracles with selectedInCurrentRound set to True
-def test_an_address_that_is_not_selected():
+def test_an_address_that_is_not_selected(mock_select_next):
     oracleTurn = getOracleTurnForTurnTesting()
     assert is_oracle_turn_aux(oracleTurn,
                               "0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826",
@@ -133,7 +145,7 @@ def test_an_address_that_is_not_selected():
 
 
 # Test that if the price doesn't change enough, it's no oracle's turn
-def test_is_oracle_turn_no_price_change():
+def test_is_oracle_turn_no_price_change(mock_select_next):
     oracleTurn = getOracleTurnForTurnTesting()
 
     for i in range(len(selected_oracles)):
@@ -162,7 +174,7 @@ def test_is_oracle_turn_no_price_change():
 
 
 # Test the first oracle needs to wait ORACLE_PRICE_PUBLISH_BLOCKS blocks after price change to be selected.
-def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
+def test_is_oracle_turn_it_needs_to_wait_publish_blocks(mock_select_next):
     oracleTurn = getOracleTurnForTurnTesting()
 
     # Price changes but it still needs to wait for ORACLE_PRICE_PUBLISH_BLOCKS blocks to pass.
@@ -190,7 +202,7 @@ def test_is_oracle_turn_it_needs_to_wait_publish_blocks():
 # Test that ORACLE_PRICE_PUBLISH_BLOCKS blocks after price change the chosen oracle and the fallbacks are selected
 # at their respective blocks.
 # Also test all fallbacks are selected by the end of the fallback sequence from the config.
-def test_is_oracle_turn_price_change():
+def test_is_oracle_turn_price_change(mock_select_next):
     oracleTurn = getOracleTurnForTurnTesting()
 
     # No price change yet
@@ -313,7 +325,7 @@ def test_is_oracle_turn_price_change():
 
 
 # If price doesn't change, chosen oracle and fallback publish before price expiration
-def test_is_oracle_turn_oracles_publish_before_price_expiration():
+def test_is_oracle_turn_oracles_publish_before_price_expiration(mock_select_next):
     oracleTurn = getOracleTurnForTurnTesting()
 
     last_pub_block = 1

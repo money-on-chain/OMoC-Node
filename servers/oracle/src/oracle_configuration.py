@@ -26,42 +26,37 @@ class OracleConfiguration:
         configuration_default = 4
 
     def __init__(self, cf: ContractFactoryService):
-        eternal_storage_addr = cf.get_addr("ETERNAL_STORAGE")
-        registry_addr = config('ORACLE_REGISTRY_ADDR', cast=str, default=eternal_storage_addr)
+        registry_addr = config('REGISTRY_ADDR', cast=str)
         if registry_addr is None:
-            raise ValueError("Missing ORACLE_REGISTRY_ADDR!!!")
+            raise ValueError("Missing REGISTRY_ADDR!!!")
         logger.info("Configuration Registry address: %s" % registry_addr)
         self._eternal_storage_service = cf.get_eternal_storage(registry_addr)
 
         self.parameters = {
-            "SUPPORTERS_VESTED_ADDR": {
-                "priority": self.Order.configuration_default_blockchain,
-                "configuration": lambda: config('SUPPORTERS_VESTED_ADDR', cast=str),
-                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters vested address, USED ONLY BY SCRIPTS",
-                "default": cf.get_addr("SUPPORTERS_VESTED")
-            },
-            "SUPPORTERS_ADDR": {
-                "priority": self.Order.configuration_default_blockchain,
-                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
-                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters whitelisted address, called by scheduler to switch rounds",
-                "default": cf.get_addr("SUPPORTERS")
-            },
-            "INFO_ADDR": {
-                "priority": self.Order.configuration_default_blockchain,
-                "configuration": lambda: config('INFO_ADDR', cast=str),
-                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Info address, contract to get all the information at once",
-                "default": cf.get_addr("INFO_GETTER")
-            },
             "ORACLE_MANAGER_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: config('ORACLE_MANAGER_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Oracle manager address, used in OracleLoop to get coin"
-                               "pairs and CoinPairPrice addresses",
-                "default": cf.get_addr("ORACLE_MANAGER")
+                               "pairs and CoinPairPrice addresses"
+            },
+            "SUPPORTERS_ADDR": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Supporters address, called by scheduler to switch rounds"
+            },
+            "STAKING_MACHINE_ADDR": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('STAKING_MACHINE_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address("moc.staking-machine"),
+                "description": "Staking machine address, used to call oracle and staking operations",
+            },
+            "INFO_ADDR": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config('INFO_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Info address, contract to get all the information at once"
             },
             "ORACLE_PRICE_FETCH_RATE": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -201,7 +196,12 @@ class OracleConfiguration:
             val = None
             if val is None and "configuration" in param:
                 try:
-                    val = param["configuration"]()
+                    read_val = param["configuration"]()
+                    if read_val == "":
+                        val = None
+                        self.values[p] = val
+                    else:
+                        val = read_val
                     self.from_conf.add(p)
                     logger.info("Setting parameter %r from environ -> %r" % (p, val))
                 except KeyError:
@@ -211,6 +211,12 @@ class OracleConfiguration:
 
             if val is None and "default" in param and param["default"] is not None:
                 val = param["default"]
+                read_val = param["default"]
+                if read_val == "":
+                    val = None
+                    self.values[p] = val
+                else:
+                    val = read_val
                 self.from_default.add(p)
                 logger.info("Setting parameter %r from default -> %r" % (p, val))
 

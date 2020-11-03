@@ -48,12 +48,12 @@ class OracleCoinPairLoop(BgTaskExecutor):
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         if round_info.round == 0:
-            logger.warning("%r : OracleCoinPairLoop Waiting for the initial round...", (self._coin_pair,))
+            logger.info("%r : OracleCoinPairLoop Waiting for the initial round...", (self._coin_pair,))
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         exchange_price = await self._price_feeder_loop.get_last_price()
         if not exchange_price or exchange_price.ts_utc <= 0:
-            logger.warning(
+            logger.info(
                 "%r : OracleCoinPairLoop Still don't have a valid price %r" % (self._coin_pair, exchange_price))
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
@@ -119,9 +119,15 @@ class OracleCoinPairLoop(BgTaskExecutor):
             if is_error(tx):
                 logger.info("%r : OracleCoinPairLoop %r ERROR PUBLISHING %r" % (self._coin_pair, self._oracle_addr, tx))
                 return False
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
             logger.info(
                 "%r : OracleCoinPairLoop %r --------------------> PRICE PUBLISHED %r" % (
                     self._coin_pair, self._oracle_addr, tx))
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
+            logger.info("//////////////////////////////////////////////////")
             # Last pub block has changed, force an update of the block chain info.
             await self.vi_loop.force_update()
             return True

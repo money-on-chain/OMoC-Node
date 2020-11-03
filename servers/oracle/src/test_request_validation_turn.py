@@ -57,6 +57,16 @@ selected_oracles = [
      0)]
 
 
+@pytest.fixture
+def mock_select_next(monkeypatch):
+    """select_next.select_next mocked to the selected_oracles order"""
+
+    def mock(*args, **kwargs):
+        return [FullOracleRoundInfo(x[0].addr, *x[1:]) for x in selected_oracles]
+
+    monkeypatch.setattr("oracle.src.select_next.select_next", mock)
+
+
 def rv(oracle_turn, running_oracle, params):
     publish_price = 124123
     # Validated elsewhere
@@ -93,7 +103,7 @@ def can_publish(oracleTurn, params, is_idx):
 
 
 # Test that with no price change the chosen oracle has his turn validated but not the fallbacks
-def test_success_oracle_turn_no_price_change():
+def test_success_oracle_turn_no_price_change(mock_select_next):
     oracleTurn = OracleTurn(oracleConf, cp)
     starting_block_num = 10
     params = {
@@ -114,7 +124,7 @@ def test_success_oracle_turn_no_price_change():
 
 # Test after price change the chosen oracle and the fallbacks have their turn validated
 # in their respective moments in terms of blocks
-def test_success_oracle_turn_on_price_change():
+def test_success_oracle_turn_on_price_change(mock_select_next):
     oracleTurn = OracleTurn(oracleConf, cp)
     starting_block_num = 10
     params = {
@@ -164,7 +174,7 @@ def test_success_oracle_turn_on_price_change():
 
 # If price doesn't change, the chosen oracle and fallback 
 # should have the oportunity to publish before price expires
-def test_is_oracle_turn_oracles_publish_before_price_expiration():
+def test_is_oracle_turn_oracles_publish_before_price_expiration(mock_select_next):
     oracleTurn = OracleTurn(oracleConf, cp)
 
     starting_block_num = 10
@@ -225,7 +235,7 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
     can_publish(oracleTurn, params, [0, 1, 2, 3, 4, 5, 6, 7, 8])
 
 
-def test_fail_if_invalid_price():
+def test_fail_if_invalid_price(mock_select_next):
     # This class monitors the publication block an the price change block
     # if we don't change any of those, the internal state doesn't change
     oracleTurn = OracleTurn(oracleConf, cp)

@@ -1,6 +1,8 @@
 import logging
 from typing import List
 
+from hexbytes import HexBytes
+
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
 from common.services.coin_pair_price_service import CoinPairService
 from common.services.info_getter_service import InfoGetterService
@@ -60,20 +62,15 @@ class OracleCoinPairService:
     async def get_price(self):
         return await self._coin_pair_service.get_price()
 
-    async def get_num_idle_rounds(self):
-        return await self._coin_pair_service.get_num_idle_rounds()
-
-    async def get_round_lock_period_in_blocks(self):
-        return await self._coin_pair_service.get_round_lock_period_in_blocks()
+    async def get_lock_period_timestamp(self):
+        round_info: RoundInfo = await self.get_round_info()
+        return round_info.lockPeriodTimestamp
 
     async def get_max_oracles_per_rounds(self):
         return await self._coin_pair_service.get_max_oracles_per_rounds()
 
     async def can_remove_oracle(self, addr: BlockChainAddress):
         return await self._coin_pair_service.can_remove_oracle(addr)
-
-    async def get_price(self):
-        return await self._coin_pair_service.get_price()
 
     async def get_available_reward_fees(self):
         return await self._coin_pair_service.get_available_reward_fees()
@@ -94,6 +91,9 @@ class OracleCoinPairService:
     async def get_coin_pair(self) -> str:
         return await self._coin_pair_service.get_coin_pair()
 
+    async def get_token_addr(self) -> str:
+        return await self._coin_pair_service.get_token_addr()
+
     async def get_last_pub_block(self) -> int:
         return await self._coin_pair_service.get_last_pub_block()
 
@@ -110,11 +110,13 @@ class OracleCoinPairService:
         (round_number, start_block, lock_period_end_block, total_points,
          selected_oracles_info,
          current_price, current_block,
-         last_publication_block, last_publication_block_hash,
+         last_publication_block, last_hash,
          valid_price_period_in_blocks
          ) = data
-        if int.from_bytes(last_publication_block_hash, byteorder='big') == 0:
+        if int.from_bytes(last_hash, byteorder='big') == 0:
             last_publication_block_hash = await self.get_last_pub_block_hash(last_publication_block)
+        else:
+            last_publication_block_hash = HexBytes(last_hash)
         s_oracles = []
         for so in selected_oracles_info:
             (stake, points, addr, owner, name) = so
@@ -134,5 +136,6 @@ class OracleCoinPairService:
     async def switch_round(self, account: BlockchainAccount = None, wait=False):
         return await self._coin_pair_service.switch_round(account=account, wait=wait)
 
-    async def get_last_block(self):
-        return await self._blockchain.get_last_block()
+    async def get_last_block_timestamp(self):
+        data = await self._blockchain.get_last_block_data()
+        return data["timestamp"]
