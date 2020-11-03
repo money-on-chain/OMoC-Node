@@ -3,13 +3,13 @@
 # AMI upgrade from v0.7.0 to v1.0.0
 #	run as user ubuntu
 
-wget http://oracles.coinfabrik.com/abis/latest.tgz
+wget http://oracles.coinfabrik.com/abis/latest_beyond.tgz
 mv contracts contracts_v0.7.0
 mkdir contracts
 cd contracts
-tar -zxvf ../latest.tgz
+tar -zxvf ../latest_beyond.tgz
 cd ..
-rm latest.tgz
+rm latest_beyond.tgz
 
 git pull
 # We update the oracle server python environment
