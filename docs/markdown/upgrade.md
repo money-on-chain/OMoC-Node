@@ -1,4 +1,4 @@
-#Upgrading from release 0.6.0 to 0.7.0
+#Upgrading from release 0.7.0 to 1.0.0
 
 Running the following commands you will upgrade your server.
 
@@ -13,7 +13,7 @@ Running the following commands you will upgrade your server.
 
 3. Run the configuration/upgrade script:
 
-	`. scripts/upgrade_070.sh`
+	`. scripts/upgrade_100.sh`
 
 4. Start services:
 
@@ -25,4 +25,4 @@ Running the following commands you will upgrade your server.
 
 6. We also changed the contracts, so you'll need to subscribe into a new DAPP:
 
-	Visit the [new DAPP version](https://oracles.testnet.moneyonchain.com/) (at the same URL) and [register your Oracle](./step04.html) (as you did before).
+	Visit the [new DAPP version](https://moc-test-alpha.moneyonchain.com/) (at the same URL) and [register your Oracle](./step04.html) (as you did before).

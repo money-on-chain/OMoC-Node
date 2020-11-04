@@ -1,23 +1,14 @@
 #Remove your Oracle
-If you want to remove your oracle, follow the next steps: 
+If you want to remove your Oracle, follow the next steps: 
 
-##1. Unsubsribe for all coinpairs
-At the end of the oracle tab you can see the list of all oracles and you can modify or remove only your own oracles.
+##1. Unsubscribe from all coin pairs
+To correcly remove your Oracle, first you need to unsubscribe from all the coin pairs.
+At the end of the Oracles page you will see the CoinPairs where you can unsubscribe from each coin pair.
 
-![RemoveOracle01](./images/removeOracle01.png)
+![RemoveOracle01](./images/removeOracle01.png) removeOracle1.png
 
-To correcly remove your oracle, first we need to unscribed 	from the coinpairs. To do that, select modify your oracle and uncheck the coinpairs
 
-![RemoveOracle02](./images/removeOracle0201.png)
+##2. Remove your Oracle
+Now you can remove your Oracle in the Operation section.
 
-![RemoveOracle022](./images/removeOracle0202.png)
-##2. Wait 2 rounds
-At the coinpair' tabs (BTCUSD / RIFBTC) you can get the information relative to the respective coinpair.
-
-To remove your oracle you need to wait two rounds from the moment you unsubscribed it.
-
-![RemoveOracle03](./images/removeOracle03.png)
-##3. Remove your oracle
-Now you can remove your oracle using the red buttom.
-
-![RemoveOracle02](./images/removeOracle0201.png)
+![RemoveOracle02](./images/removeOracle02.png)

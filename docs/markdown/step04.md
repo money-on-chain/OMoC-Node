@@ -16,8 +16,8 @@ The intention of this document is to guide the user on how to interact with the 
 Go to Network's menu, select Custom RPC and config the network with the following values and save:
 
 
-![dapp](./images/GUIA03-01.png) 
-![dapp](./images/GUIA03-02.png)
+![dapp](./images/STEP04-01.png) 
+![dapp](./images/STEP04-02.png)
 
 
 Network name: RSKTestnet
@@ -28,30 +28,39 @@ ChainId: 31
 
 ####1.B) Get RBTC in RSK_testnet 
 Visit [https://faucet.rsk.co/](https://faucet.rsk.co/) and complete the form to get Ethers.
-####1.C) Enter the [dapp](http://oracles.testnet.moneyonchain.com)  and connect your metamask account. 
+####1.C) Enter the [dapp](https://moc-test-alpha.moneyonchain.com/)  and connect your metamask account.
 
-![dapp](./images/GUIA03-03.png)
-   
+![dapp](./images/STEP04-03.png)
 
-###2) Registration (Mint->Allow->Register)
-To register your Oracle, you will need to allow the contract to use your MoCTokens. To do that, first you'll need to have tokens or get them from MoC foundation. Then go to the Oracle tab and subtab Registration, and allow part or the total of your MoCToken to the contract. For the last step, register your Oracle using the Oracle address, the network address and stake the total or part of what you allow, in the allow step.
+####1.D) Select the address with which you are connected
 
-![dapp](./images/GUIA03-05.png)
-![dapp](./images/GUIA03-06.png)
-
-###3) Edit your Oracle's configuration
-At the end of the Oracle Tab you will see all of the Oracles and you will be allowed to edit or delete only your Oracles.
-
-![dapp](./images/GUIA03-07.png)
-![dapp](./images/GUIA03-08.png)
-
-If you chose to edit your oracle, you can change the internet Address, the Stake and/or the subscription to the coin-pairs.
-For this example we will add subscription to BTCUSD
-![dapp](./images/GUIA03-09.png)
+![dapp](./images/STEP04-04.png) ConnectedAddress.png
 
 
+###2) Staking (Allow->Deposit)
+To be able to subscribe your Oracle to coin pairs and participate in the rounds, you need to deposit a minimum amount of stake in the system.
+In order to do that, first you will need to have tokens or get them from the MoC foundation. Then go to the Staking page -> Deposit tab and allow the system to access your MoCToken. After that you can make the Deposit of the tokens.
+
+![dapp](./images/STEP04-05.png)
+![dapp](./images/STEP04-06.png)
 
 
+###3) Registration (Register->Subscribe)
+To register your Oracle, you need to go to the Oracles tab -> Operation section. Then, you will have to enter the Oracle address and the network address. In the same section you will be able to change the Oracle address, change the network address and remove the Oracle.
+
+![dapp](./images/STEP04-07.png)
 
 
+###4) Edit your Oracle's configuration
+In the section of the previous step you will be able to edit or remove your Oracle.
+If you chose to edit your Oracle, you can change the address and the network address.
+
+![dapp](./images/STEP04-08.png)
+
+
+###4) Subscribe to and unsubscribe from Coin Pairs
+In order for your Oracle to participate in the coin pairs' rounds, you will need to subscribe to each coin pair.
+In the CoinPairs section, you will have to open the coin pair of your choice and click Subscribe.
+
+![dapp](./images/STEP04-09.png)
 
