@@ -3,9 +3,9 @@ If you want to remove your Oracle, follow the next steps:
 
 ##1. Unsubscribe from all coin pairs
 To correcly remove your Oracle, first you need to unsubscribe from all the coin pairs.
-At the end of the Oracles page you will see the CoinPairs where you can unsubscribe from each coin pair.
+At the end of the Oracles page you will see the CoinPairs section where you can unsubscribe from each coin pair.
 
-![RemoveOracle01](./images/removeOracle01.png) removeOracle1.png
+![RemoveOracle01](./images/removeOracle01.png)
 
 
 ##2. Remove your Oracle

@@ -34,7 +34,7 @@ Visit [https://faucet.rsk.co/](https://faucet.rsk.co/) and complete the form to 
 
 ####1.D) Select the address with which you are connected
 
-![dapp](./images/STEP04-04.png) ConnectedAddress.png
+![dapp](./images/STEP04-04.png)
 
 
 ###2) Staking (Allow->Deposit)
