@@ -23,10 +23,7 @@ cd ..
 server_env="./servers/.env"
 search="CONTRACT_ROOT_FOLDER" ; replace="CONTRACT_ROOT_FOLDER=../contracts/" ; sed -i "/${search}/c ${replace}" ${server_env}
 
-# Update server to run from RSK public node
-search="NODE_URL" ; replace="NODE_URL=\"https://public-node.testnet.rsk.co:443\"" ; sed -i "/^[^#]*${search}.*/c ${replace}" ${server_env}
-
 # Add registry address
 echo "" >> ${server_env}
 echo "# Registry Address" >> ${server_env}
-echo "REGISTRY_ADDR=\"0xD90257f0b3F3E1e333E6497d9827Ca408F19969C\"" >> ${server_env}
+echo "REGISTRY_ADDR=\"0xf078375a3dD89dDF4D9dA460352199C6769b5f10\"" >> ${server_env}
