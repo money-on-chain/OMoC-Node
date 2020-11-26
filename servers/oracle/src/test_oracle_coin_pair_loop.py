@@ -87,8 +87,6 @@ def httpserver5():
     finally:
         server.stop()
 
-
-
 @pytest.mark.asyncio
 async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServer,
                                                           httpserver2: HTTPServer,
@@ -109,6 +107,8 @@ async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServe
                                 last_pub_block)
     message = params.prepare_price_msg()
     signature = crypto.sign_message(hexstr="0x" + message, account=oracle_account)
+    waiting_timeout = 10
+
     httpserver1.expect_request("/sign").respond_with_json({
             "message": message,
             "signature": signature.hex()
@@ -129,6 +129,17 @@ async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServe
             "message": message,
             "signature": signature.hex()
         })
-    sigs = await gather_signatures(oracles, params, message, signature)
-    print(sigs)
+
+    with httpserver1.wait(stop_on_nohandler=False, timeout=waiting_timeout) as waiting1:
+        with httpserver2.wait(stop_on_nohandler=False, timeout=waiting_timeout) as waiting2:
+            with httpserver3.wait(stop_on_nohandler=False, timeout=waiting_timeout) as waiting3:
+                with httpserver4.wait(stop_on_nohandler=False, timeout=waiting_timeout) as waiting4:
+                    with httpserver5.wait(stop_on_nohandler=False, timeout=waiting_timeout) as waiting5:
+                        sigs = await gather_signatures(oracles, params, message, signature)
+                        print(sigs)
+    assert waiting1.result
+    assert waiting2.result
+    assert waiting3.result
+    assert waiting4.result
+    assert waiting5.result
     assert False
