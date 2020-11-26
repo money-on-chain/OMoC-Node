@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 import traceback
 import typing
 
@@ -51,7 +52,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
             logger.info("%r : OracleCoinPairLoop Waiting for the initial round...", (self._coin_pair,))
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-        exchange_price = await self._price_feeder_loop.get_last_price()
+        exchange_price = await self._price_feeder_loop.get_last_price(time.time())
         if not exchange_price or exchange_price.ts_utc <= 0:
             logger.info(
                 "%r : OracleCoinPairLoop Still don't have a valid price %r" % (self._coin_pair, exchange_price))
@@ -143,7 +144,15 @@ async def gather_signatures(oracles, params: PublishPriceParams, message, my_sig
     cors = [
         get_signature(oracle, params, message, my_signature, timeout=timeout)
         for oracle in oracles if oracle.addr != params.oracle_addr]
-    sigs = await asyncio.gather(*cors, return_exceptions=True)
+    # sigs = await asyncio.gather(*cors, return_exceptions=True)
+    needed = len(oracles) // 2
+    sigs = []
+    for f in asyncio.as_completed(cors, timeout=timeout):
+        sig = await f
+        if sig is not None:
+            sigs.append(sig)
+        if len(sigs) >= needed:
+            break
     sigs.append(OracleSignature(params.oracle_addr, my_signature))
     # Sort signatures by addr so the smart contract accept them.
     sorted_sigs = sorted([x for x in sigs if x is not None], key=lambda y: int(y.addr, 16))
@@ -212,6 +221,6 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
     if not verify_signature(oracle.addr, message, signature):
         return
 
-    # TODO: Verify that the oracle it is stil in the aproved set (to avoid consuming gas later)
+    # TODO: Verify that the oracle is still in the approved set (to avoid consuming gas later)
     logger.info("%s : Got valid signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
     return OracleSignature(oracle.addr, signature)
