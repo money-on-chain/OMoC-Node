@@ -57,6 +57,7 @@ pyparsing==2.4.7
 pyrsistent==0.16.0
 pytest==5.4.3
 pytest-asyncio==0.14.0
+pytest-httpserver==0.3.6
 pytest-shell==0.2.3
 python-dateutil==2.8.1
 python-multipart==0.0.5
