@@ -2,6 +2,9 @@
 
 Running the following commands you will upgrade your server.
 
+##### Clarification: 
+
+In case you only need to update logs files, please go to the fourth step and at the end of the fifth step, just restart services.
 
 1. Stop services:
 
@@ -17,22 +20,22 @@ Running the following commands you will upgrade your server.
 
 4. Update logrotate configuration: 
 
+	`rm -r /etc/logrotate.d/supervisor.conf `
+	
     `nano /etc/logrotate.d/supervisor.conf `
 	
-* Paste this new configuration file: 
+	* Paste the following configuration file: 
 
-![LogRotateConf](./images/logrotate.png)
+	![LogRotateConf](./images/logrotate.png)
 
 
 5. Modify supervisor configuration:
 
     `cd /etc/supervisor/conf.d/`
 
-* Both in oracle.conf and backend.conf add the following lines:
+	* Both in oracle.conf and in backend.conf add the following lines:
 
-
-![SupervisorLogs](./images/supervisor.png)
-
+	![SupervisorLogs](./images/supervisor.png)
 
 6. Start services:
 
