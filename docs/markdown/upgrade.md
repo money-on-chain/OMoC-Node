@@ -5,24 +5,43 @@ Running the following commands you will upgrade your server.
 
 1. Stop services:
 
-	`supervisorctl stop backend ; supervisorctl stop oracle`
-	
+    `supervisorctl stop backend ; supervisorctl stop oracle`
+    
 2. Update code to latest version:
 
-	`cd ~/OMoC-Node/ ; git pull`
+    `cd ~/OMoC-Node/ ; git pull`
 
 3. Run the configuration/upgrade script:
 
-	`. scripts/upgrade_100.sh`
+    `. scripts/upgrade_100.sh`
 
-4. Start services:
+4. Update logrotate configuration: 
 
-	`supervisorctl start backend ; supervisorctl start oracle`
+    `nano /etc/logrotate.d/supervisor.conf `
+	
+* Paste this new configuration file: 
 
-5. Check if oracle and backend service's are running:
+![LogRotateConf](./images/logrotate.png)
 
-	`supervisorctl status`
 
-6. We also changed the contracts, so you'll need to subscribe into a new DAPP:
+5. Modify supervisor configuration:
 
-	Visit the [new DAPP version](https://moc-test-alpha.moneyonchain.com/) (at the same URL) and [register your Oracle](./step04.html) (as you did before).
+    `cd /etc/supervisor/conf.d/`
+
+* Both in oracle.conf and backend.conf add the following lines:
+
+
+![SupervisorLogs](./images/supervisor.png)
+
+
+6. Start services:
+
+    `supervisorctl start backend ; supervisorctl start oracle`
+
+7. Check if oracle and backend service's are running:
+
+    `supervisorctl status`
+
+8. We also changed the contracts, so you'll need to subscribe into a new DAPP:
+
+    Visit the [new DAPP version](https://moc-test-alpha.moneyonchain.com/) (at the same URL) and [register your Oracle](./step04.html) (as you did before).
