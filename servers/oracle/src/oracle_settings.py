@@ -46,8 +46,10 @@ ORACLE_PRICE_ENGINES = {
         {"name": "itbit", "ponderation": Decimal(0.06962391956), "min_volume": 0.0, "max_delay": 0}
     ],
     "RIFBTC": [
-        {"name": "bitfinex_rif", "ponderation": Decimal(0.5), "min_volume": 0.0, "max_delay": 0},
-        {"name": "bithumbpro_rif", "ponderation": Decimal(0.5), "min_volume": 0.0, "max_delay": 0},
+        # {"name": "bitfinex_rif", "ponderation": Decimal(0.5), "min_volume": 0.0, "max_delay": 0},
+        {"name": "bithumbpro_rif", "ponderation": Decimal(0.33), "min_volume": 0.0, "max_delay": 0},
+        {"name": "coinbene_rif", "ponderation": Decimal(0.33), "min_volume": 0.0, "max_delay": 0},
+        {"name": "kucoin_rif", "ponderation": Decimal(0.33), "min_volume": 0.0, "max_delay": 0},
     ]
 }
 
