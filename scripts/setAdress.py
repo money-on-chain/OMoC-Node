@@ -63,7 +63,7 @@ def addTo(filePath, search, addText):
                     file.read_text())
     file.open('w').write(content)
 
-def NodeOption():
+def NodeOption(network):
     global envServer
     print("///////////")
     print("Now we will setup your RSK Node.")
@@ -71,8 +71,50 @@ def NodeOption():
     print("or press enter if you want to connect to the public node.")
     print("///////////")
     node = input("Node (default: public-node):")
-    if node =="": node="https://public-node.testnet.rsk.co:443"
+    if node == ""
+        switch network
+            case 'testnet'
+                node = 'https://omoc-test.moneyonchain.com/info'
+            case 'mainnet'
+                node = 'https://moc.moneyonchain.com/info'
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
+
+def RegistryAddress(network):
+    global envServer
+    print("///////////")
+    print("Now we will setup the Registry Address.")
+    print("///////////")
+    registry_address = input("Registry address:")
+    if registry_address == ""
+        switch network
+            case 'testnet'
+                registry_address = '0xf078375a3dD89dDF4D9dA460352199C6769b5f10'
+            case 'mainnet'
+                registry_address = '0xCD101a2414256DA8F8E25d7b483b3cf639a71683'
+    addTo(envServer,'REGISTRY_ADDR=', '"' + registry_address  + '"')
+
+def PairFilters():
+    global envServer
+    print("///////////")
+    print("Now we will setup the Oracle pair filters.")
+    print("///////////")
+    pairs = []
+    quit = False
+    while (quit == False):
+        pair = input("Select pair filter. Press ENTER for skip. (Default BTCUSD): ")
+        if pair == '':
+            if len(pairs) == 0 : pairs.append('BTCUSD') 
+            quit = True
+        else
+            pairs.append(pair)
+    pairString = ''
+    current_index = 0
+    for current_pair in pairs:
+        if current_index != 0 : pairString += ','
+        pairString += '"' + current_pair + '"'
+    addTo(envServer,'ORACLE_COIN_PAIR_FILTER=', '[' + pairString  + ']')
+
+ORACLE_COIN_PAIR_FILTER=["BTCUSD"]
 
 def oracleOption():
     global envMonitor
@@ -168,6 +210,12 @@ def main():
     print("///////////")
     print("")
 
+    valid = False
+    while (valid == False):
+        network = input("Select network (testnet or mainnet) where the node will run. (Default testnet): ")
+        if network == '': node = 'testnet'
+        if ( network != 'testnet' && network != 'mainnet' ) : valid = False else valid = True
+
     quit = False
     while (quit ==False):
         checkStatus()
@@ -175,14 +223,17 @@ def main():
         print(" 1. Configure my oracle" + "--------" + actualAddress)
         print(" 2. Configure my email account" + "--------" + actualEmail)
         print(" 3. Set your custom RSK Node " + "--------" + actualNode)
-        print(" 4. I have done the two previous items. What are the following instructions?")
-        print(" 5. Exit")
+        print(" 4. Set the registry address")
+        print(" 5. I have done the two previous items. What are the following instructions?")
+        print(" 6. Exit")
 
         Menu = input()
         if (Menu == "1"): oracleOption()
         if (Menu == "2"): emailOption()
-        if (Menu == "3"): NodeOption()
-        if (Menu == "4"): 
+        if (Menu == "3"): NodeOption(network)
+        if (Menu == "4"): RegistryAddress(network)
+        if (Menu == "5"): PairFilters()
+        if (Menu == "6"): 
             print("")
             print("////////")
             print("if everything is setup correctly, let's run the services.")
@@ -194,7 +245,7 @@ def main():
             print(" ")
             print("////////")
             quit = True
-        if (Menu == "5" ): quit = True
+        if (Menu == "7" ): quit = True
 
 if __name__ == "__main__":
     main()
