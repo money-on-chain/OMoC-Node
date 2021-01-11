@@ -26,7 +26,7 @@ New RPC URL: https://public-node.testnet.rsk.co
 
 ChainId: 31
 
-####1.B) Get RBTC in RSK_testnet 
+####1.B) Get RBTC in RSK_testnet. If you already have stake in the system, you can skip this step.
 Visit [https://faucet.rsk.co/](https://faucet.rsk.co/) and complete the form to get Ethers.
 ####1.C) Enter the [dapp](http://oracles.testnet.moneyonchain.com)  and connect your metamask account. 
 

@@ -71,26 +71,23 @@ def NodeOption(network):
     print("or press enter if you want to connect to the public node.")
     print("///////////")
     node = input("Node (default: public-node):")
-    if node == ""
-        switch network
-            case 'testnet'
-                node = 'https://omoc-test.moneyonchain.com/info'
-            case 'mainnet'
-                node = 'https://moc.moneyonchain.com/info'
+    if node == '':
+        if network == 'testnet':
+            node = 'https://omoc-test.moneyonchain.com/info'
+        elif network == 'mainnet':
+            node = 'https://moc.moneyonchain.com/info'
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
-
 def RegistryAddress(network):
     global envServer
     print("///////////")
     print("Now we will setup the Registry Address.")
     print("///////////")
     registry_address = input("Registry address:")
-    if registry_address == ""
-        switch network
-            case 'testnet'
-                registry_address = '0xf078375a3dD89dDF4D9dA460352199C6769b5f10'
-            case 'mainnet'
-                registry_address = '0xCD101a2414256DA8F8E25d7b483b3cf639a71683'
+    if registry_address == "":
+        if network == 'testnet':
+            registry_address = '0xf078375a3dD89dDF4D9dA460352199C6769b5f10'
+        elif network == 'mainnet':
+            registry_address = '0xCD101a2414256DA8F8E25d7b483b3cf639a71683'
     addTo(envServer,'REGISTRY_ADDR=', '"' + registry_address  + '"')
 
 def PairFilters():
@@ -105,16 +102,16 @@ def PairFilters():
         if pair == '':
             if len(pairs) == 0 : pairs.append('BTCUSD') 
             quit = True
-        else
+        else:
             pairs.append(pair)
     pairString = ''
     current_index = 0
     for current_pair in pairs:
-        if current_index != 0 : pairString += ','
+        if current_index != 0:
+            pairString += ','
         pairString += '"' + current_pair + '"'
+        current_index += 1
     addTo(envServer,'ORACLE_COIN_PAIR_FILTER=', '[' + pairString  + ']')
-
-ORACLE_COIN_PAIR_FILTER=["BTCUSD"]
 
 def oracleOption():
     global envMonitor
@@ -214,7 +211,10 @@ def main():
     while (valid == False):
         network = input("Select network (testnet or mainnet) where the node will run. (Default testnet): ")
         if network == '': node = 'testnet'
-        if ( network != 'testnet' && network != 'mainnet' ) : valid = False else valid = True
+        if ( network != 'testnet' and network != 'mainnet' ):
+            valid = False
+        else:
+            valid = True
 
     quit = False
     while (quit ==False):
@@ -224,8 +224,9 @@ def main():
         print(" 2. Configure my email account" + "--------" + actualEmail)
         print(" 3. Set your custom RSK Node " + "--------" + actualNode)
         print(" 4. Set the registry address")
-        print(" 5. I have done the two previous items. What are the following instructions?")
-        print(" 6. Exit")
+        print(" 5. Select pair filters")
+        print(" 6. I have done the two previous items. What are the following instructions?")
+        print(" 7. Exit")
 
         Menu = input()
         if (Menu == "1"): oracleOption()
