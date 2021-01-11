@@ -6,6 +6,6 @@
     * docker build -t omoc-node-img -f Docker/Dockerfile . 
 
 * Run: 
-    * docker run -it --name omoc-node -p 5556:5556 omoc-node-img
+    * docker run -it --name omoc-node --network=host -p 5556:5556 omoc-node-img
     * (Interatctive with the container): docker run -it --name omoc-node -p 5556:5556 omoc-node-img /bin/bash
 
