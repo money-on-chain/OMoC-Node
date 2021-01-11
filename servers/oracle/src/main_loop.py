@@ -22,7 +22,7 @@ class MainLoop(BgTaskExecutor):
         self.tasks: List[BgTaskExecutor] = []
         self.initialized = False
         self.oracle_loop: OracleLoop = None
-        self.ip_filter_loop: IpFilterLoop = None;
+        self.ip_filter_loop: IpFilterLoop = None
         super().__init__(name="MainLoop", main=self.run)
 
     async def web_server_startup(self):

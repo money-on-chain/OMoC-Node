@@ -10,6 +10,7 @@ from common.services.coin_pair_price_service import CoinPairService
 from common.services.eternal_storage_service import EternalStorageService
 from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
+from common.services.staking_machine_service import StakingMachineService
 from common.services.oracle_manager_service import OracleManagerService
 from common.services.supporters_service import SupportersService
 
@@ -81,7 +82,7 @@ class MocContractFactoryService(ContractFactoryService):
         return CoinPairService(self._get_contract(addr, abi))
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
-        abi = self._read_abi('EternalStorageGobernanza.abi')
+        abi = self._read_abi('IRegistry.abi')
         return EternalStorageService(self._get_contract(addr, abi))
 
     def get_moc_token(self, addr) -> MocTokenService:
@@ -97,7 +98,7 @@ class MocContractFactoryService(ContractFactoryService):
         return InfoGetterService(self._get_contract(addr, abi))
 
     def get_supporters(self, addr) -> SupportersService:
-        abi = self._read_abi('SupportersWhitelisted.abi')
+        abi = self._read_abi('ISupporters.abi')
         return SupportersService(self._get_contract(addr, abi))
 
     def get_abi(self, name):
@@ -114,13 +115,14 @@ class MocContractFactoryService(ContractFactoryService):
 
 class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
-        "ETERNAL_STORAGE": "EternalStorageGobernanza.json"
-        , "MOC_ERC20": "TestMOC.json"
-        , "SUPPORTERS": "SupportersWhitelisted.json"
-        , "SUPPORTERS_VESTED": "SupportersVested.json"
-        , "ORACLE_MANAGER": "OracleManager.json"
-        , "COIN_PAIR_PRICE": "CoinPairPrice.json"
-        , "INFO_GETTER": "InfoGetter.json"
+        "ETERNAL_STORAGE": "IRegistry.json"
+        , "MOC_ERC20": "IERC20.json"
+        , "STAKING_MACHINE": "IStakingMachine.json"
+        , "STAKING_MACHINE_ORACLES": "IStakingMachineOracles.json"
+        , "SUPPORTERS": "ISupporters.json"
+        , "ORACLE_MANAGER": "IOracleManager.json"
+        , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
+        , "INFO_GETTER": "IOracleInfoGetter.json"
     }
     DATA = dict()
 
@@ -141,6 +143,12 @@ class BuildDirContractFactoryService(ContractFactoryService):
     def get_moc_token(self, addr) -> MocTokenService:
         data = self._read_data("MOC_ERC20")
         return MocTokenService(self._get_contract(addr, data["abi"]))
+
+    def get_staking_machine(self, addr) -> StakingMachineService:
+        i_staking_data = self._read_data("STAKING_MACHINE")
+        i_staking_oracles_data = self._read_data("STAKING_MACHINE_ORACLES")
+        abi = i_staking_data['abi'] + i_staking_oracles_data['abi']
+        return StakingMachineService(self._get_contract(addr, abi))
 
     def get_oracle_manager(self, addr) -> OracleManagerService:
         data = self._read_data("ORACLE_MANAGER")

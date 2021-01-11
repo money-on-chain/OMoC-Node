@@ -9,7 +9,7 @@ from oracle.src.price_feeder.moc_price_engines import PriceEngineBase, PriceEngi
 @pytest.mark.exchanges
 @pytest.mark.asyncio
 async def test_fetch_from_all_exchanges():
-    log = LogMeta();
+    log = LogMeta()
     for name in base_engines_names.keys():
         engine = base_engines_names[name](log)
         json, err_msg = await engine.fetch()

@@ -341,3 +341,67 @@ ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
 # ON_ERROR_PRINT_STACK_TRACE = False
 ```
 
+## Running a Local Environment
+
+### Requirements:
+
+You need to have locally installed: python3.7 & python3.7-dev
+
+### Steps:
+
+On your local copy of the repository create a Python virtual environment:
+
+```
+cd servers
+pip3 install virtualenv
+virtualenv -p /usr/bin/python3.7 venv
+source venv/bin/activate
+pip install -r requirements.txt
+deactivate
+```
+
+Now you'll need to configure your local environment:
+
+```
+cp dotenv_example .env
+```
+
+Edit the `.env` file to have:
+
+```
+# Contracts ABI folder location
+CONTRACT_ROOT_FOLDER=../../OMoC-SC-Shared/
+
+# Ganache cli
+NODE_URL="http://localhost:8545"
+CHAIN_ID=1
+
+# Oracle-only parameters.
+# Account used to publish prices. Should have ETH to pay gas costs.
+SCRIPT_ORACLE_OWNER_ADDR="0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+SCRIPT_ORACLE_OWNER_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
+
+# Account used to manage tokens. Should have MOC to use for oracles stake.
+SCRIPT_REWARD_BAG_ADDR="0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
+SCRIPT_REWARD_BAG_PRIVATE_KEY="0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"
+
+# Used by Oracle to publish prices. Should have ETH to pay gas costs.
+# Associated ORACLE_PUBLIC_KEY 0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b
+ORACLE_PRIVATE_KEY="0x6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c"
+
+# Contract registry address. Check OMoC-SC-Shared/.openzeppelin/dev-12341234.json
+# Is the address within "proxies" -> "@moc/shared/Registry" -> "address"
+REGISTRY_ADDR="0xA94B7f0465E98609391C623d0560C5720a3f2D33"
+```
+
+Transfer Tokens to the SCRIPT_REWARD_BAG_ADDR address:
+
+```
+npx truffle exec scripts/changeMinToken.js 0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0 2000
+```
+
+And now you can run the oracle nodes locally:
+
+```
+scripts/run.sh netsim
+```

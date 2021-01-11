@@ -25,31 +25,13 @@ class OracleManagerService:
     async def get_token_addr(self):
         return await self.oracle_manager_call("token")
 
-    async def get_min_oracle_owner_stake(self):
-        return await self.oracle_manager_call("minOracleOwnerStake")
+    async def get_min_coin_pair_subscription_stake(self):
+        return await self.oracle_manager_call("getMinCPSubscriptionStake")
 
     async def register_oracle(self, address: BlockChainAddress, name: str, stake: int,
                               account: BlockchainAccount = None,
                               wait=False):
-        return await self.oracle_manager_execute("registerOracle", address, name, stake, account=account, wait=wait)
-
-    async def register_oracle_with_hint(self, address: BlockChainAddress, name: str, stake: int,
-                                        prev_entry: BlockChainAddress,
-                                        account: BlockchainAccount = None,
-                                        wait=False):
-        return await self.oracle_manager_execute("RegisterOracleWithHint", address, name, stake, prev_entry,
-                                                 account=account,
-                                                 wait=wait)
-
-    async def add_stake(self, address: BlockChainAddress, stake: int, account: BlockchainAccount = None,
-                        wait=False):
-        return await self.oracle_manager_execute("addStake", address, stake, account=account, wait=wait)
-
-    async def add_stake_with_hint(self, address: BlockChainAddress, stake: int, prev_entry: BlockChainAddress,
-                                  account: BlockchainAccount = None,
-                                  wait=False):
-        return await self.oracle_manager_execute("AddStakeWithHint", address, stake, prev_entry, account=account,
-                                                 wait=wait)
+        return await self.oracle_manager_execute("registerOracle", address, name, account=account, wait=wait)
 
     async def subscribe_coin_pair(self, coin_pair: CoinPair, address: BlockChainAddress,
                                   account: BlockchainAccount = None,
@@ -69,23 +51,11 @@ class OracleManagerService:
     async def can_remove(self, address: BlockChainAddress) -> bool:
         return await self.oracle_manager_call("canRemoveOracle", address)
 
-    async def get_registered_oracle_head(self):
-        return await self.oracle_manager_call("getRegisteredOracleHead")
+    async def get_registered_oracles_len(self):
+        return await self.oracle_manager_call("getRegisteredOraclesLen")
 
-    async def get_registered_oracle_next(self, it: BlockChainAddress):
-        return await self.oracle_manager_call("getRegisteredOracleNext", it)
-
-    async def get_prev_by_addr(self, address: BlockChainAddress):
-        return await self.oracle_manager_call("getPrevByAddr", address)
-
-    async def get_prev_by_addr_with_hint(self, address: BlockChainAddress, prevEntry: BlockChainAddress):
-        return await self.oracle_manager_call("getPrevByAddrWithHint", address, prevEntry)
-
-    async def get_prev_by_stake(self, stake: int):
-        return await self.oracle_manager_call("getPrevByStake", stake)
-
-    async def get_prev_by_addr_with_hint(self, stake: int, prevEntry: BlockChainAddress):
-        return await self.oracle_manager_call("getPrevByStakeWithHint", stake, prevEntry)
+    async def get_registered_oracle_at_index(self, idx: int):
+        return await self.oracle_manager_call("getRegisteredOracleAtIndex", idx)
 
     async def set_oracle_name(self, address: BlockChainAddress, name: str, account: BlockchainAccount = None,
                               wait=False):
@@ -102,12 +72,6 @@ class OracleManagerService:
 
     async def remove_oracle(self, address: BlockChainAddress, account: BlockchainAccount = None, wait=False):
         return await self.oracle_manager_execute("removeOracle", address, account=account, wait=wait)
-
-    async def remove_oracle_with_hint(self, address: BlockChainAddress, prev_entry: BlockChainAddress,
-                                      account: BlockchainAccount = None,
-                                      wait=False):
-        return await self.oracle_manager_execute("removeOracleWithHint", address, prev_entry, account=account,
-                                                 wait=wait)
 
     async def get_coin_pair_info(self, coin_pair: CoinPair) -> CoinPairInfo:
         bc_data = await self.oracle_manager_call("getContractAddress", coin_pair.longer())

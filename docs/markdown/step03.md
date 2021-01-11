@@ -32,7 +32,7 @@ The following commands will set up your machine and start the services.
 
 	Visit [https://faucet.rsk.co/](https://faucet.rsk.co/) and complete the form to get Ethers for your Oracle's address.
 
-Now you can register your oracle and interact with the smartcontract using the Dapp. To do that go to the [next step](./step04.html)
+Now you can register your oracle and interact with the smart contract using the Dapp. To do that go to the [next step](./step04.html)
 
 
 
