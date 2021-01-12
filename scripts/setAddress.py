@@ -76,9 +76,9 @@ def NodeOption(network):
     node = input("Node (default: public-node):")
     if node == '':
         if network == 'testnet':
-            node = 'https://omoc-test.moneyonchain.com/info'
+            node = 'https://public-node.testnet.rsk.co'
         elif network == 'mainnet':
-            node = 'https://moc.moneyonchain.com/info'
+            node = 'https://public-node.rsk.co'
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
 
 def RegistryAddress(network):

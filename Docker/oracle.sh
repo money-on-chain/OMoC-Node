@@ -14,7 +14,8 @@ function isOracleStarting {
 function startOracle {
     isOracleStarting
     if [ "$STARTORACLE" = "true" ]; then
-        pm2 start --name oracle servers/run_oracle.sh
+        cd ./servers 
+        pm2 start --name oracle run_oracle.sh
     fi
 }
 
