@@ -14,8 +14,9 @@ RUN apk add --update --no-cache python3 && ln -sf python3 /usr/bin/python &&\
 
 WORKDIR /omoc-node
 
-COPY .. ./
-RUN mv ./Docker/oracle.sh .
+COPY ./ ./
+RUN mv ./Docker/oracle.sh . &&\
+    chmod +x oracle.sh
 RUN rm -r ./Docker
 
 RUN python3 -m ensurepip &&\

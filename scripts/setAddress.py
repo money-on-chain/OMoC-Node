@@ -7,6 +7,8 @@ import re, os, requests
 envMonitor = "monitor/backend/.env"
 envServer = "servers/.env"
 
+actualRegistryAddress = "(Actual Adress: None)"
+actualPairFilter = "(Actual Adress: None)"
 actualAddress = "(Actual Adress: None)"
 actualEmail = "(Actual Email: None)"
 actualNode = "(Actual Node: None)"
@@ -69,6 +71,7 @@ def NodeOption(network):
     print("Now we will setup your RSK Node.")
     print("Enter your RSK Node address in the form of 'http://<<IP>>:<<PORT>>'")
     print("or press enter if you want to connect to the public node.")
+    print("The default public node matchs the network selected previosuly.")
     print("///////////")
     node = input("Node (default: public-node):")
     if node == '':
@@ -77,10 +80,12 @@ def NodeOption(network):
         elif network == 'mainnet':
             node = 'https://moc.moneyonchain.com/info'
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
+
 def RegistryAddress(network):
     global envServer
     print("///////////")
     print("Now we will setup the Registry Address.")
+    print("The default registry address matchs the network selected previosuly.")
     print("///////////")
     registry_address = input("Registry address:")
     if registry_address == "":
@@ -94,6 +99,7 @@ def PairFilters():
     global envServer
     print("///////////")
     print("Now we will setup the Oracle pair filters.")
+    print("By default, BTCUSD is choose.")
     print("///////////")
     pairs = []
     quit = False
@@ -109,7 +115,7 @@ def PairFilters():
     for current_pair in pairs:
         if current_index != 0:
             pairString += ','
-        pairString += '"' + current_pair + '"'
+        pairString += '"' + current_pair.upper() + '"'
         current_index += 1
     addTo(envServer,'ORACLE_COIN_PAIR_FILTER=', '[' + pairString  + ']')
 
@@ -171,14 +177,24 @@ def checkStatus():
     global envMonitor
     global envServer
     global actualAddress
+    global actualRegistryAddress
+    global actualPairFilter
     global actualEmail 
     global actualNode
 
     fileMonitor = Path(envMonitor)
     fileServer  = Path(envServer)
+
+    registry_address = re.search('REGISTRY_ADDR=.*',fileServer.read_text())
+    pairs = re.search('ORACLE_COIN_PAIR_FILTER=.*',fileServer.read_text())
     oracle = re.search('ORACLE_SERVER_ADDRESS=.*',fileMonitor.read_text())
     mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
     node = re.search(r'^NODE_URL=.*',fileServer.read_text(),re.MULTILINE)
+    print(registry_address)
+    if (registry_address.group().strip() != "REGISTRY_ADDR="):
+        actualRegistryAddress = "(Actual Registry Address: " + registry_address.group().strip()[14:] + ")"
+    if (pairs.group().strip() != "ORACLE_COIN_PAIR_FILTER="):
+        actualPairFilter = "(Actual Pairs: " + pairs.group().strip()[24:] + ")"
     if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="):
         actualAddress = "(Actual Address: " + oracle.group().strip()[22:] + ")"
     if (mail.group().strip() != "SMTP_HOST=" ): 
@@ -210,7 +226,8 @@ def main():
     valid = False
     while (valid == False):
         network = input("Select network (testnet or mainnet) where the node will run. (Default testnet): ")
-        if network == '': node = 'testnet'
+        if network == '':
+            network = 'testnet'
         if ( network != 'testnet' and network != 'mainnet' ):
             valid = False
         else:
@@ -223,9 +240,9 @@ def main():
         print(" 1. Configure my oracle" + "--------" + actualAddress)
         print(" 2. Configure my email account" + "--------" + actualEmail)
         print(" 3. Set your custom RSK Node " + "--------" + actualNode)
-        print(" 4. Set the registry address")
-        print(" 5. Select pair filters")
-        print(" 6. I have done the two previous items. What are the following instructions?")
+        print(" 4. Set the registry address" + "--------" + actualRegistryAddress)
+        print(" 5. Select pair filters" + "--------" + actualPairFilter)
+        print(" 6. I have done the five previous items. What are the following instructions?")
         print(" 7. Exit")
 
         Menu = input()
