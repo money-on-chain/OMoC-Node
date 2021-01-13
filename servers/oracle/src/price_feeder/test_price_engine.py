@@ -12,8 +12,7 @@ async def test_fetch_from_all_exchanges():
     log = LogMeta()
     for name in base_engines_names.keys():
         engine = base_engines_names[name](log)
-        json, err_msg = await engine.fetch()
-
+        json, _, err_msg = await engine.fetch()
         print("------------------->", name, json, type(engine.map(json)["price"]))
 
 

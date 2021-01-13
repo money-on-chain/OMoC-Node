@@ -85,40 +85,36 @@ class PriceEngineBase(object):
                 async with session.get(self.uri, timeout=self.timeout) as response:
                     # print("Status:", response.status)
                     # print("Content-type:", response.headers['content-type'])
+                    age = int(response.headers.get('age', '0'))
                     response.raise_for_status()
                     if not response:
                         err_msg = "Error! No response from server on get price. Engine: {0}".format(self.name)
                         self.send_alarm(err_msg)
-                        return None, err_msg
+                        return None, None, err_msg
 
                     if response.status != 200:
                         err_msg = "Error! Error response from server on get price. Engine: {0}".format(self.name)
                         self.send_alarm(err_msg)
-                        return None, err_msg
+                        return None, None, err_msg
                     jsonTxt = await response.json(loads=lambda x: json.loads(x, parse_float=Decimal))
-                    return jsonTxt, ""
+                    return jsonTxt, age, ""
         except asyncio.CancelledError as e:
             raise e
         except requests.exceptions.HTTPError as http_err:
             err_msg = "Error! Error response from server on get price. Engine: {0}. {1}".format(self.name, http_err)
             self.send_alarm(err_msg)
-            return None, err_msg
+            return None, None, err_msg
         except Exception as err:
             err_msg = "Error. Error response from server on get price. Engine: {0}. {1}".format(self.name, err)
             self.send_alarm(err_msg)
-            return None, err_msg
-
-    @staticmethod
-    def map(response_json):
-        raise NotImplementedError()
+            return None, None, err_msg
 
     async def get_price(self):
-
-        response_json, err_msg = await self.fetch()
+        response_json, age, err_msg = await self.fetch()
         if not response_json:
             return None, err_msg
         try:
-            d_price_info = self.map(response_json)
+            d_price_info = self.map(response_json, age)
         except asyncio.CancelledError as e:
             raise e
         except Exception as err:
@@ -127,6 +123,9 @@ class PriceEngineBase(object):
             return None, err_msg
         return d_price_info, None
 
+    def map(self, response_json, age):
+        return {'timestamp': datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=age)}
+
 
 class BitstampBTCUSD(PriceEngineBase):
     name = "bitstamp_btc_usd"
@@ -134,12 +133,11 @@ class BitstampBTCUSD(PriceEngineBase):
     uri = "https://www.bitstamp.net/api/v2/ticker/btcusd/"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['last'])
         d_price_info['volume'] = Decimal(response_json['volume'])
-        d_price_info['timestamp'] = get_utc_time(response_json['timestamp'])
+        d_price_info['timestamp'] = get_utc_time(response_json['timestamp'])-datetime.timedelta(seconds=age)
         return d_price_info
 
 
@@ -150,12 +148,10 @@ class CoinBaseBTCUSD(PriceEngineBase):
     uri = "https://api.coinbase.com/v2/prices/spot?currency=USD"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['data']['amount'])
         d_price_info['volume'] = 0.0
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -165,12 +161,11 @@ class BitGOBTCUSD(PriceEngineBase):
     uri = "https://www.bitgo.com/api/v1/market/latest"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['latest']['currencies']['USD']['last'])
         d_price_info['volume'] = Decimal(response_json['latest']['currencies']['USD']['total_vol'])
-        d_price_info['timestamp'] = get_utc_time(response_json['latest']['currencies']['USD']['timestamp'])
+        d_price_info['timestamp'] = get_utc_time(response_json['latest']['currencies']['USD']['timestamp'])-datetime.timeelta(seconds=age)
         return d_price_info
 
 
@@ -180,12 +175,10 @@ class BitfinexBTCUSD(PriceEngineBase):
     uri = "https://api-pub.bitfinex.com/v2/ticker/tBTCUSD"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json[6])
         d_price_info['volume'] = Decimal(response_json[7])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -195,12 +188,10 @@ class BlockchainBTCUSD(PriceEngineBase):
     uri = "https://blockchain.info/ticker"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['USD']['last'])
         d_price_info['volume'] = 0.0
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -210,12 +201,10 @@ class BinanceBTCUSD(PriceEngineBase):
     uri = "https://api.binance.com/api/v1/ticker/24hr?symbol=BTCUSDT"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['lastPrice'])
         d_price_info['volume'] = Decimal(response_json['volume'])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -225,12 +214,10 @@ class KucoinBTCUSD(PriceEngineBase):
     uri = "https://api.kucoin.com/api/v1/market/stats?symbol=BTC-USDT"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['data']['last'])
         d_price_info['volume'] = Decimal(response_json['data']['vol'])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -240,12 +227,10 @@ class KrakenBTCUSD(PriceEngineBase):
     uri = "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['result']['XXBTZUSD']['c'][0])
         d_price_info['volume'] = Decimal(response_json['result']['XXBTZUSD']['v'][1])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -255,12 +240,10 @@ class BittrexBTCUSD(PriceEngineBase):
     uri = "https://api.bittrex.com/api/v1.1/public/getticker?market=USD-BTC"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['result']['Last'])
         d_price_info['volume'] = 0.0
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -270,12 +253,10 @@ class GeminiBTCUSD(PriceEngineBase):
     uri = "https://api.gemini.com/v1/pubticker/BTCUSD"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['last'])
         d_price_info['volume'] = 0.0
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -285,12 +266,10 @@ class OkCoinBTCUSD(PriceEngineBase):
     uri = "https://www.okcoin.com/api/spot/v3/instruments/BTC-USD/ticker"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['last'])
         d_price_info['volume'] = 0.0
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -300,12 +279,10 @@ class ItBitBTCUSD(PriceEngineBase):
     uri = "https://api.itbit.com/v1/markets/XBTUSD/ticker"
     convert = "BTC_USD"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['lastPrice'])
         d_price_info['volume'] = 0.0
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -316,12 +293,10 @@ class BitfinexRIFBTC(PriceEngineBase):
     uri = "https://api-pub.bitfinex.com/v2/ticker/tRIFBTC"
     convert = "RIF_BTC"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json[6])
         d_price_info['volume'] = Decimal(response_json[7])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -331,12 +306,10 @@ class BithumbproRIFBTC(PriceEngineBase):
     uri = "https://global-openapi.bithumb.pro/openapi/v1/spot/ticker?symbol=RIF-BTC"
     convert = "RIF_BTC"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['data'][0]['c'])
         d_price_info['volume'] = Decimal(response_json['data'][0]['v'])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -346,12 +319,10 @@ class CoinbeneRIFBTC(PriceEngineBase):
     uri = "https://api.coinbene.com/v1/market/ticker?symbol=RIFBTC"
     convert = "RIF_BTC"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['ticker'][0]['last'])
         d_price_info['volume'] = Decimal(response_json['ticker'][0]['24hrVol'])
-        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
         return d_price_info
 
 
@@ -361,12 +332,11 @@ class KucoinRIFBTC(PriceEngineBase):
     uri = "https://openapi-v2.kucoin.com/api/v1/market/orderbook/level1?symbol=RIF-BTC"
     convert = "RIF_BTC"
 
-    @staticmethod
-    def map(response_json):
-        d_price_info = dict()
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['data']['price'])
         d_price_info['volume'] = Decimal(response_json['data']['size'])
-        d_price_info['timestamp'] = get_utc_time_ms(response_json['data']['time'])
+        d_price_info['timestamp'] = get_utc_time_ms(response_json['data']['time'])-datetime.timedelta(seconds=age)
         return d_price_info
 
 
