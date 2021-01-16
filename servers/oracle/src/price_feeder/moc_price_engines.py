@@ -1,15 +1,17 @@
 import asyncio
 import contextlib
-import datetime
 import decimal
 import json
 import logging
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 
 import aiohttp
 import requests
 
 from oracle.src import monitor
+from oracle.src.oracle_configuration import OracleConfiguration
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +19,11 @@ decimal.getcontext().prec = 28
 
 
 def get_utc_time(timestamp_str):
-    return datetime.datetime.fromtimestamp(int(timestamp_str), datetime.timezone.utc)
+    return datetime.fromtimestamp(int(timestamp_str), timezone.utc)
 
 
 def get_utc_time_ms(timestamp_str):
-    return datetime.datetime.fromtimestamp(int(timestamp_str) / 1000, datetime.timezone.utc)
+    return datetime.fromtimestamp(int(timestamp_str) / 1000, timezone.utc)
 
 
 def weighted_median(values, weights):
@@ -70,7 +72,8 @@ class PriceEngineBase(object):
     uri = None
     convert = "BTC_USD"
 
-    def __init__(self, log, timeout=10, uri=None):
+    def __init__(self, conf: OracleConfiguration, log, timeout=10, uri=None):
+        self._conf = conf
         self.log = log
         self.timeout = timeout
         if uri:
@@ -121,10 +124,15 @@ class PriceEngineBase(object):
             err_msg = "Error. Error response from server on get price. Engine: {0}. {1}".format(self.name, err)
             self.send_alarm(err_msg)
             return None, err_msg
+
+        if (datetime.now(timezone.utc)-d_price_info["timestamp"]
+            )>timedelta(seconds=self._conf.ORACLE_PRICE_RECEIVE_MAX_AGE):
+            d_price_info["price"] = Decimal("NAN")
+            d_price_info["timestamp"] = datetime.now(timezone.utc)
         return d_price_info, None
 
     def map(self, response_json, age):
-        return {'timestamp': datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=age)}
+        return {'timestamp': datetime.now(timezone.utc) - timedelta(seconds=age)}
 
 
 class BitstampBTCUSD(PriceEngineBase):
@@ -137,14 +145,13 @@ class BitstampBTCUSD(PriceEngineBase):
         d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['last'])
         d_price_info['volume'] = Decimal(response_json['volume'])
-        d_price_info['timestamp'] = get_utc_time(response_json['timestamp'])-datetime.timedelta(seconds=age)
+        d_price_info['timestamp'] = get_utc_time(response_json['timestamp'])
         return d_price_info
 
 
 class CoinBaseBTCUSD(PriceEngineBase):
     name = "coinbase_btc_usd"
     description = "Coinbase"
-    # uri = "https://api.coinbase.com/v2/prices/BTC-USD/buy"
     uri = "https://api.coinbase.com/v2/prices/spot?currency=USD"
     convert = "BTC_USD"
 
@@ -165,7 +172,7 @@ class BitGOBTCUSD(PriceEngineBase):
         d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['latest']['currencies']['USD']['last'])
         d_price_info['volume'] = Decimal(response_json['latest']['currencies']['USD']['total_vol'])
-        d_price_info['timestamp'] = get_utc_time(response_json['latest']['currencies']['USD']['timestamp'])-datetime.timeelta(seconds=age)
+        d_price_info['timestamp'] = get_utc_time(response_json['latest']['currencies']['USD']['timestamp'])
         return d_price_info
 
 
@@ -336,7 +343,7 @@ class KucoinRIFBTC(PriceEngineBase):
         d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['data']['price'])
         d_price_info['volume'] = Decimal(response_json['data']['size'])
-        d_price_info['timestamp'] = get_utc_time_ms(response_json['data']['time'])-datetime.timedelta(seconds=age)
+        d_price_info['timestamp'] = get_utc_time_ms(response_json['data']['time'])
         return d_price_info
 
 
@@ -370,9 +377,15 @@ class LogMeta(object):
     def error(msg):
         logger.error("ERROR: {0}".format(msg))
 
+    @staticmethod
+    def warning(msg):
+        logger.error("WARNING: {0}".format(msg))
+
 
 class PriceEngines(object):
-    def __init__(self, coin_pair, price_options, log=None, engines_names=None):
+    def __init__(self, conf: OracleConfiguration, coin_pair: str,
+                 price_options, log=None, engines_names=None):
+        self._conf = conf
         self._coin_pair = coin_pair
         self.price_options = price_options
         self.log = log
@@ -381,7 +394,7 @@ class PriceEngines(object):
         self.engines_names = engines_names
         if not engines_names:
             self.engines_names = base_engines_names
-        self.engines = list()
+        self.engines = []
         self.add_engines()
 
     def add_engines(self):
@@ -392,7 +405,7 @@ class PriceEngines(object):
                 raise Exception("The engine price name not in the available list")
 
             engine = self.engines_names.get(engine_name)
-            i_engine = engine(self.log)
+            i_engine = engine(self._conf, self.log)
 
             d_engine = dict()
             d_engine["engine"] = i_engine
@@ -404,7 +417,7 @@ class PriceEngines(object):
 
     async def fetch_prices(self):
         async def azip(engine):
-            return (engine, await engine["engine"].get_price(),)
+            return (engine, await engine["engine"].get_price())
 
         cor = [azip(engine) for engine in self.engines]
         p_data = await asyncio.gather(*cor, return_exceptions=True)
@@ -421,27 +434,29 @@ class PriceEngines(object):
                 i_price['max_delay'] = engine["max_delay"]
 
                 if i_price["min_volume"] > 0:
-                    # the evalution of volume is on
+                    # the evaluation of volume is on
                     if not i_price['volume'] > i_price["min_volume"]:
                         # is not added to the price list
                         self.log.warning("Not added to the list because is not at to the desire volume: %s" %
                                          i_price['name'])
                         continue
-
                 prices.append(i_price)
-
         return prices
 
-    def get_weighted_idx(self, f_prices):
-        l_prices = [p_price['price'] for p_price in f_prices]
-        l_weights = [Decimal(p_price['ponderation']) for p_price in f_prices]
+    def get_weighted_from(self, f_prices):
+        l_prices, l_weights, _idxback = zip(
+                *( (p_price['price'], Decimal(p_price['ponderation']), idx)
+                    for idx, p_price in enumerate(f_prices)
+                                            if p_price['price'].is_finite()) )
+        if len(l_prices)==0:
+            return None
         idx = weighted_median_idx(l_prices, l_weights)
         monitor.exchange_log("%s median: %s" % (self._coin_pair, l_prices[idx]))
-        return idx
+        return f_prices[_idxback[idx]]
 
     def get_weighted_median(self, f_prices):
-        idx = self.get_weighted_idx(f_prices)
-        return f_prices[idx]['price']
+        f_price = self.get_weighted_from(f_prices)
+        return f_price['price']
 
     async def get_weighted(self):
         f_prices = await self.fetch_prices()

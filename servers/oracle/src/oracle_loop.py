@@ -83,13 +83,13 @@ class OracleLoop(BgTaskExecutor):
         logger.info("Oracle loop done")
         return self.conf.ORACLE_MAIN_LOOP_TASK_INTERVAL
 
-    async def get_validation_data(self, params: PublishPriceParams) -> RequestValidation:
+    async def get_validation_data(self, params: PublishPriceParams) -> RequestValidation or None:
         tasks: OracleLoopTasks = self.cpMap.get(str(params.coin_pair))
         if not tasks or not tasks.price_feeder_loop \
                 or not tasks.blockchain_info_loop or not tasks.oracle_turn:
-            return None
+            return
 
-        exchange_price = await tasks.price_feeder_loop.get_last_price(params.price_ts_utc)
+        exchange_price = await tasks.price_feeder_loop.get_last_price(params.price_ts_utc, False)
         blockchain_info: OracleBlockchainInfo = tasks.blockchain_info_loop.get()
         oracle_price_reject_delta_pct = self.conf.ORACLE_PRICE_REJECT_DELTA_PCT
         return RequestValidation(oracle_price_reject_delta_pct, params, tasks.oracle_turn, exchange_price,

@@ -5,7 +5,8 @@ from moneyonchain import contract
 from moneyonchain.manager import ConnectionManager
 
 from common import settings, helpers
-from common.services.blockchain import BlockChain, BlockChainContract, parse_addr
+from common.services.blockchain import BlockChain, BlockChainContract, \
+    parse_addr
 from common.services.coin_pair_price_service import CoinPairService
 from common.services.eternal_storage_service import EternalStorageService
 from common.services.info_getter_service import InfoGetterService
@@ -14,18 +15,20 @@ from common.services.staking_machine_service import StakingMachineService
 from common.services.oracle_manager_service import OracleManagerService
 from common.services.supporters_service import SupportersService
 
+
 logger = logging.getLogger(__name__)
 
 
 class ContractFactoryService:
-
     @staticmethod
     def get_contract_factory_service():
         if settings.MOC_NETWORK is not None:
-            logger.info("Using moneyonchain library for contracts abis and addresses")
+            logger.info(
+                "Using moneyonchain library for contracts abis and addresses")
             return MocContractFactoryService()
         else:
-            logger.warning("Using build dir development files for contracts abis and addresses!!!")
+            logger.warning(
+                "Using build dir development files for contracts abis and addresses!!!")
             return BuildDirContractFactoryService()
 
     def __init__(self, blockchain):
@@ -64,16 +67,20 @@ class ContractFactoryService:
 
 class MocContractFactoryService(ContractFactoryService):
     def __init__(self):
-        self.abi_path = os.path.join(os.path.dirname(os.path.realpath(contract.__file__)), "abi")
+        self.abi_path = os.path.join(
+            os.path.dirname(os.path.realpath(contract.__file__)), "abi")
         options = ConnectionManager.options_from_config()
         networks = options["networks"]
         network = settings.MOC_NETWORK
         if network not in networks:
-            raise Exception("Invalid moc network name %r" % network)
+            raise Exception("Invalid moc network name %r. Available: %r" % (
+                            network, networks.keys()))
         self.options = networks[network]
         self.addresses = self.options["addresses"]
-        url = settings.NODE_URL if settings.NODE_URL is not None else options["uri"]
-        chain_id = settings.CHAIN_ID if settings.CHAIN_ID is not None else options["chain_id"]
+        url = settings.NODE_URL if settings.NODE_URL is not None else options[
+            "uri"]
+        chain_id = settings.CHAIN_ID if settings.CHAIN_ID is not None else \
+        options["chain_id"]
         blockchain = BlockChain(url, chain_id, settings.WEB3_TIMEOUT)
         ContractFactoryService.__init__(self, blockchain)
 
@@ -110,26 +117,28 @@ class MocContractFactoryService(ContractFactoryService):
         return None
 
     def _read_abi(self, file_name):
-        return contract.Contract.content_abi_file(os.path.join(self.abi_path, file_name))
+        return contract.Contract.content_abi_file(
+            os.path.join(self.abi_path, file_name))
 
 
 class BuildDirContractFactoryService(ContractFactoryService):
     FILES = {
-        "ETERNAL_STORAGE": "IRegistry.json"
-        , "MOC_ERC20": "IERC20.json"
-        , "STAKING_MACHINE": "IStakingMachine.json"
-        , "STAKING_MACHINE_ORACLES": "IStakingMachineOracles.json"
-        , "SUPPORTERS": "ISupporters.json"
-        , "ORACLE_MANAGER": "IOracleManager.json"
-        , "COIN_PAIR_PRICE": "ICoinPairPrice.json"
-        , "INFO_GETTER": "IOracleInfoGetter.json"
+        "ETERNAL_STORAGE": "IRegistry.json",
+        "MOC_ERC20": "IERC20.json",
+        "STAKING_MACHINE": "IStakingMachine.json",
+        "STAKING_MACHINE_ORACLES": "IStakingMachineOracles.json",
+        "SUPPORTERS": "ISupporters.json",
+        "ORACLE_MANAGER": "IOracleManager.json",
+        "COIN_PAIR_PRICE": "ICoinPairPrice.json",
+        "INFO_GETTER": "IOracleInfoGetter.json",
     }
     DATA = dict()
 
     def __init__(self):
         if settings.NODE_URL is None:
             raise Exception("NODE_URL env var must be configured")
-        blockchain = BlockChain(settings.NODE_URL, settings.CHAIN_ID, settings.WEB3_TIMEOUT)
+        blockchain = BlockChain(settings.NODE_URL, settings.CHAIN_ID,
+                                settings.WEB3_TIMEOUT)
         ContractFactoryService.__init__(self, blockchain)
 
     def get_coin_pair_price(self, addr) -> CoinPairService:

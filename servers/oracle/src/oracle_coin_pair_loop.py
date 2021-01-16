@@ -52,7 +52,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
             logger.info("%r : OracleCoinPairLoop Waiting for the initial round...", (self._coin_pair,))
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-        exchange_price = await self._price_feeder_loop.get_last_price(time.time())
+        exchange_price = await self._price_feeder_loop.get_last_price(time.time(), True)
         if not exchange_price or exchange_price.ts_utc <= 0:
             logger.info(
                 "%r : OracleCoinPairLoop Still don't have a valid price %r" % (self._coin_pair, exchange_price))
