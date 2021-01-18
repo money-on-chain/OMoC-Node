@@ -26,18 +26,17 @@ When a price related to a timestamp is to be validated, it is compared
 against the price we can generate from our exchanges' queues for the mentioned
 timestamp.
 
-In both cases, the price selection for each queue is this way:
- * we select the price with nearest time (including NANs):
-    + if there is more than once, the newer is choose
- * if a queue is empty it is ignored
- * if a queue price is NAP it is ignored
- * When the price is for publishing if the price is older than: 
+In both cases, the price selection for each queue will be done in the 
+following way:
+ * We select the price with nearest time (including NANs):
+    + If there is more than one, the most recent one will be choosen
+ * If a queue is empty, it will be ignored
+ * If a price queue has NAN it will be ignored
+ * When the price is for publishing, if the price is older than: 
     `ORACLE_PRICE_PUBLISH_MAX_DIFF` it is ignored
- * When the price is for validation if the price is older than:
+ * When the price is for validation, if the price is older than:
     `ORACLE_PRICE_VALIDATE_MAX_DIFF` it is ignored
- * if there is no price: no price is returned
- * remaining prices are ponderated according to their weights, which are 
-   normalized
-
-
-
+ * If there is no price: no price is returned
+ * Remaining prices are weighted by a normalized factor which can be
+ configured. When one of the sources needs to be ignored, the factor will 
+ get re-normalized only using the active sources.
