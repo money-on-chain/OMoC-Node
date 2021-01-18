@@ -21,19 +21,25 @@ class TimeWithTimestampQueue:
             return None
         ret1 = min(self._price_queue, key=lambda x: abs(target_time_utc - x["ts_utc"]))
         ret2 = self.min_without(target_time_utc, ret1)
-        d_ret1 = ret1["ts_utc"]-target_time_utc
-        d_ret2 = ret2["ts_utc"]-target_time_utc
-        if abs(d_ret1)!=abs(d_ret2):
+        if ret2 is None:
             ret = ret1
         else:
-            ret = ret1 if d_ret1>0 else ret2
+            d_ret1 = ret1["ts_utc"]-target_time_utc
+            d_ret2 = ret2["ts_utc"]-target_time_utc
+            if abs(d_ret1)!=abs(d_ret2):
+                ret = ret1
+            else:
+                ret = ret1 if d_ret1>0 else ret2
         return ret["data"]
 
     def min_without(self, target_time_utc, x):
         list_without = [y for y in self._price_queue if y['ts_utc']!=x['ts_utc']]
+        if len(list_without)==0:
+            return None
         return min(list_without, key=lambda x: abs(target_time_utc - x["ts_utc"]))
 
     def append(self, ts_utc, data):
+        data['ts_utc']=ts_utc
         self._price_queue.append({"ts_utc": ts_utc, "data": data})
 
 
