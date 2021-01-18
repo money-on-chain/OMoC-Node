@@ -1,21 +1,21 @@
 # Price handling
 
 Prices from exchanges are sometimes cached. On the other hand it is not a 
-good strategy to report old prices. At the same time we should be able to 
+good strategy to report old prices. Our system also needs to be able to 
 validate prices from some recent past.
 
-We implemented this:
+Keeping all this in mind we implemented what's explained below.
 
 ## Price retrieval 
 
-When a price is received it is inserted in our price queue. The reception 
-time is record unless the price-information includes a timestamp from when 
-it was originated. In the first case, if we receive an "age" header it is 
-used to adjust the price timestamp.
-As we don't want to populate queue with old prices, when the price have a 
+When a price is received it is inserted in our price queue. If the 
+price-information includes a timestamp from when it was originated, it is
+recorded. Otherwise we record the reception time as the price timestamp.
+If we receive an "age" header, system uses it to adjust the price timestamp.
+As we don't want to populate queue with old prices, when the price has a 
 timestamp older than `ORACLE_PRICE_RECEIVE_MAX_AGE` seconds it will not be 
-saved as received but a Not-A-Price price with the current timestamp is 
-record instead. (We use a decimal NaN to signal the Not-A-Price value).
+saved as received. We will save a Not-A-Price price instead with the current
+timestamp. (We use a decimal NaN to signal the Not-A-Price value).
 
 ## Price publication and validation
 
