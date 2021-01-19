@@ -5,6 +5,7 @@ import time
 import traceback
 import typing
 
+import urllib3
 from aiohttp import ClientConnectorError, InvalidURL, ClientResponseError
 from hexbytes import HexBytes
 
@@ -160,7 +161,11 @@ async def gather_signatures(oracles, params: PublishPriceParams, message, my_sig
 
 
 async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams, message, my_signature, timeout=10):
-    target_uri = oracle.internetName + "/sign/"
+    x = urllib3.util.parse_url(oracle.internetName)
+    target_uri = "%s://%s" % (x.scheme, x.host)
+    if not x.port is None:
+        target_uri+=':%d'%x.port
+    target_uri += "/sign/"
     logger.info("%s : Trying to get signatures from: %s == %s" % (params.coin_pair, target_uri, oracle.addr), )
     try:
         post_data = {
