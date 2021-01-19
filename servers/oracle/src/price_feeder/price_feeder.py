@@ -64,8 +64,13 @@ class PriceFeederLoop(BgTaskExecutor):
         MAX = self.maxdiffs[to_publish]
         w_data = [q.get_nearest_data(target_time_utc)
                                         for q in self._price_queues.values()]
+        # avoid the following situations:
+        #  * no data (None)
+        #  * data is NoPrice (NaN)
+        #  * data outside the required freshness period (>MAX)
         w_data = [x for x in w_data if (x is not None) and
-                                        abs(target_time_utc - x["ts_utc"])<MAX]
+                                        x["price"].is_finite() and
+                                        abs(target_time_utc - x["ts_utc"])<=MAX]
         if len(w_data) == 0:
             return
 
@@ -78,7 +83,10 @@ class PriceFeederLoop(BgTaskExecutor):
         l_times = [p_price['timestamp'].timestamp() for p_price in w_data]
         l_names = [p_price['name'] for p_price in w_data]
         l_prices = [p_price['price'] for p_price in w_data]
+
         info = [(x[1], str(x[0]), x[2]) for x in sorted(zip(l_prices, l_names, l_times))]
+
+
         logger.info("%s median: %r %r %r, %r" % (self._coin_pair, val['name'],
                                                  str(price), tm_utc, info))
 
