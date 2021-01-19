@@ -185,10 +185,52 @@ The rest of the parameters are optional. If they are missing they are taken from
 
     Timeout used when requesting signatures fom other oracles.
 
-- ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
+- ORACLE_COIN_PAIR_FILTER = [ "BTCUSD", "RIFUSD" ]
 
     This can be used to limit the coin pairs that the Oracle monitors. The missing coin pairs are ignored
     even if the Oracle is subscribed to them. **An empty value `[]`) means: to monitor all coin pairs**.
+  
+- ORACLE_PRICE_RECEIVE_MAX_AGE=<float>   
+  Received price max age in exchange cache before we consider it a No-Price. 
+  It is expected to be expressed in seconds. For details check 
+  [PRICE_HANDLING.md](../PRICE_HANDLING.md).
+  
+- ORACLE_PRICE_PUBLISH_MAX_DIFF=<float>
+- ORACLE_PRICE_VALIDATE_MAX_DIF=<float>
+  
+    Max time difference between the time a price is searched for and the 
+    values returned from the price-queue. One value is used when generating a 
+    new price, and the other is used when generating a price to be used to 
+    validate third party oracles price proposal. For details check 
+    [PRICE_HANDLING.md](../PRICE_HANDLING.md).
+
+
+#### Exchanges to use by coinpair and their ponderation
+
+The exchange list to use is configured in `exchange.json` file. the format is:
+
+```json
+{ 
+  "coinpair1": [
+      exchange_info-one-for-coinpair1,
+      exchange_info-two-for-coinpair1, and so on..
+  ]
+}
+```
+containing as many _coinpairs_ and as many exchanges per _coinpair_ as 
+required.
+
+Here _exchange_info_ is like this:
+
+```json
+{"name": "bitstamp", "ponderation": "0.22", "min_volume": 0.0, "max_delay": 0}
+```
+
+(here name must be one of the exchanges defined in sourcecode. The 
+ponderation is how it is weighted among the other exchanges when used. Keep 
+in mind the ponderation is automatically normalized. Price is given as a 
+string value to interpreted with all the decimals it is expressed).
+
 
 #### Server configuration: parameters for development 
 
