@@ -192,7 +192,7 @@ class OracleConfiguration:
                 "configuration": lambda: config('ORACLE_PRICE_PUBLISH_MAX_DIFF',
                                                 cast=float),
                 "blockchain": lambda *args: None,
-                "description": "If an exchange sends a price with age greater than this value it will be kept as not-available (NaN) in the price queue.",
+                "description": "The maximal time difference (in seconds) a price in queue is considered when generating a price for publication.",
                 "default": 30
             },
             "ORACLE_PRICE_VALIDATE_MAX_DIFF": {
@@ -200,7 +200,7 @@ class OracleConfiguration:
                 "configuration": lambda: config('ORACLE_PRICE_VALIDATE_MAX_DIFF',
                                                 cast=float),
                 "blockchain": lambda *args: None,
-                "description": "If an exchange sends a price with age greater than this value it will be kept as not-available (NaN) in the price queue.",
+                "description": "The maximal time difference (in seconds) a price in queue is considered when generating a price for validation.",
                 "default": 30
             },
         }
