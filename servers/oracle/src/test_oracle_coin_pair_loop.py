@@ -90,10 +90,10 @@ def get_oracle_account(oracle_addr, private_key) -> BlockchainAccount:
 
 
 @pytest.mark.asyncio
-async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServer,
-                                                          httpserver2: HTTPServer,
-                                                          httpserver3: HTTPServer,
-                                                          httpserver4: HTTPServer):
+async def test_gather_signatures_gathers_needed_sigs_plus_extra_in_config(httpserver1: HTTPServer,
+                                                                          httpserver2: HTTPServer,
+                                                                          httpserver3: HTTPServer,
+                                                                          httpserver4: HTTPServer):
     message_version = 3
     coin_pair = CoinPair('BTCUSD')
     price = 19030550000000000000000
@@ -119,7 +119,7 @@ async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServe
                                 last_pub_block)
     message = params.prepare_price_msg()
 
-    needed_sigs = (len(oracles) // 2) + 1
+    needed_sigs = (len(oracles) // 2) + 1 + oracle_settings.ORACLE_EXTRA_SIGS_TO_PUBLISH_PRICE
     signatures = []
     for oracle_account in oracle_accounts:
         signatures.append(crypto.sign_message(hexstr="0x" + message, account=oracle_account))

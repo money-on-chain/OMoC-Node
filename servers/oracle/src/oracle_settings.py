@@ -53,6 +53,9 @@ ORACLE_PRICE_ENGINES = {
     ]
 }
 
+# Amount of signatures extra to send in order to reach a successful price publication
+ORACLE_EXTRA_SIGS_TO_PUBLISH_PRICE = config('ORACLE_EXTRA_SIGS_TO_PUBLISH_PRICE', cast=int, default=1)
+
 
 def get_oracle_account() -> BlockchainAccount:
     secret = config('ORACLE_PRIVATE_KEY', cast=Secret)

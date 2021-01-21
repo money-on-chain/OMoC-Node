@@ -145,7 +145,7 @@ async def gather_signatures(oracles, params: PublishPriceParams, message, my_sig
         get_signature(oracle, params, message, my_signature, timeout=timeout)
         for oracle in oracles if oracle.addr != params.oracle_addr]
     # sigs = await asyncio.gather(*cors, return_exceptions=True)
-    needed = len(oracles) // 2
+    needed = len(oracles) // 2 + oracle_settings.ORACLE_EXTRA_SIGS_TO_PUBLISH_PRICE
     sigs = []
     for f in asyncio.as_completed(cors, timeout=timeout):
         sig = await f
