@@ -238,20 +238,18 @@ def main():
         checkStatus()
         print("Please, select what do you want to configure right now:")
         print(" 1. Configure my oracle" + "--------" + actualAddress)
-        print(" 2. Configure my email account" + "--------" + actualEmail)
-        print(" 3. Set your custom RSK Node " + "--------" + actualNode)
-        print(" 4. Set the registry address" + "--------" + actualRegistryAddress)
-        print(" 5. Select pair filters" + "--------" + actualPairFilter)
-        print(" 6. I have done the five previous items. What are the following instructions?")
-        print(" 7. Exit")
+        print(" 2. Set your custom RSK Node " + "--------" + actualNode)
+        print(" 3. Set the registry address" + "--------" + actualRegistryAddress)
+        print(" 4. Select pair filters" + "--------" + actualPairFilter)
+        print(" 5. I have done the five previous items. What are the following instructions?")
+        print(" 6. Exit")
 
         Menu = input()
         if (Menu == "1"): oracleOption()
-        if (Menu == "2"): emailOption()
-        if (Menu == "3"): NodeOption(network)
-        if (Menu == "4"): RegistryAddress(network)
-        if (Menu == "5"): PairFilters()
-        if (Menu == "6"): 
+        if (Menu == "2"): NodeOption(network)
+        if (Menu == "3"): RegistryAddress(network)
+        if (Menu == "4"): PairFilters()
+        if (Menu == "5"): 
             print("")
             print("////////")
             print("if everything is setup correctly, let's run the services.")
@@ -263,7 +261,7 @@ def main():
             print(" ")
             print("////////")
             quit = True
-        if (Menu == "7" ): quit = True
+        if (Menu == "6" ): quit = True
 
 if __name__ == "__main__":
     main()

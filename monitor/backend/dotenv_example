@@ -34,14 +34,14 @@ AGENT_PROGRAM=oracle
 ALERT_LOG_FILENAME=
 
 # Email reporting
-SMTP_HOST=smtp.mail.yahoo.com
-SMTP_PORT=465
-SMTP_From=someone <someone@yahoo.com>
-SMTP_SSL_TLS=yes
-SMTP_USER=someone@yahoo.com
-SMTP_PWD=YourPasswordGoesHere
-ALERT_EMAILS=to-be-notified@example.com
-EMAIL_REPEAT_INTERVAL=3600
+# SMTP_HOST=smtp.mail.yahoo.com
+# SMTP_PORT=465
+# SMTP_From=someone <someone@yahoo.com>
+# SMTP_SSL_TLS=yes
+# SMTP_USER=someone@yahoo.com
+# SMTP_PWD=YourPasswordGoesHere
+# ALERT_EMAILS=to-be-notified@example.com
+# EMAIL_REPEAT_INTERVAL=3600
 
 # Slack reporting
 #SLACK_HOOK_URL=https://hooks.slack.com/services/XXXXXXXXXXXXXXX
