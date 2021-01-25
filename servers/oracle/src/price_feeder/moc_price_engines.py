@@ -20,6 +20,10 @@ def get_utc_time(timestamp_str):
     return datetime.datetime.fromtimestamp(int(timestamp_str), datetime.timezone.utc)
 
 
+def get_utc_time_ms(timestamp_str):
+    return datetime.datetime.fromtimestamp(int(timestamp_str) / 1000, datetime.timezone.utc)
+
+
 def weighted_median(values, weights):
     idx = weighted_median_idx(values, weights)
     return values[idx]
@@ -63,7 +67,7 @@ def closing(thing):
 class PriceEngineBase(object):
     name = "base_engine"
     description = "Base Engine"
-    uri = "http://api.pricefetcher.com/BTCUSD"
+    uri = None
     convert = "BTC_USD"
 
     def __init__(self, log, timeout=10, uri=None):
@@ -306,8 +310,6 @@ class ItBitBTCUSD(PriceEngineBase):
 
 
 # RIF BTC
-
-
 class BitfinexRIFBTC(PriceEngineBase):
     name = "bitfinex_rif_btc"
     description = "Bitfinex RIF"
@@ -338,6 +340,36 @@ class BithumbproRIFBTC(PriceEngineBase):
         return d_price_info
 
 
+class CoinbeneRIFBTC(PriceEngineBase):
+    name = "coinbene_rif"
+    description = "Coinbene_RIF"
+    uri = "https://api.coinbene.com/v1/market/ticker?symbol=RIFBTC"
+    convert = "RIF_BTC"
+
+    @staticmethod
+    def map(response_json):
+        d_price_info = dict()
+        d_price_info['price'] = Decimal(response_json['ticker'][0]['last'])
+        d_price_info['volume'] = Decimal(response_json['ticker'][0]['24hrVol'])
+        d_price_info['timestamp'] = datetime.datetime.now(datetime.timezone.utc)
+        return d_price_info
+
+
+class KucoinRIFBTC(PriceEngineBase):
+    name = "kucoin_rif"
+    description = "Kucoin_RIF"
+    uri = "https://openapi-v2.kucoin.com/api/v1/market/orderbook/level1?symbol=RIF-BTC"
+    convert = "RIF_BTC"
+
+    @staticmethod
+    def map(response_json):
+        d_price_info = dict()
+        d_price_info['price'] = Decimal(response_json['data']['price'])
+        d_price_info['volume'] = Decimal(response_json['data']['size'])
+        d_price_info['timestamp'] = get_utc_time_ms(response_json['data']['time'])
+        return d_price_info
+
+
 base_engines_names = {
     "coinbase": CoinBaseBTCUSD,
     "bitstamp": BitstampBTCUSD,
@@ -352,7 +384,9 @@ base_engines_names = {
     "okcoin": OkCoinBTCUSD,
     "itbit": ItBitBTCUSD,
     "bitfinex_rif": BitfinexRIFBTC,
-    "bithumbpro_rif": BithumbproRIFBTC
+    "bithumbpro_rif": BithumbproRIFBTC,
+    "coinbene_rif": CoinbeneRIFBTC,
+    "kucoin_rif": KucoinRIFBTC
 }
 
 

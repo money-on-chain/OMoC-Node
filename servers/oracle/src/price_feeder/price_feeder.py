@@ -1,7 +1,6 @@
 import asyncio
 import collections
 import logging
-import time
 
 from common.bg_task_executor import BgTaskExecutor
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
@@ -40,7 +39,7 @@ class PriceFeederLoop(BgTaskExecutor):
     def coin_pair(self):
         return self._coin_pair
 
-    async def get_last_price(self, target_time_utc=time.time()) -> PriceWithTimestamp:
+    async def get_last_price(self, target_time_utc) -> PriceWithTimestamp:
         w_data = []
         for k in self._price_queues.keys():
             q = self._price_queues[k]

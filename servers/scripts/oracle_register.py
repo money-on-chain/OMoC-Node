@@ -8,7 +8,7 @@ async def main():
     oracle_addr = str(oracle_account.addr)
     print("ORACLE ADDR", oracle_addr)
     print("ORACLE OWNER ADDR", script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr)
-    conf, oracle_service, moc_token_service, oracle_manager_service, oracle_manager_addr = await script_settings.configure_oracle()
+    conf, oracle_service, oracle_manager_service, moc_token_service, staking_machine_service, staking_machine_addr = await script_settings.configure_oracle()
 
     balance = await script_settings.blockchain.get_balance(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr)
     print("Oracle owner coinbase balance ", balance)
@@ -38,28 +38,19 @@ async def main():
         print("rbtc transfer", tx)
 
     # register oracle
-    registered = await oracle_manager_service.get_oracle_registration_info(oracle_addr)
+    registered = await oracle_manager_service.get_oracle_registration_info(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr)
     if is_error(registered):
-        # aprove moc movement
-        token_approved = await moc_token_service.allowance(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr,
-                                                           conf.ORACLE_MANAGER_ADDR)
-        print("tokenApproved", token_approved)
-        if token_approved < script_settings.INITIAL_STAKE:
-            tx = await moc_token_service.approve(conf.ORACLE_MANAGER_ADDR,
-                                                 script_settings.INITIAL_STAKE,
-                                                 account=script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
-                                                 wait=True)
-            print("token approve", tx)
-
-        tx = await oracle_manager_service.register_oracle(oracle_addr, "http://localhost:5556",
-                                                          script_settings.INITIAL_STAKE,
-                                                          account=script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
-                                                          wait=True)
+        tx = await staking_machine_service.register_oracle(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
+                                                           oracle_addr,
+                                                           "http://localhost:5556",
+                                                           account=script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT,
+                                                           wait=True)
         print("register oracle is ok to fail", tx)
 
-    registered = await oracle_manager_service.get_oracle_registration_info(oracle_addr)
-    if registered.stake:
-        print("ORACLE ALLREADY APPROVED, WE ARE DONE")
+    registered = await oracle_manager_service.get_oracle_registration_info(script_settings.SCRIPT_ORACLE_OWNER_ACCOUNT.addr)
+    print("registered", registered)
+    if registered.owner:
+        print("ORACLE ALREADY APPROVED, WE ARE DONE")
         return
 
 

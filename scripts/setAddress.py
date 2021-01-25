@@ -7,6 +7,8 @@ import re, os, requests
 envMonitor = "monitor/backend/.env"
 envServer = "servers/.env"
 
+actualRegistryAddress = "(Actual Adress: None)"
+actualPairFilter = "(Actual Adress: None)"
 actualAddress = "(Actual Adress: None)"
 actualEmail = "(Actual Email: None)"
 actualNode = "(Actual Node: None)"
@@ -63,16 +65,59 @@ def addTo(filePath, search, addText):
                     file.read_text())
     file.open('w').write(content)
 
-def NodeOption():
+def NodeOption(network):
     global envServer
     print("///////////")
     print("Now we will setup your RSK Node.")
     print("Enter your RSK Node address in the form of 'http://<<IP>>:<<PORT>>'")
     print("or press enter if you want to connect to the public node.")
+    print("The default public node matchs the network selected previosuly.")
     print("///////////")
     node = input("Node (default: public-node):")
-    if node =="": node="https://public-node.testnet.rsk.co:443"
+    if node == '':
+        if network == 'testnet':
+            node = 'https://public-node.testnet.rsk.co'
+        elif network == 'mainnet':
+            node = 'https://public-node.rsk.co'
     addTo(envServer,'NODE_URL=', '"' + node  + '"')
+
+def RegistryAddress(network):
+    global envServer
+    print("///////////")
+    print("Now we will setup the Registry Address.")
+    print("The default registry address matchs the network selected previosuly.")
+    print("///////////")
+    registry_address = input("Registry address:")
+    if registry_address == "":
+        if network == 'testnet':
+            registry_address = '0xf078375a3dD89dDF4D9dA460352199C6769b5f10'
+        elif network == 'mainnet':
+            registry_address = '0xCD101a2414256DA8F8E25d7b483b3cf639a71683'
+    addTo(envServer,'REGISTRY_ADDR=', '"' + registry_address  + '"')
+
+def PairFilters():
+    global envServer
+    print("///////////")
+    print("Now we will setup the Oracle pair filters.")
+    print("By default, BTCUSD is choose.")
+    print("///////////")
+    pairs = []
+    quit = False
+    while (quit == False):
+        pair = input("Select pair filter. Press ENTER for skip. (Default BTCUSD): ")
+        if pair == '':
+            if len(pairs) == 0 : pairs.append('BTCUSD') 
+            quit = True
+        else:
+            pairs.append(pair)
+    pairString = ''
+    current_index = 0
+    for current_pair in pairs:
+        if current_index != 0:
+            pairString += ','
+        pairString += '"' + current_pair.upper() + '"'
+        current_index += 1
+    addTo(envServer,'ORACLE_COIN_PAIR_FILTER=', '[' + pairString  + ']')
 
 def oracleOption():
     global envMonitor
@@ -132,14 +177,24 @@ def checkStatus():
     global envMonitor
     global envServer
     global actualAddress
+    global actualRegistryAddress
+    global actualPairFilter
     global actualEmail 
     global actualNode
 
     fileMonitor = Path(envMonitor)
     fileServer  = Path(envServer)
+
+    registry_address = re.search('REGISTRY_ADDR=.*',fileServer.read_text())
+    pairs = re.search('ORACLE_COIN_PAIR_FILTER=.*',fileServer.read_text())
     oracle = re.search('ORACLE_SERVER_ADDRESS=.*',fileMonitor.read_text())
     mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
     node = re.search(r'^NODE_URL=.*',fileServer.read_text(),re.MULTILINE)
+    print(registry_address)
+    if (registry_address.group().strip() != "REGISTRY_ADDR="):
+        actualRegistryAddress = "(Actual Registry Address: " + registry_address.group().strip()[14:] + ")"
+    if (pairs.group().strip() != "ORACLE_COIN_PAIR_FILTER="):
+        actualPairFilter = "(Actual Pairs: " + pairs.group().strip()[24:] + ")"
     if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="):
         actualAddress = "(Actual Address: " + oracle.group().strip()[22:] + ")"
     if (mail.group().strip() != "SMTP_HOST=" ): 
@@ -168,21 +223,33 @@ def main():
     print("///////////")
     print("")
 
+    valid = False
+    while (valid == False):
+        network = input("Select network (testnet or mainnet) where the node will run. (Default testnet): ")
+        if network == '':
+            network = 'testnet'
+        if ( network != 'testnet' and network != 'mainnet' ):
+            valid = False
+        else:
+            valid = True
+
     quit = False
     while (quit ==False):
         checkStatus()
         print("Please, select what do you want to configure right now:")
         print(" 1. Configure my oracle" + "--------" + actualAddress)
-        print(" 2. Configure my email account" + "--------" + actualEmail)
-        print(" 3. Set your custom RSK Node " + "--------" + actualNode)
-        print(" 4. I have done the two previous items. What are the following instructions?")
-        print(" 5. Exit")
+        print(" 2. Set your custom RSK Node " + "--------" + actualNode)
+        print(" 3. Set the registry address" + "--------" + actualRegistryAddress)
+        print(" 4. Select pair filters" + "--------" + actualPairFilter)
+        print(" 5. I have done the five previous items. What are the following instructions?")
+        print(" 6. Exit")
 
         Menu = input()
         if (Menu == "1"): oracleOption()
-        if (Menu == "2"): emailOption()
-        if (Menu == "3"): NodeOption()
-        if (Menu == "4"): 
+        if (Menu == "2"): NodeOption(network)
+        if (Menu == "3"): RegistryAddress(network)
+        if (Menu == "4"): PairFilters()
+        if (Menu == "5"): 
             print("")
             print("////////")
             print("if everything is setup correctly, let's run the services.")
@@ -194,7 +261,7 @@ def main():
             print(" ")
             print("////////")
             quit = True
-        if (Menu == "5" ): quit = True
+        if (Menu == "6" ): quit = True
 
 if __name__ == "__main__":
     main()

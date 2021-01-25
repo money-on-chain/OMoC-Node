@@ -1,5 +1,4 @@
 from common import helpers
-from common.services.blockchain import is_error
 from scripts import script_settings
 
 
@@ -12,7 +11,7 @@ async def main():
     if available_mocs < script_settings.REWARDS:
         raise Exception("WE MUST MINT BY GOBERNANZA, check contacts/scripts/mint_tokens.js!!!")
 
-    tx = await moc_token_service.transfer(conf.SUPPORTERS_VESTED_ADDR,
+    tx = await moc_token_service.transfer(conf.SUPPORTERS_ADDR,
                                           script_settings.REWARDS,
                                           account=script_settings.SCRIPT_REWARD_BAG_ACCOUNT,
                                           wait=True)
