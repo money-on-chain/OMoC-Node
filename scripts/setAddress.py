@@ -188,7 +188,7 @@ def checkStatus():
     registry_address = re.search('REGISTRY_ADDR=.*',fileServer.read_text())
     pairs = re.search('ORACLE_COIN_PAIR_FILTER=.*',fileServer.read_text())
     oracle = re.search('ORACLE_SERVER_ADDRESS=.*',fileMonitor.read_text())
-    mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
+    #mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
     node = re.search(r'^NODE_URL=.*',fileServer.read_text(),re.MULTILINE)
     print(registry_address)
     if (registry_address.group().strip() != "REGISTRY_ADDR="):
@@ -197,8 +197,8 @@ def checkStatus():
         actualPairFilter = "(Actual Pairs: " + pairs.group().strip()[24:] + ")"
     if (oracle.group().strip() != "ORACLE_SERVER_ADDRESS="):
         actualAddress = "(Actual Address: " + oracle.group().strip()[22:] + ")"
-    if (mail.group().strip() != "SMTP_HOST=" ): 
-        actualEmail = "(Actual Email:" + mail.group().strip()[10:] +")"
+    #if (mail.group().strip() != "SMTP_HOST=" ): 
+    #    actualEmail = "(Actual Email:" + mail.group().strip()[10:] +")"
     actualNode = "(Actual Node: " + node.group().strip()[10:-1] + ")"
 
 def main():

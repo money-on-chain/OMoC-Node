@@ -1,30 +1,36 @@
-FROM alpine:latest
+FROM ubuntu:latest
 
-RUN apk add --update npm &&\
-    apk add --update --no-cache nodejs npm \
-                    alpine-sdk \
-                    bash 
+RUN   apt-get update && apt-get -y upgrade &&\
+      apt-get install -y software-properties-common curl &&\
+      add-apt-repository ppa:deadsnakes/ppa &&\
+      apt-get install -y python3-pip build-essential libssl-dev libffi-dev python3-dev vim python3-setuptools
+
+RUN echo $TZ > /etc/timezone && \
+    apt-get update && apt-get install -y tzdata && \
+    rm /etc/localtime && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata && \
+    apt-get clean
+
+RUN cd ~ &&\
+    curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh &&\
+    bash nodesource_setup.sh &&\
+    apt install -y nodejs
 
 RUN npm install -g pm2 &&\
-    pm2 install pm2-logrotate
-
-ENV PYTHONUNBUFFERED=1
-RUN apk add --update --no-cache python3 && ln -sf python3 /usr/bin/python &&\
-    apk add --update python3-dev libffi-dev openssl openssl-dev
+    pm2 install pm2-logrotate &&\
+    cd
 
 WORKDIR /omoc-node
 
 COPY ./ ./
+
 RUN mv ./Docker/oracle.sh . &&\
     chmod +x oracle.sh
 RUN rm -r ./Docker
 
-RUN python3 -m ensurepip &&\
-    python3 -m pip install --upgrade pip &&\
-    pip3 install virtualenv &&\
-    pip3 install --no-cache --upgrade setuptools &&\
-    pip3 install wheel && \
-    pip3 install ethereum
+RUN python3 -m pip install --upgrade pip &&\
+    pip3 install --no-cache --upgrade pip setuptools wheel ethereum
 
 
 RUN cd scripts &&\
@@ -32,23 +38,6 @@ RUN cd scripts &&\
 
 RUN cd servers &&\
     pip3 install -r requirements.txt
-
-
-# Opt2 to do and develop --> how to activate virtual envs from inside bash scripts
-#RUN cd scripts &&\
-#    python3 -m venv env &&\
-#    source env/bin/activate &&\
-#    python3 -m pip install --upgrade pip &&\
-#    pip3 install --no-cache --upgrade setuptools wheel ethereum &&\
-#    pip3 install -r requirements.txt &&\ 
-#    deactivate
-
-#RUN cd servers &&\
-#    python3 -m venv env &&\
-#    source env/bin/activate &&\
-#    python3 -m pip install --upgrade pip &&\
-#    pip3 install --no-cache --upgrade setuptools wheel &&\
-#    pip3 install -r requirements.txt 
 
 EXPOSE 5556
 

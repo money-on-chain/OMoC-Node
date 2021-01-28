@@ -19,3 +19,7 @@ CHAIN_ID=31
 # Oracle-only parameters.
 # Account used to publish prices
 ORACLE_PRIVATE_KEY="0x... PUT YOUR PRIVATE KEY HERE"
+
+ORACLE_COIN_PAIR_FILTER=["BTCUSD"]
+
+REGISTRY_ADDR=0x

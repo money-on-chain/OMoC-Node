@@ -6,6 +6,4 @@
     * docker build -t omoc-node-img -f Docker/Dockerfile .
 
 * Run: 
-    * docker run -it --name omoc-node --network=host -p 5556:5556 omoc-node-img (opt; imgid)
-    * (Interatctive with the container): docker run -it --name omoc-node --network=host -p 5556:5556 omoc-node-img /bin/bash
-    * Run with volumes: docker run --name omoc-node -v ./monitor:/monitor 
+    * docker run -it --restart always --network=host --name omoc-node -v /home/ubuntu/OMoC-Node/monitor:/monitor omoc-node-img
