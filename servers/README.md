@@ -517,7 +517,7 @@ REGISTRY_ADDR="0x4791b9769DC1b82019904aa1cb45BDF1107888e4"
 
 You can get the REGISTRY_ADDR from the info tab on the OMoC WebApp application.
 
-## PM2 configuration
+### PM2 configuration
 
 We have an example configuration for PM2 at servers/ecosystem.config.js which will run N copies of the oracles. Key configurations are:
 
@@ -558,3 +558,7 @@ pm2 logrotate
 ```
 
 To keep disk usage at a reasonable size. The oracle logs in this configuration will be extremely verbose.
+
+### Signing ports
+
+On the delfos/address.sh you have configured the ports for each server you are running. It is important to open this ports (iptables, aws security groups, DigitalOcean firewall, etc...) so the different servers can reach each other in order to sign and get price concensus.
