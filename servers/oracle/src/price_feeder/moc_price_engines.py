@@ -239,6 +239,7 @@ class MxcRIFBTC(PriceEngineBase):
 
     def map(self, response_json, age):
         d_price_info = super().map(response_json, age)
+        response_json = response_json['data'][0]
         d_price_info['price'] = Decimal(response_json['last'])
         d_price_info['volume'] = Decimal(response_json['volume'])
         return d_price_info
