@@ -32,12 +32,12 @@ def weighted_median(values, weights):
 
 
 def weighted_median_idx(values, weights):
-    ''' compute the weighted median of values list. The weighted median is computed as follows:
+    """Compute the weighted median of values list. The weighted median is computed as follows:
     1- sort both lists (values and weights) based on values.
     2- select the 0.5 point from the weights and return the corresponding values as results
     e.g. values = [1, 3, 0] and weights=[0.1, 0.3, 0.6] assuming weights are probabilities.
-    sorted values = [0, 1, 3] and corresponding sorted weights = [0.6,     0.1, 0.3] the 0.5 point on
-    weight corresponds to the first item which is 0. so the weighted     median is 0.'''
+    sorted values = [0, 1, 3] and corresponding sorted weights = [0.6, 0.1, 0.3] the 0.5 point on
+    weight corresponds to the first item which is 0. so the weighted median is 0."""
 
     # convert the weights into probabilities
     sum_weights = sum(weights)
@@ -215,9 +215,41 @@ class BinanceBTCUSD(PriceEngineBase):
         return d_price_info
 
 
+class BinanceRIFBTC(PriceEngineBase):
+    name = "binance_rif_btc"
+    description = "Binance RIF"
+    uri = "https://api.binance.com/api/v3/ticker/24hr?symbol=RIFBTC"
+    convert = "RIF_BTC"
+
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
+        d_price_info['price'] = Decimal(response_json['lastPrice'])
+        d_price_info['volume'] = Decimal(response_json['volume'])
+        d_price_info['timestamp'] = datetime.fromtimestamp(
+                                        int(response_json["closeTime"])/1000,
+                                        tz=timezone.utc)
+        return d_price_info
+
+
+class MxcRIFBTC(PriceEngineBase):
+    name = "mxc_rif_btc"
+    description = "MXC RIF"
+    uri = "https://www.mxc.com/open/api/v2/market/ticker?symbol=RIF_BTC"
+    convert = "RIF_BTC"
+
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
+        d_price_info['price'] = Decimal(response_json['last'])
+        d_price_info['volume'] = Decimal(response_json['volume'])
+        #d_price_info['timestamp'] = datetime.fromtimestamp(
+        #                                int(response_json["closeTime"])/1000,
+        #                                tz=timezone.utc)
+        return d_price_info
+
+
 class KucoinBTCUSD(PriceEngineBase):
     name = "kucoin_btc_usd"
-    description = "Binance"
+    description = "Kucoin"
     uri = "https://api.kucoin.com/api/v1/market/stats?symbol=BTC-USDT"
     convert = "BTC_USD"
 
@@ -363,7 +395,9 @@ base_engines_names = {
     "bitfinex_rif": BitfinexRIFBTC,
     "bithumbpro_rif": BithumbproRIFBTC,
     "coinbene_rif": CoinbeneRIFBTC,
-    "kucoin_rif": KucoinRIFBTC
+    "kucoin_rif": KucoinRIFBTC,
+    "binance_rif": BinanceRIFBTC,
+    "mxc_rif": MxcRIFBTC,
 }
 
 
