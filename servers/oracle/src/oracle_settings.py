@@ -34,24 +34,18 @@ ORACLE_MONITOR_LOG_PUBLISHED_PRICE = config('ORACLE_MONITOR_LOG_PUBLISHED_PRICE'
 # If configured (json array of strings) only publish for those coinpairs in the list
 ORACLE_COIN_PAIR_FILTER = json.loads(config('ORACLE_COIN_PAIR_FILTER', cast=str, default="[]"))
 
+
+def load_exchange_info():
+    with open("exchanges.json", "r") as f:
+        data = json.loads(f.read())
+    for exchange_info_list in data.values():
+        for exchange_info in exchange_info_list:
+            exchange_info['ponderation']=Decimal(exchange_info['ponderation'])
+    return data
+
+
 # Exchange price engines
-ORACLE_PRICE_ENGINES = {
-    "BTCUSD": [
-        {"name": "bitstamp", "ponderation": Decimal(0.1917841725), "min_volume": 0.0, "max_delay": 0},
-        {"name": "bitfinex", "ponderation": Decimal(0.1867488738), "min_volume": 0.0, "max_delay": 0},
-        {"name": "kraken", "ponderation": Decimal(0.1608109123), "min_volume": 0.0, "max_delay": 0},
-        {"name": "coinbase", "ponderation": Decimal(.2349963137), "min_volume": 0.0, "max_delay": 0},
-        {"name": "gemini", "ponderation": Decimal(0.0880212588), "min_volume": 0.0, "max_delay": 0},
-        {"name": "okcoin", "ponderation": Decimal(0.06801454943), "min_volume": 0.0, "max_delay": 0},
-        {"name": "itbit", "ponderation": Decimal(0.06962391956), "min_volume": 0.0, "max_delay": 0}
-    ],
-    "RIFBTC": [
-        # {"name": "bitfinex_rif", "ponderation": Decimal(0.5), "min_volume": 0.0, "max_delay": 0},
-        {"name": "bithumbpro_rif", "ponderation": Decimal(0.33), "min_volume": 0.0, "max_delay": 0},
-        {"name": "coinbene_rif", "ponderation": Decimal(0.33), "min_volume": 0.0, "max_delay": 0},
-        {"name": "kucoin_rif", "ponderation": Decimal(0.33), "min_volume": 0.0, "max_delay": 0},
-    ]
-}
+ORACLE_PRICE_ENGINES = load_exchange_info()
 
 
 def get_oracle_account() -> BlockchainAccount:

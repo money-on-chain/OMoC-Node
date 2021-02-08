@@ -112,7 +112,7 @@ class OracleConfiguration:
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: parseTimeDelta(config('ORACLE_GATHER_SIGNATURE_TIMEOUT', cast=str)),
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Timeout used when requesting signatures fom other oracles",
+                "description": "Timeout used when requesting signatures from other oracles",
                 "default": 60,
             },
             "SCHEDULER_POOL_DELAY": {
@@ -177,7 +177,32 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
                 "description": "Period in which selected oracle or fallbacks will publish before the price expires.",
                 "default": 30,
-            }
+            },
+
+            "ORACLE_PRICE_RECEIVE_MAX_AGE": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: config('ORACLE_PRICE_RECEIVE_MAX_AGE',
+                                                cast=float),
+                "blockchain": lambda *args:None,
+                "description": "If an exchange sends a price with age greater than this value it will be kept as not-available (NaN) in the price queue.",
+                "default": 30
+            },
+            "ORACLE_PRICE_PUBLISH_MAX_DIFF": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: config('ORACLE_PRICE_PUBLISH_MAX_DIFF',
+                                                cast=float),
+                "blockchain": lambda *args: None,
+                "description": "The maximal time difference (in seconds) a price in queue is considered when generating a price for publication.",
+                "default": 30
+            },
+            "ORACLE_PRICE_VALIDATE_MAX_DIFF": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: config('ORACLE_PRICE_VALIDATE_MAX_DIFF',
+                                                cast=float),
+                "blockchain": lambda *args: None,
+                "description": "The maximal time difference (in seconds) a price in queue is considered when generating a price for validation.",
+                "default": 30
+            },
         }
         self.from_conf = set()
         self.from_default = set()

@@ -5,6 +5,7 @@ import time
 import traceback
 import typing
 
+import urllib3
 from aiohttp import ClientConnectorError, InvalidURL, ClientResponseError
 from hexbytes import HexBytes
 
@@ -52,7 +53,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
             logger.info("%r : OracleCoinPairLoop Waiting for the initial round...", (self._coin_pair,))
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-        exchange_price = await self._price_feeder_loop.get_last_price(time.time())
+        exchange_price = await self._price_feeder_loop.get_last_price(time.time(), True)
         if not exchange_price or exchange_price.ts_utc <= 0:
             logger.info(
                 "%r : OracleCoinPairLoop Still don't have a valid price %r" % (self._coin_pair, exchange_price))
@@ -160,7 +161,11 @@ async def gather_signatures(oracles, params: PublishPriceParams, message, my_sig
 
 
 async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams, message, my_signature, timeout=10):
-    target_uri = oracle.internetName + "/sign/"
+    x = urllib3.util.parse_url(oracle.internetName)
+    target_uri = "%s://%s" % (x.scheme, x.host)
+    if not x.port is None:
+        target_uri+=':%d'%x.port
+    target_uri += "/sign/"
     logger.info("%s : Trying to get signatures from: %s == %s" % (params.coin_pair, target_uri, oracle.addr), )
     try:
         post_data = {

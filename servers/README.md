@@ -185,10 +185,52 @@ The rest of the parameters are optional. If they are missing they are taken from
 
     Timeout used when requesting signatures fom other oracles.
 
-- ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]
+- ORACLE_COIN_PAIR_FILTER = [ "BTCUSD", "RIFUSD" ]
 
     This can be used to limit the coin pairs that the Oracle monitors. The missing coin pairs are ignored
     even if the Oracle is subscribed to them. **An empty value `[]`) means: to monitor all coin pairs**.
+  
+- ORACLE_PRICE_RECEIVE_MAX_AGE=<float>   
+  Received price max age in exchange cache before we consider it a No-Price. 
+  It is expected to be expressed in seconds. For details check 
+  [PRICE_HANDLING.md](../PRICE_HANDLING.md).
+  
+- ORACLE_PRICE_PUBLISH_MAX_DIFF=<float>
+- ORACLE_PRICE_VALIDATE_MAX_DIF=<float>
+  
+    Max time difference between the time a price is searched for and the 
+    values returned from the price-queue. One value is used when generating a 
+    new price, and the other is used when generating a price to be used to 
+    validate third party oracles price proposal. For details check 
+    [PRICE_HANDLING.md](../PRICE_HANDLING.md).
+
+
+#### Exchanges to use by coinpair and their ponderation
+
+The exchange list to use is configured in `exchange.json` file. the format is:
+
+```json
+{ 
+  "coinpair1": [
+      exchange_info-one-for-coinpair1,
+      exchange_info-two-for-coinpair1, and so on..
+  ]
+}
+```
+containing as many _coinpairs_ and as many exchanges per _coinpair_ as 
+required.
+
+Here _exchange_info_ is like this:
+
+```json
+{"name": "bitstamp", "ponderation": "0.22", "min_volume": 0.0, "max_delay": 0}
+```
+
+(here name must be one of the exchanges defined in sourcecode. The 
+ponderation is how it is weighted among the other exchanges when used. Keep 
+in mind the ponderation is automatically normalized. Price is given as a 
+string value to interpreted with all the decimals it is expressed).
+
 
 #### Server configuration: parameters for development 
 
@@ -405,3 +447,118 @@ And now you can run the oracle nodes locally:
 ```
 scripts/run.sh netsim
 ```
+
+# Running multiple Oracle price feeders in a single machine (test environment configuration)
+
+## Configuration files and scripts
+
+### delfos/address.sh
+
+In this file you'll need to configure the multiple oracle node address (public key), private key and port.
+
+To get/generate an address + private key for each oracle within the machine you can use the following script:
+
+```
+# pip3 install ethereum
+
+from ethereum import utils
+from datetime import datetime
+import os, requests
+
+words =""
+while len(words.split()) < 2:
+	print("Enter 2 or more words separated by spaces.")
+	print("We will use them as part of the seed used for generate a random privateKey")
+	words = input()
+
+now = datetime.now()
+randomFromWeb = requests.get('https://www.random.org/integers/?num=1&min=1&max=4096&col=1&base=10&format=plain&rnd=new').text
+seed_str =  (randomFromWeb + str(os.urandom(4096)) + now.strftime("%d/%m/%Y %H:%M:%S") + words)
+privKey_Raw = utils.sha3(seed_str)
+address = utils.checksum_encode(utils.privtoaddr(privKey_Raw))
+privateKey = utils.encode_hex(privKey_Raw)
+
+print("Address: " + address)
+print("PrivateKey: " + privateKey)
+
+```
+
+### delfos/oracle.sh
+
+This file simply takes as input the data you entered on address.sh, so nothing to do here. PM2 will use it to launch and configure each instance.
+
+### Contracts ABIs
+
+You'll need to fetch the latest version of the contracts ABIs so the oracle server can communicate with the SCs:
+
+```
+wget http://oracles.coinfabrik.com/abis/latest_beyond.tgz
+mv contracts contracts_v0.7.0
+mkdir contracts
+cd contracts
+tar -zxvf ../latest_beyond.tgz
+cd ..
+rm latest_beyond.tgz
+```
+
+### dotEnv file
+
+You'll need to create a ".env" with the basic configuration the N oracles you run will share:
+
+```
+# rsk testnet
+NODE_URL="http://moc-rsk-node-testnet.moneyonchain.com:4454"
+CHAIN_ID=31
+DEBUG=True
+ON_ERROR_PRINT_STACK_TRACE=True
+CONTRACT_ROOT_FOLDER=/home/ubuntu/contracts
+REGISTRY_ADDR="0x4791b9769DC1b82019904aa1cb45BDF1107888e4"
+```
+
+You can get the REGISTRY_ADDR from the info tab on the OMoC WebApp application.
+
+### PM2 configuration
+
+We have an example configuration for PM2 at servers/ecosystem.config.js which will run N copies of the oracles. Key configurations are:
+
+```
+    name: "Oracle" ,
+    script: './delfos/oracle.sh',
+    instances: 3, // How many copies to run
+    instance_var: "InstanceID",
+    autorestart: true,
+    namespace: "Delfos",
+```
+
+A full copy, description and explanation on how to use this file can be found at https://pm2.keymetrics.io/docs/usage/application-declaration/
+
+Then simply run:
+
+```
+cd ~/OMoC-Node/servers/
+pm2 restart ecosystem.config.js
+```
+
+And make sure configuration is running correctly by doing:
+
+```
+netstat -tulpn | grep LISTEN
+```
+
+You can always check job status by doing:
+
+```
+pm2 monit
+```
+
+We strongly suggest to add:
+
+```
+pm2 logrotate
+```
+
+To keep disk usage at a reasonable size. The oracle logs in this configuration will be extremely verbose.
+
+### Signing ports
+
+On the delfos/address.sh you have configured the ports for each server you are running. It is important to open this ports (iptables, aws security groups, DigitalOcean firewall, etc...) so the different servers can reach each other in order to sign and get price concensus.
