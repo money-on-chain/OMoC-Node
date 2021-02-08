@@ -241,9 +241,6 @@ class MxcRIFBTC(PriceEngineBase):
         d_price_info = super().map(response_json, age)
         d_price_info['price'] = Decimal(response_json['last'])
         d_price_info['volume'] = Decimal(response_json['volume'])
-        #d_price_info['timestamp'] = datetime.fromtimestamp(
-        #                                int(response_json["closeTime"])/1000,
-        #                                tz=timezone.utc)
         return d_price_info
 
 
