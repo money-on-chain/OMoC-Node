@@ -190,7 +190,6 @@ def checkStatus():
     oracle = re.search('ORACLE_SERVER_ADDRESS=.*',fileMonitor.read_text())
     #mail = re.search('SMTP_HOST=.*',fileMonitor.read_text())
     node = re.search(r'^NODE_URL=.*',fileServer.read_text(),re.MULTILINE)
-    print(registry_address)
     if (registry_address.group().strip() != "REGISTRY_ADDR="):
         actualRegistryAddress = "(Actual Registry Address: " + registry_address.group().strip()[14:] + ")"
     if (pairs.group().strip() != "ORACLE_COIN_PAIR_FILTER="):
