@@ -310,6 +310,8 @@ def main(env_file):
             print("Run the following command:")
             print(" ")
             print("docker run -d --name omoc-node --env-file=PATH_TO_YOUR_ENV_FILE --publish ORACLE_HOST_PORT:ORACLE_CONTAINER_PORT omoc-node-img")
+            print("Example: ")
+            print("docker run -d --name omoc-node --env-file=./env_file --publish 5556:5556 omoc-node-img")
             print(" ")
             print("////////")
             quit = True

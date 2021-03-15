@@ -6,14 +6,13 @@
     * docker build -t omoc-node-img -f Docker/Dockerfile .
 
 * Run: 
-    * docker run -it --restart always --network=host --name omoc-node -v /home/ubuntu/OMoC-Node/monitor:/monitor omoc-node-img
-    * Set oracle configuration
-    * Exit the container (Ctrl+c)
-    * Register your oracle... 
+    * Set oracle configuration: 
+        python3 scripts/setAddress.py [-e env file]
 
 * Logs: 
-    * docker exec -it omoc-node pm2 log oracle
     * check container status: 
         * docker exec -it omoc-node /bin/bash 
 
 
+* docker run -it --restart always --name omoc-node --publish 5004:5004 --env-file=./Docker/.env_file omoc-node-img /bin/bash
+* docker run --restart always --name omoc-node --publish 5004:5004 --env-file=./Docker/.env_file omoc-node-img 
