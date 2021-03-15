@@ -117,7 +117,7 @@ def RegistryAddress(network,env_file):
     addToEnv(env_file,'REGISTRY_ADDR=', registry_address)
     actualRegistryAddress = f"(Actual RegistryAdress: {registry_address} )"
 
-def PairFilters():
+def PairFilters(env_file):
     global actualPairFilters
     print("///////////")
     print("Now we will setup the Oracle pair filters.")
@@ -302,7 +302,7 @@ def main(env_file):
         if (Menu == "1"): oracleOption(env_file)
         if (Menu == "2"): NodeOption(network,env_file)
         if (Menu == "3"): RegistryAddress(network,env_file)
-        if (Menu == "4"): PairFilters()
+        if (Menu == "4"): PairFilters(env_file)
         if (Menu == "5"): 
             print("")
             print("////////")
