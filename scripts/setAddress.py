@@ -12,6 +12,7 @@ actualRegistryAddress = "(Actual RegistryAdress: None)"
 actualPairFilters = "(Actual PairFilters: None)"
 actualAddress = "(Actual Adress: None)"
 actualNode = "(Actual Node: None)"
+actualPort = "(Actual Port: None)"
 
 def get_parser():
     ap = argparse.ArgumentParser()
@@ -107,6 +108,21 @@ def NodeOption(network,env_file):
     addToEnv(env_file,"NODE_URL=",node)
     actualNode = f"(Actual Node: {node})"
 
+def PortOption(env_file):
+    global actualPort
+    print("///////////")
+    print("Now we will setup the Oracle Port.")
+    print("The default oracle port is 5556.")
+    print("///////////")
+    port = input("Oracle Port (default: 5556): ")
+    if port == "":
+        port = 5556
+    if actualPort == "(Actual Port: None)":
+        writeToEnv(env_file,"\nORACLE_PORT=\n")
+
+    addToEnv(env_file,"ORACLE_PORT=",port)
+    actualPort = f"(Actual Port: {port})"
+
 def RegistryAddress(network,env_file):
     global actualRegistryAddress
     print("///////////")
@@ -140,7 +156,6 @@ def PairFilters(env_file):
         pairString += '"' + current_pair.upper() + '"'
         current_index += 1
     if actualPairFilters == "(Actual PairFilters: None)":
-        print("Here")
         writeToEnv(env_file,"\nORACLE_COIN_PAIR_FILTER=\n")
 
     addToEnv(env_file,'ORACLE_COIN_PAIR_FILTER=', '[' + pairString  + ']')
@@ -153,6 +168,8 @@ def getEnvData(file):
     global actualAddress
     global actualNode
     global actualRegistryAddress
+    global actualPairFilters
+    global actualPort
 
     env_data = OrderedDict()
     with open(file,"r") as f:
@@ -163,17 +180,16 @@ def getEnvData(file):
                 actualNode = f"(Actual Node: {env_data['NODE_URL']}"
             elif "CHAIN" in line:
                 env_data['CHAIN_ID'] = parseEnv(line)
-            elif "PORT" in line:
+            elif "ORACLE_PORT" in line:
                 env_data['ORACLE_PORT'] = parseEnv(line)
+                actualPort = f"(Actual Port: {env_data['ORACLE_PORT']})"
             elif "ORACLE_ADDR" in line:
                 env_data['ORACLE_ADDR'] = parseEnv(line)
                 actualAddress = f"(Actual address: {env_data['ORACLE_ADDR']})"
             elif "REGISTRY_ADDR" in line:
                 env_data['REGISTRY_ADDR'] = parseEnv(line)
                 actualRegistryAddress = f"(Actual RegistryAddress: {env_data['REGISTRY_ADDR']})"
-            elif "PRIVATE" in line:
-                env_data['ORACLE_PRIVATE_KEY'] = parseEnv(line)
-            elif "COIN" in line: 
+            elif "ORACLE_COIN_PAIR_FILTER" in line: 
                 env_data['ORACLE_COIN_PAIR_FILTER'] = parseEnv(line)
                 actualPairFilters = f"(Actual Node: {env_data['ORACLE_COIN_PAIR_FILTER']})"
             line = f.readline()
@@ -227,28 +243,34 @@ def showCurrentValues():
     print(f"{actualRegistryAddress}")
     print(f"{actualPairFilters}")
 
-def setEnv(env_file):
-    pass
+def setAllMissingFields(missing_fields):
+    print("---- ENV FILE EMPTY: SETTING DEFAULT VARIABLES ---- ")
+    missing_fields['ORACLE_ADDR'] = True
+    missing_fields['ORACLE_PORT'] = True
+    missing_fields['NODE_URL'] = True
+    missing_fields['CHAIN_ID'] = True
+    missing_fields['REGISTRY_ADDR']  = True
+    missing_fields['ORACLE_COIN_PAIR_FILTER'] = True
 
 def main(env_file):
     global actualAddress
     global actualNode
     global actualRegistryAddress
+    global actualPairFilters
+    global actualPort
 
     quit = False
-    network = "testnet"
-    #env_data = json.dumps(getEnvData(env_file),indent=4)
-    #print(env_data)
     env_data = getEnvData(env_file)
-    env_data["NETWORK"] = network
     if env_data == False:
-        setEnv(env_file)
+        missing_fields = OrderedDict()
+        setAllMissingFields(missing_fields)
     else:
+        network = "testnet"
+        env_data["NETWORK"] = network
         missing_fields = showStatus(env_data)
         for key in missing_fields.keys():
             print(f"\nPENDING CONFIGURATION: {key}\n")
 
-    
     valid = False
     while (valid == False):
         network = input("\nSelect network (testnet or mainnet) where the node will run. (Default testnet): ")
@@ -268,6 +290,11 @@ def main(env_file):
                 writeToEnv(env_file,"\nREGISTRY_ADDR=\n")
                 addToEnv(env_file,"REGISTRY_ADDR=","0xf078375a3dD89dDF4D9dA460352199C6769b5f10")
                 actualRegistryAddress="(Actual RegistryAdress: 0xf078375a3dD89dDF4D9dA460352199C6769b5f10)"
+            if "ORACLE_PORT" in missing_fields:
+                print("--- SETTIND DEFAULT ORACLE PORT TO (5556) ---- ")
+                writeToEnv(env_file,"\nORACLE_PORT=\n")
+                addToEnv(env_file,"ORACLE_PORT=","5556")
+                actualPort="(Actual Port: 5556)"
         if network == 'mainnet':
             if "CHAIN_ID" in missing_fields:
                 print("--- SETTING DEFAULT CHAIN ID TO TESTNET CHAIN ID (30) ----")
@@ -283,6 +310,11 @@ def main(env_file):
                 writeToEnv(env_file,"\nREGISTRY_ADDR=\n")
                 addToEnv(env_file,"REGISTRY_ADDR=","0xCD101a2414256DA8F8E25d7b483b3cf639a71683")
                 actualRegistryAddress="(Actual RegistryAddress: 0xCD101a2414256DA8F8E25d7b483b3cf639a71683)"
+            if "ORACLE_PORT" in missing_fields:
+                print("--- SETTIND DEFAULT ORACLE PORT TO (5556) ---- ")
+                writeToEnv(env_file,"\nORACLE_PORT=\n")
+                addToEnv(env_file,"ORACLE_PORT=","5556")
+                actualPort="(Actual Port: 5556)"
 
         if ( network != 'testnet' and network != 'mainnet' ):
             valid = False
@@ -297,16 +329,18 @@ def main(env_file):
         print(" 2. Set your custom RSK Node")
         print(" 3. Set the registry address")
         print(" 4. Select pair filters")
-        print(" 5. I have done the five previous items. What are the following instructions?")
-        print(" 6. Get current settings")
-        print(" 7. Exit")
+        print(" 5. Set oracle port")
+        print(" 6. I have done the five previous items. What are the following instructions?")
+        print(" 7. Get current settings")
+        print(" 8. Exit")
 
         Menu = input()
         if (Menu == "1"): oracleOption(env_file)
         if (Menu == "2"): NodeOption(network,env_file)
         if (Menu == "3"): RegistryAddress(network,env_file)
         if (Menu == "4"): PairFilters(env_file)
-        if (Menu == "5"): 
+        if (Menu == "5"): PortOption(env_file)
+        if (Menu == "6"): 
             print("")
             print("////////")
             print("if everything is setup correctly, let's run the services.")
@@ -318,8 +352,8 @@ def main(env_file):
             print(" ")
             print("////////")
             quit = True
-        if (Menu == "6") : showCurrentValues()
-        if (Menu == "7" ): quit = True
+        if (Menu == "7") : showCurrentValues()
+        if (Menu == "8" ): quit = True
     
         
 
