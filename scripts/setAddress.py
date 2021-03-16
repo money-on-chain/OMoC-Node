@@ -84,11 +84,11 @@ def oracleOption(env_file):
     global actualAddress
     oracle = Account.getAccount("oracle")
     if actualAddress == "(Actual Adress: None)":
-        writeToEnv(env_file,"ORACLE_ADDR=\n")
-        writeToEnv(env_file,"ORACLE_PRIVATE_KEY=\n")
+        writeToEnv(env_file,"\nORACLE_ADDR=\n")
+        writeToEnv(env_file,"\nORACLE_PRIVATE_KEY=\n")
 
-    priv_key = oracle.privateKey[1:]
-    addToEnv(env_file,"ORACLE_PRIVATE_KEY=", priv_key)
+    priv_key = oracle.privateKey
+    addToEnv(env_file,"ORACLE_PRIVATE_KEY=", oracle.privateKey)
     addToEnv(env_file,"ORACLE_ADDR=",oracle.address)
     actualAddress = f"(Actual Adress: {oracle.address})"
 
@@ -102,7 +102,7 @@ def NodeOption(network,env_file):
     print("///////////")
     node = input("Node (default: public-node):")
     if actualNode == "(Actual Node: None)":
-        writeToEnv(env_file,"NODE_URL=\n")
+        writeToEnv(env_file,"\nNODE_URL=\n")
 
     addToEnv(env_file,"NODE_URL=",node)
     actualNode = f"(Actual Node: {node})"
@@ -141,7 +141,7 @@ def PairFilters(env_file):
         current_index += 1
     if actualPairFilters == "(Actual PairFilters: None)":
         print("Here")
-        writeToEnv(env_file,"ORACLE_COIN_PAIR_FILTER=\n")
+        writeToEnv(env_file,"\nORACLE_COIN_PAIR_FILTER=\n")
 
     addToEnv(env_file,'ORACLE_COIN_PAIR_FILTER=', '[' + pairString  + ']')
     actualPairFilters=f"(Actual PairFilters: [{pairString}])"
@@ -216,7 +216,8 @@ def showStatus(env_data):
         print(f"----  ORACLE_COIN_PAIR_FILTER: {env_data['ORACLE_COIN_PAIR_FILTER']} ---------")
     else:
         missing_fields['ORACLE_COIN_PAIR_FILTER'] = True
-        
+    
+    print (" ----------------------- ")
     return missing_fields
 
 def showCurrentValues():
@@ -254,32 +255,34 @@ def main(env_file):
         if network == '':
             network = 'testnet'
             if "CHAIN_ID" in missing_fields:
-                print("Writing chain id 31")
-                writeToEnv(env_file,"CHAIN_ID=\n")
+                print("--- SETTING DEFAULT CHAIN ID TO TESTNET CHAIN ID (31) ----")
+                writeToEnv(env_file,"\nCHAIN_ID=\n")
                 addToEnv(env_file,"CHAIN_ID=","31")
             if "NODE_URL" in missing_fields:
-                print("Writing node url to public node of rsk")
-                writeToEnv(env_file,"NODE_URL=\n")
+                print("--- SETTING DEFAULT PUBLIC RSK TESTNET NODE (https://public-node.testnet.rsk.co) ----")
+                writeToEnv(env_file,"\nNODE_URL=\n")
                 addToEnv(env_file,"NODE_URL=","https://public-node.testnet.rsk.co")
                 actualNode = "(Actual Node: https://public-node.testnet.rsk.co)"
             if "REGISTRY_ADDR" in missing_fields:
-                print("Writing the registry addr")
-                writeToEnv(env_file,"REGISTRY_ADDR=\n")
+                print("--- SETTIND DEFAULT REGISTRY ADDR (0xf078375a3dD89dDF4D9dA460352199C6769b5f10) ---- ")
+                writeToEnv(env_file,"\nREGISTRY_ADDR=\n")
                 addToEnv(env_file,"REGISTRY_ADDR=","0xf078375a3dD89dDF4D9dA460352199C6769b5f10")
+                actualRegistryAddress="(Actual RegistryAdress: 0xf078375a3dD89dDF4D9dA460352199C6769b5f10)"
         if network == 'mainnet':
             if "CHAIN_ID" in missing_fields:
-                print("Writing chain id 30")
-                writeToEnv(env_file,"CHAIN_ID=\n")
+                print("--- SETTING DEFAULT CHAIN ID TO TESTNET CHAIN ID (30) ----")
+                writeToEnv(env_file,"\nCHAIN_ID=\n")
                 addToEnv(env_file,"CHAIN_ID=","30")
             if "NODE_URL" in missing_fields:
-                print("Writing node url to public node of rsk")
-                writeToEnv(env_file,"NODE_URL=\n")
+                print("--- SETTING DEFAULT PUBLIC RSK TESTNET NODE (https://public-node.rsk.co) ----")
+                writeToEnv(env_file,"\nNODE_URL=\n")
                 addToEnv(env_file,"NODE_URL=","https://public-node.rsk.co")
                 actualNode = "(Actual Node: https://public-node.rsk.co)"
             if "REGISTRY_ADDR" in missing_fields:
-                print("Writing the registry addr")
-                writeToEnv(env_file,"REGISTRY_ADDR=\n")
+                print("--- SETTIND DEFAULT REGISTRY ADDR (0xCD101a2414256DA8F8E25d7b483b3cf639a71683) ---- ")
+                writeToEnv(env_file,"\nREGISTRY_ADDR=\n")
                 addToEnv(env_file,"REGISTRY_ADDR=","0xCD101a2414256DA8F8E25d7b483b3cf639a71683")
+                actualRegistryAddress="(Actual RegistryAddress: 0xCD101a2414256DA8F8E25d7b483b3cf639a71683)"
 
         if ( network != 'testnet' and network != 'mainnet' ):
             valid = False

@@ -13,6 +13,5 @@
     * check container status: 
         * docker exec -it omoc-node /bin/bash 
 
-
 * docker run -it --restart always --name omoc-node --publish 5004:5004 --env-file=./Docker/.env_file omoc-node-img /bin/bash
 * docker run --restart always --name omoc-node --publish 5004:5004 --env-file=./Docker/.env_file omoc-node-img 
