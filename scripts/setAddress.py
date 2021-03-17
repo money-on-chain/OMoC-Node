@@ -116,7 +116,7 @@ def PortOption(env_file):
     print("///////////")
     port = input("Oracle Port (default: 5556): ")
     if port == "":
-        port = 5556
+        port = str(5556)
     if actualPort == "(Actual Port: None)":
         writeToEnv(env_file,"\nORACLE_PORT=\n")
 
