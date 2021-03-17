@@ -22,7 +22,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /omoc-node
 
 COPY ./servers ./
-COPY ./contracts ./
+COPY ./contracts ./contracts
 COPY ./Docker/run.sh ./
 
 RUN chmod +x run.sh 
