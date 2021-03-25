@@ -346,9 +346,9 @@ def main(env_file):
             print("if everything is setup correctly, let's run the services.")
             print("Run the following command:")
             print(" ")
-            print("docker run -d --name omoc-node --env-file=PATH_TO_YOUR_ENV_FILE --publish ORACLE_HOST_PORT:ORACLE_CONTAINER_PORT omoc-node-img")
+            print("docker run -d --restart always --log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true -p ORACLE_HOST_PORT:ORACLE_CONTAINER_PORT --name omoc-node --env-file=PATH_TO_YOUR_ENV_FILE moneyonchain/omoc_node:1.0 ")
             print("Example: ")
-            print("docker run -d --name omoc-node --env-file=./env_file --publish 5556:5556 omoc-node-img")
+            print("docker run -d --restart always --log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true -p 5556:5556 --name omoc-node --env-file=/home/ubuntu/env_oracle moneyonchain/omoc_node:1.0")
             print(" ")
             print("////////")
             quit = True
