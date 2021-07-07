@@ -51,6 +51,9 @@ class OracleManagerService:
     async def can_remove(self, address: BlockChainAddress) -> bool:
         return await self.oracle_manager_call("canRemoveOracle", address)
 
+    async def get_oracle_owner(self, address: BlockChainAddress) -> BlockChainAddress:
+        return await self.oracle_manager_call("getOracleOwner", address)
+
     async def get_registered_oracles_len(self):
         return await self.oracle_manager_call("getRegisteredOraclesLen")
 

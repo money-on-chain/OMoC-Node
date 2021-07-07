@@ -19,6 +19,9 @@ class OracleService:
     async def get_token_addr(self):
         return await self.oracle_manager_service.get_token_addr()
 
+    async def get_oracle_owner(self, addr):
+        return await self.oracle_manager_service.get_oracle_owner(addr)
+
     async def get_all_oracles_info(self):
         oracles = {}
         registered_oracles_len = await self.oracle_manager_service.get_registered_oracles_len()
