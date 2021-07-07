@@ -67,22 +67,23 @@ class OracleLoop(BgTaskExecutor):
     async def run(self):
         logger.info("Oracle loop start")
         owner = await self.oracle_service.get_oracle_owner(self.oracle_addr)
-        coin_pair_services1 = await self.oracle_service.get_subscribed_coin_pair_services(self.oracle_addr)
-        coin_pair_services2 = await self.oracle_service.get_subscribed_coin_pair_services(owner)
+        cp_serv1 = await self.oracle_service.get_subscribed_coin_pair_services(self.oracle_addr)
+        cp_serv2 = await self.oracle_service.get_subscribed_coin_pair_services(owner)
 
-        if is_error(coin_pair_services1) and is_error(coin_pair_services2):
+        if is_error(cp_serv1) and is_error(cp_serv2):
             logger.error("Oracle loop Error getting coin pairs %r / %r" %
-                         (coin_pair_services1,coin_pair_services2))
+                         (cp_serv1, cp_serv2))
             return self.conf.ORACLE_MAIN_LOOP_TASK_INTERVAL
 
-        coin_pair_services = set(coin_pair_services1+coin_pair_services2)
-        coin_pair_keys = [str(x.coin_pair) for x in coin_pair_services]
+        cp_services = {str(x.coin_pair): x for x in cp_serv1+cp_serv2}
+        coin_pair_keys = list(cp_services.keys())
         logger.info("Oracle loop Got coin pair list %r" % (coin_pair_keys,))
         deleted_coin_pairs = [x for x in self.cpMap if x not in coin_pair_keys]
         for cp_key in deleted_coin_pairs:
             self.delete_coin_pair(cp_key)
 
-        added_services = [x for x in coin_pair_services if str(x.coin_pair) not in self.cpMap]
+        added_services = [x for k, x in cp_services.items() if not
+                          (k in self.cpMap)]
         for cp_service in added_services:
             self.add_coin_pair(cp_service)
 
