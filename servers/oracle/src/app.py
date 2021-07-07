@@ -19,7 +19,7 @@ not_authorized_msg = "The request was not made by a selected oracle."
 
 
 def get_error_msg(msg=None):
-    return str(msg) if msg is not None and settings.DEBUG else "Invalid signature"
+    return str(msg) if msg is not None else "Can't be signed"
 
 
 @app.middleware("http")
@@ -28,16 +28,17 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
         return await call_next(request)
     try:
         (ip, port) = request.client
-        logger.info("Got a connection from %r" % ip)
+        logger.info("Got a connection to %s from %r" % (request.url.path, ip))
         if not main_executor.is_valid_ip(ip):
             raise Exception("%s %r" % (not_authorized_msg, ip))
         return await call_next(request)
     except Exception as e:
-        error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(e)
+        error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(
+            e)
         logger.error(error_msg)
         if settings.DEBUG:
-            return JSONResponse(status_code=500, content=error_msg)
-        return Response(status_code=500, content=error_msg)
+            return JSONResponse(status_code=418, content=error_msg)
+        return Response(status_code=417, content=error_msg)
 
 
 @app.on_event("startup")
@@ -83,9 +84,10 @@ async def sign(*, version: str = Form(...),
 
     except ValidationFailure as e:
         logger.warning(e)
-        raise HTTPException(status_code=500, detail=get_error_msg(e))
+        raise HTTPException(status_code=424, detail=get_error_msg(e))
     except Exception as e:
         logger.error(e)
         if settings.ON_ERROR_PRINT_STACK_TRACE:
-            logger.error("\n".join(traceback.format_exception(type(e), e, e.__traceback__)))
-        raise HTTPException(status_code=500, detail=get_error_msg(e))
+            logger.error("\n".join(
+                traceback.format_exception(type(e), e, e.__traceback__)))
+        raise HTTPException(status_code=422, detail=get_error_msg(e))
