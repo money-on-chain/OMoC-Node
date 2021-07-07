@@ -10,9 +10,11 @@ from starlette.datastructures import Secret
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
 
+from common.helpers import dt_now_at_utc
+
 logger = logging.getLogger(__name__)
 
-ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+ZERO_ADDR = "0x0000000000000000000000000000000000000000"
 
 
 def keccak256(text: str = None, hexstr: HexStr = None, primitive: Primitives = None):
@@ -30,8 +32,8 @@ class STATE:
 BCSuccess = typing.NamedTuple("BCSuccess", [("state", STATE), ("hash", str)])
 
 
-class BCError(typing.NamedTuple("BCError", [("state", STATE), ("hash", str), ("error", str)])):
-
+class BCError(typing.NamedTuple("BCError", [("state", STATE), ("hash", str),
+                                            ("error", str)])):
     def __new__(cls, err, hash):
         if err.startswith("Could not decode") and "return data b'\\x00'" in err:
             err = "Check your NODE_URL configuration, most probably we are using the wrong block chain node : " + err
@@ -74,7 +76,8 @@ class BlockChainAddress(AnyHttpUrl):
         return parse_addr(v.lower())
 
 
-class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str), ('key', Secret)])):
+class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
+                                          ('key', Secret)])):
     def __new__(cls, addr, key):
         addr = parse_addr(addr.lower())
         if not isinstance(key, Secret):
@@ -100,7 +103,10 @@ class BlockChainPK(AnyHttpUrl):
 class BlockChain:
     def __init__(self, node_url, chain_id, timeout):
         self.chain_id = chain_id
-        self.W3 = Web3(HTTPProvider(str(node_url), request_kwargs={'timeout': timeout}))
+        self.latest_block = None
+        self.latest_block_at = None
+        self.W3 = Web3(HTTPProvider(str(node_url),
+                                    request_kwargs={'timeout': timeout}))
 
     def get_contract(self, addr, abi):
         return self.W3.eth.contract(address=parse_addr(addr), abi=abi)
@@ -117,7 +123,10 @@ class BlockChain:
 
     @exec_with_catch_async
     async def get_last_block_data(self):
-        return await run_in_executor(lambda: self.W3.eth.getBlock("latest"))
+        block = await run_in_executor(lambda: self.W3.eth.getBlock("latest"))
+        self.latest_block = block
+        self.latest_block_at = dt_now_at_utc()
+        return block
 
     @exec_with_catch_async
     async def get_block_by_number(self, block_number, full=False):
@@ -136,7 +145,7 @@ class BlockChain:
             raise e
         except Exception as err:
             logger.debug("USING DEFAULT VALUE FOR GAS LIMIT")
-            gas = 4200000  # adji: Must be enough, can't be to close to gas limit
+            gas = 4200000  # adji: Must be enough, can't be to close to gas lim.
 
         chain_id = await run_in_executor(lambda: self.W3.eth.chainId)
         if not chain_id:
@@ -213,7 +222,6 @@ class BlockChain:
 
 
 class BlockChainContract:
-
     def __init__(self, blockchain: BlockChain, addr, abi):
         self._addr = addr
         self._blockchain = blockchain

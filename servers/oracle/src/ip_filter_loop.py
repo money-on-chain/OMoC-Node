@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class IpFilterLoop(BgTaskExecutor):
-
     def __init__(self, oracle_loop: OracleLoop, conf: OracleConfiguration):
         self.oracle_loop = oracle_loop
         self.conf = conf
@@ -35,14 +34,15 @@ class IpFilterLoop(BgTaskExecutor):
                     for ip in helpers.get_ip_addresses(name):
                         self.valid_ips[ip] = now
                 except socket.error as e:
-                    logger.error("Cannot resolve %r to a valid IP address %r" % (name, e))
-                    pass
+                    logger.error("Cannot resolve %r to a valid IP address %r" %
+                                 (name, e))
         #  purge the cache
-        for ip in self.valid_ips.keys():
+        _keys = self.valid_ips.keys()
+        for ip in _keys:
             if now - self.valid_ips[ip] > self.conf.ORACLE_BLOCKCHAIN_INFO_INTERVAL * 2:
                 del self.valid_ips[ip]
-        # TODO: change level to debug
-        logger.info("Accepting connections from %r" % list(self.valid_ips.keys()))
+        logger.debug("Accepting connections from %r" %
+                     list(self.valid_ips.keys()))
         return self.conf.ORACLE_BLOCKCHAIN_INFO_INTERVAL
 
     def is_valid_ip(self, ip):

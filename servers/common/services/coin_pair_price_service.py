@@ -3,7 +3,7 @@ from typing import List
 
 from hexbytes import HexBytes
 
-from common.helpers import hb_to_bytes
+from common.helpers import hb_to_bytes, dt_now_at_utc
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChainContract
 from common.services.oracle_dao import OracleRoundInfo, RoundInfo
 
@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class CoinPairService:
-
     def __init__(self, contract: BlockChainContract):
+        self.last_pub_at = None
         self._contract = contract
 
     @property
@@ -35,7 +35,8 @@ class CoinPairService:
         return await self.coin_pair_price_call("canRemoveOracle", addr)
 
     async def get_price(self):
-        return await self.coin_pair_price_call("getPrice", account="0x" + "0" * 39 + "1")
+        return await self.coin_pair_price_call("getPrice",
+                                               account="0x" + "0" * 39 + "1")
 
     async def get_available_reward_fees(self):
         return await self.coin_pair_price_call("getAvailableRewardFees")
@@ -55,9 +56,11 @@ class CoinPairService:
             r.append(hb_to_bytes(signature[:32]))
             s.append(hb_to_bytes(signature[32:64]))
 
-        return await self.coin_pair_price_execute("publishPrice", version,
+        ret = await self.coin_pair_price_execute("publishPrice", version,
                                                   coin_pair.longer(), price, oracle_addr,
                                                   blocknumber, v, r, s, account=account, wait=wait)
+        self.last_pub_at = dt_now_at_utc()
+        return ret
 
     async def get_coin_pair(self) -> str:
         return await self.coin_pair_price_call("coinPair")

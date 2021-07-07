@@ -5,7 +5,7 @@ import logging
 import os
 import socket
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 
 import aiohttp
 import dateparser
@@ -108,3 +108,8 @@ def price_delta(price1, price2):
 def get_ip_addresses(hostname):
     (hn, al, ipaddrlist) = socket.gethostbyname_ex(hostname)
     return ipaddrlist
+
+
+def dt_now_at_utc() -> datetime:
+    now = datetime.now(timezone.utc)
+    return now

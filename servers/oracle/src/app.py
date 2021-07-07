@@ -5,10 +5,15 @@ from fastapi import Form, HTTPException, Response, Request
 from starlette.responses import JSONResponse
 
 from common import settings, run_uvicorn
+from common.helpers import dt_now_at_utc
+from common.services.blockchain import BlockChain
+from common.services.coin_pair_price_service import CoinPairService
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
 from oracle.src import oracle_settings
 from oracle.src.main_loop import MainLoop
+from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
+from oracle.src.oracle_settings import ORACLE_PRICE_ENGINES_SIG
 from oracle.src.request_validation import ValidationFailure
 
 logger = logging.getLogger(__name__)
@@ -16,6 +21,9 @@ main_executor = MainLoop()
 app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
 
 not_authorized_msg = "The request was not made by a selected oracle."
+
+# endpoints which can be accessed by anyone
+OPEN_ENDPOINTS = {'/version', '/info'}
 
 
 def get_error_msg(msg=None):
@@ -29,12 +37,13 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
     try:
         (ip, port) = request.client
         logger.info("Got a connection to %s from %r" % (request.url.path, ip))
-        if not main_executor.is_valid_ip(ip):
-            raise Exception("%s %r" % (not_authorized_msg, ip))
+        if not (request.url.path in OPEN_ENDPOINTS):
+            if not main_executor.is_valid_ip(ip):
+                raise Exception("%s %r" % (not_authorized_msg, ip))
         return await call_next(request)
     except Exception as e:
         error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(
-            e)
+                                  e)
         logger.error(error_msg)
         if settings.DEBUG:
             return JSONResponse(status_code=418, content=error_msg)
@@ -54,6 +63,44 @@ def shutdown_event():
 @app.get("/")
 async def read_root():
     raise HTTPException(status_code=404, detail="Item not found")
+
+
+@app.get("/version")
+async def read_version():
+    return {'version': settings.VERSION}
+
+
+@app.get("/info")
+async def read_info():
+    def fill_blockchain_info(bc: BlockChain):
+        bkc_data = {}
+        if not(bc.latest_block is None):
+            block = bc.latest_block
+            bkc_data['block_at'] = bc.latest_block_at
+            bkc_data['block_nr'] = block.number
+            bkc_data['block_hash'] = block['hash'].hex()
+        return bkc_data
+
+    def fill_cp_info(cps: CoinPairService):
+        return {'our_last_pub_at': cps.last_pub_at}
+
+    data = {
+        'version': settings.VERSION,
+        'ts': dt_now_at_utc(),
+        'config_hash': ORACLE_PRICE_ENGINES_SIG,
+    }
+    try:
+        bkc = main_executor.cf.get_blockchain()
+        data.update(fill_blockchain_info(bkc))
+        cpm = main_executor.oracle_loop.cpMap
+        data['coinpairs'] = list(cpm.keys())
+        for cp in cpm.keys():
+            obl: OracleBlockchainInfoLoop = cpm[cp].blockchain_info_loop
+            data[cp] = {'last_pub_block': obl._blockchain_info.last_pub_block}
+            data[cp].update(fill_cp_info(obl._cps._coin_pair_service))
+    except Exception as err:
+        data['error'] = str(err)
+    return data
 
 
 @app.post("/sign/")

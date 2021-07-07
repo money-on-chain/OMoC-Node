@@ -88,4 +88,7 @@ class MainLoop(BgTaskExecutor):
         return await self.oracle_loop.get_validation_data(params)
 
     def is_valid_ip(self, ip):
+        if self.ip_filter_loop is None:
+            logger.warning("Trying to filter ip while filter isn't yet up..")
+            return False
         return self.ip_filter_loop.is_valid_ip(ip)
