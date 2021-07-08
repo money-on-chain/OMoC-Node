@@ -489,7 +489,7 @@ This file simply takes as input the data you entered on address.sh, so nothing t
 
 ### Contracts ABIs
 
-You'll need to fetch the latest version of the contracts ABIs so the oracle server can communicate with the SCs:
+You'll need to fetch the latest version of the contracts ABIs, so the oracle server can communicate with the SCs:
 
 ```
 wget http://oracles.coinfabrik.com/abis/latest_beyond.tgz
@@ -561,4 +561,4 @@ To keep disk usage at a reasonable size. The oracle logs in this configuration w
 
 ### Signing ports
 
-On the delfos/address.sh you have configured the ports for each server you are running. It is important to open this ports (iptables, aws security groups, DigitalOcean firewall, etc...) so the different servers can reach each other in order to sign and get price concensus.
+On the delfos/address.sh you have configured the ports for each server you are running. It is important to open this ports (iptables, aws security groups, DigitalOcean firewall, etc...) so the different servers can reach each other in order to sign and get price consensus.
