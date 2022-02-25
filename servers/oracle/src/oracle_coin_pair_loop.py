@@ -40,6 +40,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
         self._oracle_turn = OracleTurn(self._conf, cps.coin_pair)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
+
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
 
     async def run(self):
@@ -117,7 +118,8 @@ class OracleCoinPairLoop(BgTaskExecutor):
                                                params.last_pub_block,
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
-                                               wait=True)
+                                               wait=True,
+                                               last_gas_price=self.vi_loop.last_gas_price)
             if is_error(tx):
                 logger.info("%r : OracleCoinPairLoop %r ERROR PUBLISHING %r" % (self._coin_pair, self._oracle_addr, tx))
                 return False
@@ -130,6 +132,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
             logger.info("//////////////////////////////////////////////////")
             logger.info("//////////////////////////////////////////////////")
             logger.info("//////////////////////////////////////////////////")
+            logger.info(f"////////////////////////////////////////////////// gas: {self.vi_loop.last_gas_price}")
             # Last pub block has changed, force an update of the block chain info.
             await self.vi_loop.force_update()
             return True

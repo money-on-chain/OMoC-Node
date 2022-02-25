@@ -2,7 +2,7 @@ import logging
 import typing
 
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error
+from common.services.blockchain import is_error, GasCalculator
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop, OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_loop import OracleCoinPairLoop
