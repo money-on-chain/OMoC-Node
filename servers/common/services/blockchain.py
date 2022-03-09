@@ -113,7 +113,7 @@ class BlockchainStateLoop(BgTaskExecutor):
         logger.info("BlockchainStateLoop loop start")
         await self.gas_calc.update()
         logger.info("BlockchainStateLoop loop done")
-        return 60
+        return self.conf.ORACLE_BLOCKCHAIN_STATE_DELAY 
 
 
 class GasCalculator:
