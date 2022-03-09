@@ -5,7 +5,8 @@ import traceback
 
 from common import settings
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error, GasCalculator
+from common.services.blockchain import is_error, GasCalculator, \
+    BlockchainStateLoop
 from common.services.oracle_dao import OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
@@ -21,14 +22,10 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
         self._blockchain_info: OracleBlockchainInfo = None
         self.last_update = None
         self.update_lock = asyncio.Lock()
-        self.last_gas_price = None
-        self.gas_calculator = GasCalculator()
-        self.gas_calculator.intialSetting()
 
         super().__init__(name="OracleBlockchainInfoLoop", main=self.run)
 
     async def run(self):
-        self.last_gas_price = await self.gas_calculator.get_gas_price()
         delta = self._conf.ORACLE_BLOCKCHAIN_INFO_INTERVAL
         async with self.update_lock:
             if self.last_update:

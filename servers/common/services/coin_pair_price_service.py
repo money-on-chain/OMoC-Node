@@ -57,7 +57,7 @@ class CoinPairService:
             v.append(int.from_bytes(hb_to_bytes(signature[64:]), "little"))
             r.append(hb_to_bytes(signature[:32]))
             s.append(hb_to_bytes(signature[32:64]))
-
+        logger.debug(f"OCS-----> {last_gas_price}")
         ret = await self.coin_pair_price_execute("publishPrice", version,
                                                   coin_pair.longer(), price, oracle_addr,
                                                   blocknumber, v, r, s, account=account, wait=wait,

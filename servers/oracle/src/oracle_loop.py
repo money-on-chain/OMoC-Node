@@ -2,7 +2,7 @@ import logging
 import typing
 
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error, GasCalculator
+from common.services.blockchain import is_error, BlockchainStateLoop
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop, OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_loop import OracleCoinPairLoop
@@ -29,7 +29,9 @@ OracleLoopTasks = typing.NamedTuple("OracleLoopTasks",
 
 class OracleLoop(BgTaskExecutor):
 
-    def __init__(self, conf: OracleConfiguration, oracle_service: OracleService):
+    def __init__(self, conf: OracleConfiguration, oracle_service: OracleService,
+                 bs_loop: BlockchainStateLoop):
+        self.bs_loop = bs_loop
         self.conf = conf
         self.oracle_addr = oracle_settings.get_oracle_account().addr
         self.oracle_service = oracle_service
@@ -54,7 +56,8 @@ class OracleLoop(BgTaskExecutor):
         if oracle_settings.ORACLE_RUN:
             pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
             bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service)
-            cp_loop = OracleCoinPairLoop(self.conf, cp_service, pf_loop, bl_loop)
+            cp_loop = OracleCoinPairLoop(self.conf, cp_service, pf_loop, bl_loop,
+                                         self.bs_loop)
             tasks.extend([pf_loop, bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
                                                  cp_loop, pf_loop, bl_loop,

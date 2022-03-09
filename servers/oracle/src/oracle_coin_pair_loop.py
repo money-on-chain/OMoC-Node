@@ -12,7 +12,7 @@ from hexbytes import HexBytes
 from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
-from common.services.blockchain import is_error
+from common.services.blockchain import is_error, BlockchainStateLoop
 from oracle.src import monitor, oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService, FullOracleRoundInfo
@@ -32,7 +32,10 @@ class OracleCoinPairLoop(BgTaskExecutor):
     def __init__(self, conf: OracleConfiguration,
                  cps: OracleCoinPairService,
                  price_feeder_loop: PriceFeederLoop,
-                 vi_loop: OracleBlockchainInfoLoop):
+                 vi_loop: OracleBlockchainInfoLoop,
+                 bs_loop: BlockchainStateLoop,
+                 ):
+        self.bs_loop = bs_loop
         self._conf = conf
         self._oracle_addr = oracle_settings.get_oracle_account().addr
         self._cps = cps
@@ -119,7 +122,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
                                                wait=True,
-                                               last_gas_price=self.vi_loop.last_gas_price)
+                                               last_gas_price=await self.bs_loop.gas_calc.get_current())
             if is_error(tx):
                 logger.info("%r : OracleCoinPairLoop %r ERROR PUBLISHING %r" % (self._coin_pair, self._oracle_addr, tx))
                 return False
@@ -132,7 +135,6 @@ class OracleCoinPairLoop(BgTaskExecutor):
             logger.info("//////////////////////////////////////////////////")
             logger.info("//////////////////////////////////////////////////")
             logger.info("//////////////////////////////////////////////////")
-            logger.info(f"////////////////////////////////////////////////// gas: {self.vi_loop.last_gas_price}")
             # Last pub block has changed, force an update of the block chain info.
             await self.vi_loop.force_update()
             return True

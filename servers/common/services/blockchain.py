@@ -11,6 +11,7 @@ from starlette.datastructures import Secret
 from web3 import Web3, HTTPProvider
 from web3.exceptions import TransactionNotFound
 
+from common.bg_task_executor import BgTaskExecutor
 from common.helpers import dt_now_at_utc
 
 logger = logging.getLogger(__name__)
@@ -101,58 +102,65 @@ class BlockChainPK(AnyHttpUrl):
         return Web3.eth.account.from_key(v).key
 
 
+class BlockchainStateLoop(BgTaskExecutor):
+    def __init__(self, conf):
+        logger.debug('initializing BlockchainStateLoop')
+        self.conf = conf
+        self.gas_calc = GasCalculator()
+        super().__init__(name="BlockchainStateLoop", main=self.run)
+
+    async def run(self):
+        logger.info("BlockchainStateLoop loop start")
+        await self.gas_calc.update()
+        logger.info("BlockchainStateLoop loop done")
+        return 60
+
+
 class GasCalculator:
 
-    def intialSetting(self):
+    def __init__(self):
         self.last_price = None 
         self.default_gas_price = settings.DEFAULT_GAS_PRICE
         self.gas_percentage_admitted = settings.GAS_PERCENTAGE_ADMITTED
         self.W3 = Web3(HTTPProvider(str(settings.NODE_URL),
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
-       
-
     def set_last_price(self, gas_price):
-        self.last_price=gas_price 
-        logger.debug(f"4(set_last_price)--self.last_price: {self.last_price}")
+        self.last_price = gas_price
 
     def get_last_price(self):
-        if(self.last_price == None): 
+        if self.last_price is None:
             return self.default_gas_price
         return int(self.get_gas_price_plus_x_perc(self.last_price))
 
     def get_gas_price_plus_x_perc(self, gas_price):
-        logger.debug(f'***-(get_gas_price_plus_10_perc)---- { gas_price + gas_price * (self.gas_percentage_admitted / 100) }')
         return gas_price + gas_price * (self.gas_percentage_admitted / 100)
 
     def is_gas_price_out_of_range(self, gas_price):
-        logger.debug(f'1.1(is_gas_price_out_of_range)-- { gas_price > self.get_last_price() } ')
-        logger.debug(f'1.1.1 -> {self.get_last_price() } ')
-        logger.debug(f'1.1.2 -> {gas_price} ')
-        if( gas_price > self.get_last_price()):
+        if gas_price > self.get_last_price():
             return True
         return False
 
     @exec_with_catch_async
-    async def get_gas_price(self):
+    async def get_current(self):
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
-        logger.debug("1(get_price)--GAS: %r" % gas_price)
-        if(self.is_gas_price_out_of_range(gas_price)):
-            logger.debug('2(get_price)-- gas higher ')
-            gas_price = self.get_last_price() 
-            logger.debug("3(get_price)-- new gas price %r" % gas_price )
+        if gas_price is None:
+            gas_price = self.get_last_price() if self.get_last_price() is not None else self.default_gas_price
+        if self.is_gas_price_out_of_range(gas_price):
+            gas_price = self.get_last_price()
         self.set_last_price(gas_price)
         return gas_price
+    
+    async def update(self):
+        await self.get_current()
 
 
-
-class BlockChain(GasCalculator):
+class BlockChain:
     def __init__(self, node_url, chain_id, timeout):
         self.chain_id = chain_id
         self.latest_block = None
         self.latest_block_at = None
         self.W3 = Web3(HTTPProvider(str(node_url),
                                     request_kwargs={'timeout': timeout}))
-        self.intialSetting()
 
     def get_contract(self, addr, abi):
         return self.W3.eth.contract(address=parse_addr(addr), abi=abi)
@@ -178,17 +186,12 @@ class BlockChain(GasCalculator):
     async def get_block_by_number(self, block_number, full=False):
         return await run_in_executor(lambda: self.W3.eth.getBlock(block_number, full))
     
-    async def get_tx(self, method, account_addr: str, last_gas_price=None):
+    async def get_tx(self, method, account_addr: str, gas_price):
         logger.debug(f"+++++++++ get tx ++++++++ {str(account_addr)} - {method}")
         from_addr = parse_addr(str(account_addr))
-        if last_gas_price:
-            gas_price = last_gas_price
-            logger.debug(f"The gas comes from the LOOP {last_gas_price}")
-        else:
-            gas_price = await self.get_gas_price()
-            logger.debug(f"The gas comes from here  {last_gas_price}")
-        logger.debug(f"GAS_PRICE ---> {gas_price} ")
-        nonce = await run_in_executor(lambda: self.W3.eth.getTransactionCount(from_addr))
+
+        nonce = await run_in_executor(lambda: self.W3.eth.getTransactionCount(
+                                                                    from_addr))
         try:
             logger.debug("GAS: %r" % gas_price)
             gas = await run_in_executor(lambda: method.estimateGas({'from': from_addr,
@@ -294,7 +297,7 @@ class BlockChainContract:
         if not account:
             raise Exception("Missing key, cant execute")
         method_func = self._contract.functions[method](*args, **kw)
-        tx = await self._blockchain.get_tx(method_func, str(account.addr), last_gas_price=last_gas_price)
+        tx = await self._blockchain.get_tx(method_func, str(account.addr), gas_price=last_gas_price)
         txn = tx["tx"]
         signed_txn = self._blockchain.sign_transaction(txn, private_key=Web3.toBytes(hexstr=str(account.key)))
         logger.debug("%s SENDING SIGNED TX %r", tx["txdata"]["chainId"], signed_txn)
