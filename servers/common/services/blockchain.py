@@ -192,6 +192,7 @@ class BlockChain:
 
         nonce = await run_in_executor(lambda: self.W3.eth.getTransactionCount(
                                                                     from_addr))
+        logger.debug(f"Nonce: {nonce}  sender: {from_addr}")
         try:
             logger.debug("GAS: %r" % gas_price)
             gas = await run_in_executor(lambda: method.estimateGas({'from': from_addr,

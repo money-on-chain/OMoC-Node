@@ -3,9 +3,7 @@ import logging
 from common.bg_task_executor import BgTaskExecutor
 from common.services.blockchain import is_error, BlockchainStateLoop
 from oracle.src import oracle_settings
-from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_loop import OracleLoopTasks
 
 logger = logging.getLogger(__name__)
 

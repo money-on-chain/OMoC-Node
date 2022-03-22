@@ -181,6 +181,9 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
             "oracle_addr": params.oracle_addr,
             "last_pub_block": str(params.last_pub_block),
             "signature": my_signature.hex()}
+        logger.debug(f"sign DATA {post_data}")
+        logger.debug(f"sign target uri {target_uri}")
+
         raise_for_status = True
         if settings.DEBUG:
             raise_for_status = False

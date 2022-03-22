@@ -5,8 +5,7 @@ import traceback
 
 from common import settings
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error, GasCalculator, \
-    BlockchainStateLoop
+from common.services.blockchain import is_error 
 from common.services.oracle_dao import OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
