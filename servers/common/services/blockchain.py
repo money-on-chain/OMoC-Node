@@ -302,5 +302,7 @@ class BlockChainContract:
         txn = tx["tx"]
         signed_txn = self._blockchain.sign_transaction(txn, private_key=Web3.toBytes(hexstr=str(account.key)))
         logger.debug("%s SENDING SIGNED TX %r", tx["txdata"]["chainId"], signed_txn)
+        logger.debug(f"--+Blockchain ID {id(self._blockchain)}")
+        logger.debug("--+Nonce %s", tx["txdata"]["nonce"])
         tx = await self._blockchain.send_raw_transaction(signed_txn.rawTransaction)
         return await self._blockchain.process_tx(tx, wait)

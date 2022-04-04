@@ -48,6 +48,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
 
     async def run(self):
         logger.info("%r : OracleCoinPairLoop start" % self._coin_pair)
+        logger.debug(f"--+OracleCoinPairLoop ID {id(self)}")
         round_info = await self._cps.get_round_info()
         if is_error(round_info):
             logger.error("%r : OracleCoinPairLoop ERROR getting round info %r" % (self._coin_pair, round_info))

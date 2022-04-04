@@ -85,7 +85,6 @@ class OracleCoinPairService:
                             account: BlockchainAccount = None,
                             wait=False,
                             last_gas_price=None):
-        logger.info("cps gas {last_gas_price}")
         return await self._coin_pair_service.publish_price(version, coin_pair, price,
                                                            oracle_addr, blocknumber, signatures,
                                                            account=account, wait=wait, last_gas_price=last_gas_price)
