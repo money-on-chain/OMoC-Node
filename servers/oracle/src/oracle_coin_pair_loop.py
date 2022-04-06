@@ -12,7 +12,7 @@ from hexbytes import HexBytes
 from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
-from common.services.blockchain import is_error
+from common.services.blockchain import is_error, BlockchainStateLoop
 from oracle.src import monitor, oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService, FullOracleRoundInfo
@@ -32,7 +32,10 @@ class OracleCoinPairLoop(BgTaskExecutor):
     def __init__(self, conf: OracleConfiguration,
                  cps: OracleCoinPairService,
                  price_feeder_loop: PriceFeederLoop,
-                 vi_loop: OracleBlockchainInfoLoop):
+                 vi_loop: OracleBlockchainInfoLoop,
+                 bs_loop: BlockchainStateLoop,
+                 ):
+        self.bs_loop = bs_loop
         self._conf = conf
         self._oracle_addr = oracle_settings.get_oracle_account().addr
         self._cps = cps
@@ -40,10 +43,12 @@ class OracleCoinPairLoop(BgTaskExecutor):
         self._oracle_turn = OracleTurn(self._conf, cps.coin_pair)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
+
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
 
     async def run(self):
         logger.info("%r : OracleCoinPairLoop start" % self._coin_pair)
+        logger.debug(f"--+OracleCoinPairLoop ID {id(self)}")
         round_info = await self._cps.get_round_info()
         if is_error(round_info):
             logger.error("%r : OracleCoinPairLoop ERROR getting round info %r" % (self._coin_pair, round_info))
@@ -117,7 +122,8 @@ class OracleCoinPairLoop(BgTaskExecutor):
                                                params.last_pub_block,
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
-                                               wait=True)
+                                               wait=True,
+                                               last_gas_price=await self.bs_loop.gas_calc.get_current())
             if is_error(tx):
                 logger.info("%r : OracleCoinPairLoop %r ERROR PUBLISHING %r" % (self._coin_pair, self._oracle_addr, tx))
                 return False
@@ -176,6 +182,9 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
             "oracle_addr": params.oracle_addr,
             "last_pub_block": str(params.last_pub_block),
             "signature": my_signature.hex()}
+        logger.debug(f"sign DATA {post_data}")
+        logger.debug(f"sign target uri {target_uri}")
+
         raise_for_status = True
         if settings.DEBUG:
             raise_for_status = False

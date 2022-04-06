@@ -3,6 +3,7 @@ from typing import List
 
 from common import settings
 from common.bg_task_executor import BgTaskExecutor
+from common.services.blockchain import BlockchainStateLoop
 from common.services.contract_factory_service import ContractFactoryService
 from oracle.src import oracle_settings, monitor
 from oracle.src.ip_filter_loop import IpFilterLoop
@@ -22,6 +23,7 @@ class MainLoop(BgTaskExecutor):
         self.tasks: List[BgTaskExecutor] = []
         self.initialized = False
         self.oracle_loop: OracleLoop = None
+        self.bs_loop: BlockchainStateLoop = None
         self.ip_filter_loop: IpFilterLoop = None
         super().__init__(name="MainLoop", main=self.run)
 
@@ -50,8 +52,10 @@ class MainLoop(BgTaskExecutor):
 
     def _startup(self):
         oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
-        self.oracle_loop = OracleLoop(self.conf, oracle_service)
+        self.bs_loop = BlockchainStateLoop(self.conf)
+        self.oracle_loop = OracleLoop(self.conf, oracle_service, self.bs_loop)
         self.tasks.append(self.oracle_loop)
+        self.tasks.append(self.bs_loop)
         if oracle_settings.ORACLE_RUN_IP_FILTER:
             self.ip_filter_loop = IpFilterLoop(self.oracle_loop, self.conf)
             self.tasks.append(self.ip_filter_loop)
@@ -60,8 +64,9 @@ class MainLoop(BgTaskExecutor):
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))
         if oracle_settings.SCHEDULER_RUN_SUPPORTERS_SCHEDULER:
             supporters_service = self.cf.get_supporters(self.conf.SUPPORTERS_ADDR)
-            self.tasks.append(SchedulerSupportersLoop(self.conf, supporters_service))
+            self.tasks.append(SchedulerSupportersLoop(self.conf, supporters_service,self.bs_loop))
         for t in self.tasks:
+            logger.debug(f'****** task {t}')
             t.start_bg_task()
 
     def _print_info(self):
