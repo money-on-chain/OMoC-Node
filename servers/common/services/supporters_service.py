@@ -19,8 +19,9 @@ class SupportersService:
     async def supporters_call(self, method, *args, **kw):
         return await self._contract.bc_call(method, *args, **kw)
 
-    async def supporters_execute(self, method, *args, account: BlockchainAccount = None, wait=False, **kw):
-        return await self._contract.bc_execute(method, *args, account=account, wait=wait, **kw)
+    async def supporters_execute(self, method, *args, account: BlockchainAccount = None, wait=False,
+                                 last_gas_price=None, **kw):
+        return await self._contract.bc_execute(method, *args, account=account, wait=wait,last_gas_price=last_gas_price, **kw)
 
     async def get_token_addr(self):
         return await self.supporters_call("mocToken")
@@ -28,8 +29,8 @@ class SupportersService:
     async def is_ready_to_distribute(self) -> bool:
         return await self.supporters_call("isReadyToDistribute")
 
-    async def distribute(self, account: BlockchainAccount = None, wait=False):
-        return await self.supporters_execute("distribute", account=account, wait=wait)
+    async def distribute(self, account: BlockchainAccount = None, wait=False, last_gas_price=None):
+        return await self.supporters_execute("distribute", account=account, wait=wait, last_gas_price=last_gas_price)
 
     async def get_total_tokens(self):
         return await self.supporters_call("totalToken")

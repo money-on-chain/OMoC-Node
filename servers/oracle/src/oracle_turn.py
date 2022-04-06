@@ -112,6 +112,8 @@ class OracleTurn:
         start_block_pub_period_before_price_expires = vi.last_pub_block + \
                                                       vi.valid_price_period_in_blocks - \
                                                       conf.trigger_valid_publication_blocks
+        logger.debug(f"block_num {vi.block_num}  start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
+                     f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks}")
         if vi.block_num >= start_block_pub_period_before_price_expires:
             can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
                                                     oracle_addr, oracle_addresses, entering_fallback_sequence)

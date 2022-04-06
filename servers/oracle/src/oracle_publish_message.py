@@ -34,5 +34,5 @@ class PublishPriceParams(typing.NamedTuple('PublishPriceParams', [('version', in
         # encBlockNum = enc_uint256(blocknr)
         # header = bytes(MSG_HEADER, "ascii").hex()
         full_msg = (''.join(f(x) for f, x in zip(fs, parameters)))  ## header +
-        logger.debug(logging.INFO, "msg: " + full_msg)
+        logger.debug( "msg: " + full_msg)
         return full_msg

@@ -32,6 +32,7 @@ def get_error_msg(msg=None):
 
 @app.middleware("http")
 async def filter_ips_by_selected_oracles(request: Request, call_next):
+    logger.debug(f"ORACLE_RUN_IP_FILTER: {oracle_settings.ORACLE_RUN_IP_FILTER}")
     if not oracle_settings.ORACLE_RUN_IP_FILTER:
         return await call_next(request)
     try:
@@ -122,8 +123,10 @@ async def sign(*, version: str = Form(...),
         if not validation_data:
             raise ValidationFailure("Missing coin pair", coin_pair)
 
+        logger.debug("Before")
         logger.debug("Sign: %r" % (params,))
         message, my_signature = validation_data.validate_and_sign(signature)
+        logger.debug(f"Sign After: {message} {my_signature}")
         return {
             "message": message,
             "signature": my_signature.hex()

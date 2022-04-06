@@ -22,8 +22,10 @@ class CoinPairService:
     async def coin_pair_price_call(self, method, *args, account: BlockchainAccount = None, **kw):
         return await self._contract.bc_call(method, *args, account=account, **kw)
 
-    async def coin_pair_price_execute(self, method, *args, account: BlockchainAccount = None, wait=False, **kw):
-        return await self._contract.bc_execute(method, *args, account=account, wait=wait, **kw)
+    async def coin_pair_price_execute(self, method, *args, account: BlockchainAccount = None, wait=False,
+                                      last_gas_price=None, **kw):
+        return await self._contract.bc_execute(method, *args, account=account, wait=wait,
+                                               last_gas_price=last_gas_price, **kw)
 
     async def get_valid_price_period_in_blocks(self):
         return await self.coin_pair_price_call("getValidPricePeriodInBlocks")
@@ -49,16 +51,17 @@ class CoinPairService:
                             blocknumber,
                             signatures: List[HexBytes],
                             account: BlockchainAccount = None,
-                            wait=False):
+                            wait=False, last_gas_price=None):
         v, r, s = [], [], []
         for signature in signatures:
             v.append(int.from_bytes(hb_to_bytes(signature[64:]), "little"))
             r.append(hb_to_bytes(signature[:32]))
             s.append(hb_to_bytes(signature[32:64]))
-
+        logger.debug(f"OCS-----> {last_gas_price}")
         ret = await self.coin_pair_price_execute("publishPrice", version,
                                                   coin_pair.longer(), price, oracle_addr,
-                                                  blocknumber, v, r, s, account=account, wait=wait)
+                                                  blocknumber, v, r, s, account=account, wait=wait,
+                                                 last_gas_price=last_gas_price)
         self.last_pub_at = dt_now_at_utc()
         return ret
 

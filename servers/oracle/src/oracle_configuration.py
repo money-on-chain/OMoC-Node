@@ -203,6 +203,13 @@ class OracleConfiguration:
                 "description": "The maximal time difference (in seconds) a price in queue is considered when generating a price for validation.",
                 "default": 30
             },
+             "ORACLE_BLOCKCHAIN_STATE_DELAY": {
+                "priority": self.Order.configuration_default_blockchain,
+                "configuration": lambda: parseTimeDelta(config('ORACLE_BLOCKCHAIN_STATE_DELAY', cast=str)),
+                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
+                "description": "Delay in which the gas price is gathered",
+                "default": 60
+            }
         }
         self.from_conf = set()
         self.from_default = set()

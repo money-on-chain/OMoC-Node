@@ -5,7 +5,7 @@ import traceback
 
 from common import settings
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error
+from common.services.blockchain import is_error 
 from common.services.oracle_dao import OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
@@ -21,6 +21,7 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
         self._blockchain_info: OracleBlockchainInfo = None
         self.last_update = None
         self.update_lock = asyncio.Lock()
+
         super().__init__(name="OracleBlockchainInfoLoop", main=self.run)
 
     async def run(self):

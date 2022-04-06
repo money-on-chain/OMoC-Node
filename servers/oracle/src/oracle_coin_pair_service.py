@@ -83,10 +83,11 @@ class OracleCoinPairService:
                             blocknumber,
                             signatures,
                             account: BlockchainAccount = None,
-                            wait=False):
+                            wait=False,
+                            last_gas_price=None):
         return await self._coin_pair_service.publish_price(version, coin_pair, price,
                                                            oracle_addr, blocknumber, signatures,
-                                                           account=account, wait=wait)
+                                                           account=account, wait=wait, last_gas_price=last_gas_price)
 
     async def get_coin_pair(self) -> str:
         return await self._coin_pair_service.get_coin_pair()
