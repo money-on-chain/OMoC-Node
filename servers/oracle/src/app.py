@@ -13,7 +13,7 @@ from oracle.src import oracle_settings
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
-from oracle.src.oracle_settings import ORACLE_PRICE_ENGINES_SIG
+from oracle.src.price_feeder.price_feeder import PriceFeederLoop
 from oracle.src.request_validation import ValidationFailure
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ async def read_info():
     data = {
         'version': settings.VERSION,
         'ts': dt_now_at_utc(),
-        'config_hash': ORACLE_PRICE_ENGINES_SIG,
+        'config_hash': PriceFeederLoop.GetEnginesInfoHash(),
     }
     try:
         bkc = main_executor.cf.get_blockchain()

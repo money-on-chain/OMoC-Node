@@ -1,10 +1,13 @@
 import asyncio
 import collections
+import hashlib
+import json
 import logging
+from decimal import Decimal
 
 from common.bg_task_executor import BgTaskExecutor
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp
-from oracle.src import oracle_settings, monitor
+from oracle.src import monitor
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.price_feeder import moc_price_engines
 
@@ -43,12 +46,25 @@ class TimeWithTimestampQueue:
         self._price_queue.append({"ts_utc": ts_utc, "data": data})
 
 
-class PriceFeederLoop(BgTaskExecutor):
+class PriceFeederLoopV3(BgTaskExecutor):
+    ExchangesFile = 'exchanges.json'
+
+    @classmethod
+    def GetEnginesInfo(cls, coin_pair=None):
+        exchanges_info = load_exchange_info(cls.ExchangesFile)
+        if coin_pair is None:
+            return exchanges_info
+        return exchanges_info[coin_pair]
+
+    @classmethod
+    def GetEnginesInfoHash(cls):
+        return hash_exchange_info(cls.GetEnginesInfo())
+
     def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair):
         self._conf = conf
         self._price_queues = {}
         self._coin_pair = str(coin_pair)
-        engines = oracle_settings.ORACLE_PRICE_ENGINES[self._coin_pair]
+        engines = self.GetEnginesInfo(self._coin_pair)
         self._moc_price_engines = moc_price_engines.PriceEngines(conf, self._coin_pair, engines)
         self.maxdiffs = {
             True: conf.ORACLE_PRICE_PUBLISH_MAX_DIFF,        # publish
@@ -113,3 +129,45 @@ class PriceFeederLoop(BgTaskExecutor):
             monitor.exchange_log("ERROR FETCHING PRICE %r" % ex)
             logger.error("ERROR FETCHING PRICE %r" % ex)
         return self._conf.ORACLE_PRICE_FETCH_RATE
+
+
+class PriceFeederLoop(PriceFeederLoopV3):
+    ExchangesFile = 'exchanges_v4.json'
+
+
+def load_exchange_info(srcname):
+    with open(srcname, "r") as f:
+        data = json.loads(f.read())
+    for exchange_info_list in data.values():
+        for exchange_info in exchange_info_list:
+            exchange_info['ponderation'] = Decimal(exchange_info['ponderation'])
+    return data
+
+
+def d2l(a_dict):
+    """
+    Convert a dict to a sorted list of pairs, changing the decimal values to str
+    """
+    d_to_str = lambda x: x if not isinstance(x, Decimal) else str(x)
+    items = [(k, d_to_str(v)) for k, v in a_dict.items()]
+    items.sort()
+    return items
+
+
+def normalize_exchange_info(data):
+    """Normalize exchange definition. For that we use lists which can be sorted
+    instead of dicts"""
+    keys = list(data.keys())
+    whole = []
+    for key in keys:
+        result = data[key]
+        whole.append((key, list(map(d2l, result))))
+    whole.sort()
+    return whole
+
+
+def hash_exchange_info(data):
+    ndata = normalize_exchange_info(data)
+    m = hashlib.sha256()
+    m.update(json.dumps(ndata, ensure_ascii=False).encode('utf-8'))
+    return m.hexdigest()
