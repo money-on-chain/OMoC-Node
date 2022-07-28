@@ -50,7 +50,7 @@ class PriceFollower:
         return 0
 
 
-class OracleTurn:
+class OracleTurnV3:
 
     def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair):
         self._conf: OracleConfiguration = conf
@@ -186,3 +186,17 @@ class OracleTurn:
         return len(selected_oracles) != 0 and \
                oracle_addr in [x.addr for x in selected_oracles] and \
                not any(x.addr == oracle_addr and not x.selectedInCurrentRound for x in selected_oracles)
+
+
+class OracleTurn(OracleTurnV3):
+    @staticmethod
+    def get_fallback_sequence(entering_fallbacks_amounts, selected_oracles_len):
+        entering_fallback_sequence = super().get_fallback_sequence(
+                            entering_fallbacks_amounts, selected_oracles_len)
+        p = OracleConfiguration.instance.ORACLE_ENTERING_FALLBACKS_MULTIPLIER
+        return OracleTurn.applyMultiplier(entering_fallback_sequence, p)
+
+    @staticmethod
+    def applyMultiplier(sequence, multiplier=0):
+        return sum([[x]*(multiplier+1) for x in sequence], [])
+

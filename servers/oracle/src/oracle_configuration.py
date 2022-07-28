@@ -26,6 +26,7 @@ class OracleConfiguration:
         configuration_default = 4
 
     def __init__(self, cf: ContractFactoryService):
+        OracleConfiguration.instance = self
         registry_addr = config('REGISTRY_ADDR', cast=str)
         if registry_addr is None:
             raise ValueError("Missing REGISTRY_ADDR!!!")
@@ -203,13 +204,25 @@ class OracleConfiguration:
                 "description": "The maximal time difference (in seconds) a price in queue is considered when generating a price for validation.",
                 "default": 30
             },
-             "ORACLE_BLOCKCHAIN_STATE_DELAY": {
+            "ORACLE_BLOCKCHAIN_STATE_DELAY": {
                 "priority": self.Order.configuration_default_blockchain,
-                "configuration": lambda: parseTimeDelta(config('ORACLE_BLOCKCHAIN_STATE_DELAY', cast=str)),
+                "configuration": lambda: parseTimeDelta(
+                    config('ORACLE_BLOCKCHAIN_STATE_DELAY', cast=str)),
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
                 "description": "Delay in which the gas price is gathered",
                 "default": 60
-            }
+            },
+
+            "ORACLE_ENTERING_FALLBACKS_MULTIPLIER": {
+                "priority": self.Order.configuration_blockchain_default,
+                "configuration": lambda: config(
+                    "ORACLE_ENTERING_FALLBACKS_MULTIPLIER", cast=int),
+                "blockchain": lambda p: self._eternal_storage_service.get_uint(
+                    p),
+                "description": "...",
+                "default": 0,
+            },
+
         }
         self.from_conf = set()
         self.from_default = set()
