@@ -27,7 +27,7 @@ Corp. in its sole discretion:
  2. use by any charitable organization, educational institution, public research organization, public safety or health
  organization, environmental protection organization or government institution; or
  3. the number of monthly active users of the Resulting Program across all versions thereof and platforms globally
- do not exceed 10,000 at any time.
+ do not exceed 100 at any time.
 
 You will not use any trade mark, service mark, trade name, logo of MOC Investments Corp. or any other company or
 organization in a way that is likely or intended to cause confusion about the owner or authorized user of such marks,
