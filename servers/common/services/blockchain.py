@@ -119,21 +119,36 @@ class BlockchainStateLoop(BgTaskExecutor):
 class GasCalculator:
 
     def __init__(self):
+
+        logger.info('Initializing GasCalculator ...')
+
+        def get(var_name, show_fnc=repr):
+            value = getattr(settings, var_name)
+            logger.info(f"    Getting parameter {repr(var_name)} -> {show_fnc(value)}")
+            return value
+
+        self.node_url = str(get('NODE_URL', str))
+        self.default_gas_price = get('DEFAULT_GAS_PRICE')
+        self.gas_percentage_admitted = get('GAS_PERCENTAGE_ADMITTED')
+        self.gas_price_hard_limit_min = get('GAS_PRICE_HARD_LIMIT_MIN')
+        self.gas_price_hard_limit_max = get('GAS_PRICE_HARD_LIMIT_MAX')
+        self.gas_price_hard_limit_multiplier = get('GAS_PRICE_HARD_LIMIT_MULTIPLIER')
+
         self.last_price = None 
-        self.default_gas_price = settings.DEFAULT_GAS_PRICE
-        self.gas_percentage_admitted = settings.GAS_PERCENTAGE_ADMITTED
-        self.W3 = Web3(HTTPProvider(str(settings.NODE_URL),
+
+        self.W3 = Web3(HTTPProvider(self.node_url,
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
+
     def set_last_price(self, gas_price):
         self.last_price = gas_price
+
+    def get_gas_price_plus_x_perc(self, gas_price):
+        return gas_price + gas_price * (self.gas_percentage_admitted / 100)
 
     def get_last_price(self):
         if self.last_price is None:
             return self.default_gas_price
         return int(self.get_gas_price_plus_x_perc(self.last_price))
-
-    def get_gas_price_plus_x_perc(self, gas_price):
-        return gas_price + gas_price * (self.gas_percentage_admitted / 100)
 
     def is_gas_price_out_of_range(self, gas_price):
         if gas_price > self.get_last_price():
@@ -142,11 +157,23 @@ class GasCalculator:
 
     @exec_with_catch_async
     async def get_current(self):
+
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
+        
         if gas_price is None:
             gas_price = self.get_last_price() if self.get_last_price() is not None else self.default_gas_price
+        
         if self.is_gas_price_out_of_range(gas_price):
             gas_price = self.get_last_price()
+
+        gas_price = gas_price * self.gas_price_hard_limit_multiplier
+        
+        if self.gas_price_hard_limit_min > gas_price:
+            gas_price = self.gas_price_hard_limit_min
+        
+        if self.gas_price_hard_limit_max and self.gas_price_hard_limit_max < gas_price:
+            gas_price = self.gas_price_hard_limit_max
+        
         self.set_last_price(gas_price)
         return gas_price
     
