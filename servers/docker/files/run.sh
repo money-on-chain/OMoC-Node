@@ -13,11 +13,12 @@ check_env () {
 }
 
 check_env NODE_URL
-check_env NETWORK_ID
+check_env CHAIN_ID
 check_end ORACLE_PORT
 check_env ORACLE_ADDR
 check_env ORACLE_PRIVATE_KEY
-check_env SCHEDULER_SIGNING_ADDR ORACLE_ADDR
-check_env SCHEDULER_SIGNING_KEY ORACLE_PRIVATE_KEY
+check_env REGISTRY_ADDR
+
+export TZ=UTC
 
 python -m oracle.src.main

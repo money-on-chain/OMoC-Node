@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # rebuild_docker_instance.sh
 
+IMG="moneyonchain/omoc_node:latest"
+
+echo
+echo Pull the docker image ...
+echo "docker pull $IMG"
+docker pull $IMG
+
 echo
 echo Stop omoc-node docker instance...
 echo "docker stop omoc-node"
@@ -13,8 +20,8 @@ docker rm omoc-node
 
 echo
 echo Run omoc-node docker instance...
-echo "docker run -d --restart always --log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true -p 5556:5556 --name omoc-node --env-file=/home/ubuntu/env_oracle moneyonchain/omoc_node:1.0"
-docker run -d --restart always --log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true -p 5556:5556 --name omoc-node --env-file=/home/ubuntu/env_oracle moneyonchain/omoc_node:1.0
+echo "docker run -d --restart always --log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true -p 5556:5556 --name omoc-node --env-file=/home/ubuntu/env_oracle $IMG"
+docker run -d --restart always --log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true -p 5556:5556 --name omoc-node --env-file=/home/ubuntu/env_oracle $IMG
 
 sleep 3
 
@@ -31,4 +38,4 @@ docker logs -n 10 -t omoc-node
 
 echo
 echo Done!.
-echo "Run 'docker logs -n 1 -t -f omoc-node' to see more log.
+echo "Run 'docker logs -n 1 -t -f omoc-node' to see more log."
