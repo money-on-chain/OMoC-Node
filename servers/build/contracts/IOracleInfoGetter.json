@@ -1,0 +1,305 @@
+{
+  "contractName": "IOracleInfoGetter",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract ICoinPairPrice",
+          "name": "_coinPairPrice",
+          "type": "address"
+        }
+      ],
+      "name": "getCoinPairUIInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "round",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "startBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lockPeriodTimestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalPoints",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "points",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "selectedInRound",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "address",
+                  "name": "addr",
+                  "type": "address"
+                }
+              ],
+              "internalType": "struct IOracleInfoGetter.CoinPairUIOracleRoundInfo[]",
+              "name": "info",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "currentBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lastPubBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "lastPubBlockHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "validPricePeriodInBlocks",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "availableRewards",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IOracleInfoGetter.CoinPairPriceUIInfo",
+          "name": "coinPairPriceUIInfo",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract IOracleManager",
+          "name": "_oracleManager",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_offset",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_limit",
+          "type": "uint256"
+        }
+      ],
+      "name": "getManagerUICoinPairInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "addr",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinPair",
+              "type": "bytes32"
+            }
+          ],
+          "internalType": "struct IOracleInfoGetter.ManagerUICoinPairInfo[]",
+          "name": "info",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract IOracleManager",
+          "name": "_oracleManager",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_from",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_cant",
+          "type": "uint256"
+        }
+      ],
+      "name": "getManagerUIOracleInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "stake",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "mocsBalance",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "basecoinBalance",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "addr",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
+              "internalType": "string",
+              "name": "name",
+              "type": "string"
+            }
+          ],
+          "internalType": "struct IOracleInfoGetter.ManagerUIOracleInfo[]",
+          "name": "info",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "address",
+          "name": "nextEntry",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract IOracleManager",
+          "name": "_oracleManager",
+          "type": "address"
+        },
+        {
+          "internalType": "contract ICoinPairPrice",
+          "name": "_coinPairPrice",
+          "type": "address"
+        }
+      ],
+      "name": "getOracleServerInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "round",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "startBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lockPeriodTimestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalPoints",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "stake",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "points",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address",
+                  "name": "addr",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "owner",
+                  "type": "address"
+                },
+                {
+                  "internalType": "string",
+                  "name": "name",
+                  "type": "string"
+                }
+              ],
+              "internalType": "struct IOracleInfoGetter.FullOracleRoundInfo[]",
+              "name": "info",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "currentBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lastPubBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "lastPubBlockHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "validPricePeriodInBlocks",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IOracleInfoGetter.OracleServerInfo",
+          "name": "oracleServerInfo",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x"
+}
