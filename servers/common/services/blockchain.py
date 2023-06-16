@@ -140,7 +140,9 @@ class GasCalculator:
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
 
     def set_last_price(self, gas_price):
-        self.last_price = gas_price
+        if self.last_price != gas_price:
+            self.last_price = gas_price
+            logger.info(f"A new gas price was calculated: {gas_price}")           
 
     def get_gas_price_plus_x_perc(self, gas_price):
         return gas_price + gas_price * (self.gas_percentage_admitted / 100)
