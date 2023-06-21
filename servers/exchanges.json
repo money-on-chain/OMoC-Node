@@ -7,8 +7,6 @@
         {"name": "gemini", "ponderation": "0.17", "min_volume": 0.0, "max_delay": 0}
     ],
     "RIFBTC": [
-        {"name": "binance_rif", "ponderation": "4", "min_volume": 0.0, "max_delay": 0},
-        {"name": "kucoin_rif", "ponderation": "4", "min_volume": 0.0, "max_delay": 0},
-        {"name": "mxc_rif", "ponderation": "2", "min_volume": 0.0, "max_delay": 0}
+        {"name": "binance_rif", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
     ]
 }
