@@ -41,10 +41,14 @@ PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=False)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version
-VERSION = "1.3.6.5"
+VERSION = "1.3.6.6"
 
 # This four are for the gas_price fix. Sometime the gas_price reaches 20Gwei
 # Used the first time if the gas price exceeds the admitted
-DEFAULT_GAS_PRICE = config('DEFAULT_GAS_PRICE', cast=int, default=65000000)
+DEFAULT_GAS_PRICE = config('DEFAULT_GAS_PRICE', cast=int, default=65800000)
 # The percentage that is consider to be admitted 
 GAS_PERCENTAGE_ADMITTED = config('GAS_PERCENTAGE_ADMITTED', cast=int, default=10)
+# Hard limits to the gas price
+GAS_PRICE_HARD_LIMIT_MIN = config('GAS_PRICE_HARD_LIMIT_MIN', cast=int, default=65800000)
+GAS_PRICE_HARD_LIMIT_MAX = config('GAS_PRICE_HARD_LIMIT_MAX', cast=int, default=0) # 0 means no limit
+GAS_PRICE_HARD_LIMIT_MULTIPLIER = config('GAS_PRICE_HARD_LIMIT_MULTIPLIER', cast=int, default=1) # 1 means no changes
