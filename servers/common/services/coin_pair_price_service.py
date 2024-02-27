@@ -7,6 +7,8 @@ from common.helpers import hb_to_bytes, dt_now_at_utc
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChainContract
 from common.services.oracle_dao import OracleRoundInfo, RoundInfo
 
+from common import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,9 +25,9 @@ class CoinPairService:
         return await self._contract.bc_call(method, *args, account=account, **kw)
 
     async def coin_pair_price_execute(self, method, *args, account: BlockchainAccount = None, wait=False,
-                                      last_gas_price=None, **kw):
+                                      last_gas_price=None, gas: int = None, **kw):
         return await self._contract.bc_execute(method, *args, account=account, wait=wait,
-                                               last_gas_price=last_gas_price, **kw)
+                                               last_gas_price=last_gas_price, gas=gas, **kw)
 
     async def get_valid_price_period_in_blocks(self):
         return await self.coin_pair_price_call("getValidPricePeriodInBlocks")
@@ -81,7 +83,8 @@ class CoinPairService:
         return RoundInfo(*bc_data)
 
     async def switch_round(self, account: BlockchainAccount = None, wait=False):
-        return await self.coin_pair_price_execute("switchRound", account=account, wait=wait)
+        gas = settings.COIN_PAIR_SW_ROUND_GAS_LIMIT
+        return await self.coin_pair_price_execute("switchRound", account=account, wait=wait, gas=gas)
 
     async def get_oracle_round_info(self, address: BlockChainAddress) -> OracleRoundInfo:
         bc_data = await self.coin_pair_price_call("getOracleRoundInfo", address)

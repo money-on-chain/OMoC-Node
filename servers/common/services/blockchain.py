@@ -215,23 +215,24 @@ class BlockChain:
     async def get_block_by_number(self, block_number, full=False):
         return await run_in_executor(lambda: self.W3.eth.getBlock(block_number, full))
     
-    async def get_tx(self, method, account_addr: str, gas_price):
+    async def get_tx(self, method, account_addr: str, gas_price, gas: int = None):
         logger.debug(f"+++++++++ get tx ++++++++ {str(account_addr)} - {method}")
         from_addr = parse_addr(str(account_addr))
 
         nonce = await run_in_executor(lambda: self.W3.eth.getTransactionCount(
                                                                     from_addr))
         logger.debug(f"Nonce: {nonce}  sender: {from_addr}")
-        try:
-            logger.debug("GAS: %r" % gas_price)
-            gas = await run_in_executor(lambda: method.estimateGas({'from': from_addr,
-                                                                    'gasPrice': gas_price,
-                                                                    'nonce': nonce}))
-        except asyncio.CancelledError as e:
-            raise e
-        except Exception as err:
-            logger.debug("USING DEFAULT VALUE FOR GAS LIMIT")
-            gas = 4200000  # adji: Must be enough, can't be to close to gas lim.
+        if gas is None:
+            try:
+                logger.debug("GAS: %r" % gas_price)
+                gas = await run_in_executor(lambda: method.estimateGas({'from': from_addr,
+                                                                        'gasPrice': gas_price,
+                                                                        'nonce': nonce}))
+            except asyncio.CancelledError as e:
+                raise e
+            except Exception as err:
+                logger.debug("USING DEFAULT VALUE FOR GAS LIMIT")
+                gas = 4200000  # adji: Must be enough, can't be to close to gas lim.
 
         chain_id = await run_in_executor(lambda: self.W3.eth.chainId)
         if not chain_id:
@@ -323,11 +324,11 @@ class BlockChainContract:
             {'from': account} if account else {}))
 
     @exec_with_catch_async
-    async def bc_execute(self, method, *args, account: BlockchainAccount = None, wait=False, last_gas_price=None, **kw):
+    async def bc_execute(self, method, *args, account: BlockchainAccount = None, wait=False, last_gas_price=None, gas: int = None, **kw):
         if not account:
             raise Exception("Missing key, cant execute")
         method_func = self._contract.functions[method](*args, **kw)
-        tx = await self._blockchain.get_tx(method_func, str(account.addr), gas_price=last_gas_price)
+        tx = await self._blockchain.get_tx(method_func, str(account.addr), gas_price=last_gas_price, gas=gas)
         txn = tx["tx"]
         signed_txn = self._blockchain.sign_transaction(txn, private_key=Web3.toBytes(hexstr=str(account.key)))
         logger.debug("%s SENDING SIGNED TX %r", tx["txdata"]["chainId"], signed_txn)
