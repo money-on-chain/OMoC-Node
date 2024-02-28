@@ -51,7 +51,7 @@ py==1.9.0
 pycares==3.1.1
 pycparser==2.20
 pycryptodome==3.9.8
-pydantic==1.5.1
+pydantic==2.5.3
 pyparsing==2.4.7
 pyrsistent==0.16.0
 pytest==5.4.3
@@ -65,9 +65,9 @@ regex==2020.6.8
 requests==2.24.0
 rlp==1.2.0
 six==1.15.0
-starlette==0.13.4
+starlette==0.36.3
 toolz==0.10.0
-typing-extensions==3.7.4.2
+typing-extensions==4.10.0
 tzlocal==2.1
 urllib3==1.25.9
 uvicorn==0.11.5

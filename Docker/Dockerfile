@@ -1,4 +1,4 @@
-FROM python:3.7-alpine as base
+FROM python:3.8-alpine as base
 FROM base as builder
 
 RUN apk add build-base openssl-dev libffi-dev  python3-dev 	py3-setuptools
