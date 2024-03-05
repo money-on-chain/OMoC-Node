@@ -7,7 +7,7 @@ A script tool to clean an Ubuntu Linux instance intended to run via Docker an oM
 Must be run as root
 
 ```shell
-root@server:~# curl https://raw.githubusercontent.com/money-on-chain/OMoC-Node/scripts/disk_clean.sh | bash
+root@server:~# curl https://raw.githubusercontent.com/money-on-chain/OMoC-Node/master/scripts/disk_clean.sh | bash
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   613  100   613    0     0   3111      0 --:--:-- --:--:-- --:--:--  3095
