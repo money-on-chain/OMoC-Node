@@ -63,7 +63,7 @@ class OracleLoop(BgTaskExecutor):
                                                  cp_loop, pf_loop, bl_loop,
                                                  OracleTurn(self.conf, cp_service.coin_pair))
         if oracle_settings.SCHEDULER_RUN_ORACLE_SCHEDULER:
-            tasks.append(SchedulerCoinPairLoop(self.conf, cp_service))
+            tasks.append(SchedulerCoinPairLoop(self.conf, cp_service, self.bs_loop))
         for x in tasks:
             x.start_bg_task()
 
