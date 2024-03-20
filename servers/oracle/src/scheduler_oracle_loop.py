@@ -1,7 +1,7 @@
 import logging
 
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error
+from common.services.blockchain import is_error, BlockchainStateLoop
 from oracle.src import oracle_settings
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class SchedulerCoinPairLoop(BgTaskExecutor):
-    def __init__(self, conf: OracleConfiguration, cps: OracleCoinPairService):
+    def __init__(self, conf: OracleConfiguration, cps: OracleCoinPairService,
+                 bs_loop: BlockchainStateLoop):
+        self.bs_loop = bs_loop
         self._conf = conf
         self._cps = cps
         self._coin_pair = cps.coin_pair
@@ -29,7 +31,11 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         if not self._is_right_block(round_info, block_timestamp):
             return self._conf.SCHEDULER_POOL_DELAY
 
-        receipt = await self._cps.switch_round(account=oracle_settings.get_oracle_scheduler_account(), wait=True)
+        receipt = await self._cps.switch_round(
+            account=oracle_settings.get_oracle_scheduler_account(),
+            wait=True,
+            last_gas_price=self.bs_loop.gas_calc.get_current())
+        
         if is_error(receipt):
             self.error("error in switch_round tx %r" % (receipt,))
             return self._conf.SCHEDULER_POOL_DELAY

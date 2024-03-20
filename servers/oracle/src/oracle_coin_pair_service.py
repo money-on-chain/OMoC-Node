@@ -134,8 +134,10 @@ class OracleCoinPairService:
     async def get_round_info(self) -> RoundInfo:
         return await self._coin_pair_service.get_round_info()
 
-    async def switch_round(self, account: BlockchainAccount = None, wait=False):
-        return await self._coin_pair_service.switch_round(account=account, wait=wait)
+    async def switch_round(self, account: BlockchainAccount = None, wait=False,
+                           last_gas_price=None):       
+        return await self._coin_pair_service.switch_round(account=account, wait=wait,
+                           last_gas_price=last_gas_price)
 
     async def get_last_block_timestamp(self):
         data = await self._blockchain.get_last_block_data()

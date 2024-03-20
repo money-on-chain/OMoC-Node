@@ -82,9 +82,11 @@ class CoinPairService:
             return bc_data
         return RoundInfo(*bc_data)
 
-    async def switch_round(self, account: BlockchainAccount = None, wait=False):
-        gas = settings.COIN_PAIR_SW_ROUND_GAS_LIMIT
-        return await self.coin_pair_price_execute("switchRound", account=account, wait=wait, gas=gas)
+    async def switch_round(self, account: BlockchainAccount = None, wait=False,
+                           last_gas_price=None):
+        gas = settings.COIN_PAIR_SW_ROUND_GAS_LIMIT        
+        return await self.coin_pair_price_execute(
+            "switchRound", account=account, wait=wait, gas=gas, last_gas_price=last_gas_price)
 
     async def get_oracle_round_info(self, address: BlockChainAddress) -> OracleRoundInfo:
         bc_data = await self.coin_pair_price_call("getOracleRoundInfo", address)
