@@ -34,7 +34,7 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         receipt = await self._cps.switch_round(
             account=oracle_settings.get_oracle_scheduler_account(),
             wait=True,
-            last_gas_price=self.bs_loop.gas_calc.get_current())
+            last_gas_price=await self.bs_loop.gas_calc.get_current())
         
         if is_error(receipt):
             self.error("error in switch_round tx %r" % (receipt,))
