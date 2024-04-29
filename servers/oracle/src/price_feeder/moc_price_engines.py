@@ -11,6 +11,7 @@ import requests
 
 from oracle.src import monitor
 from oracle.src.oracle_configuration import OracleConfiguration
+from common import settings
 
 
 logger = logging.getLogger(__name__)
@@ -380,7 +381,7 @@ class KucoinRIFBTC(PriceEngineBase):
 class LocalUSDARS(PriceEngineBase):
     name = "local_ars"
     description = "Local_ARS"
-    uri = "http://localhost:7989/api/coinpairs/get_value?coinpair=USD%2FARS(CCB)"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=USD%2FARS(CCB)"
     convert = "USD_ARS"
 
     def map(self, response_json, age):
@@ -393,7 +394,7 @@ class LocalUSDARS(PriceEngineBase):
 class LocalUSDCOP(PriceEngineBase):
     name = "local_cop"
     description = "Local_COP"
-    uri = "http://localhost:7989/api/coinpairs/get_value?coinpair=USD%2FCOP(CCB)"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=USD%2FCOP(CCB)"
     convert = "USD_COP"
 
     def map(self, response_json, age):
