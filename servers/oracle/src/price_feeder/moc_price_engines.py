@@ -377,25 +377,53 @@ class KucoinRIFBTC(PriceEngineBase):
         return d_price_info
 
 
+class LocalUSDARS(PriceEngineBase):
+    name = "local_ars"
+    description = "Local_ARS"
+    uri = "http://localhost:7989/api/coinpairs/get_value?coinpair=USD%2FARS(CCB)"
+    convert = "USD_ARS"
+
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
+        d_price_info['price'] = Decimal(response_json['value'])
+        d_price_info['volume'] = 0.0
+        return d_price_info
+
+
+class LocalUSDCOP(PriceEngineBase):
+    name = "local_cop"
+    description = "Local_COP"
+    uri = "http://localhost:7989/api/coinpairs/get_value?coinpair=USD%2FCOP(CCB)"
+    convert = "USD_COP"
+
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
+        d_price_info['price'] = Decimal(response_json['value'])
+        d_price_info['volume'] = 0.0
+        return d_price_info
+
+
 base_engines_names = {
-    "coinbase": CoinBaseBTCUSD,
-    "bitstamp": BitstampBTCUSD,
-    "bitgo": BitGOBTCUSD,
-    "bitfinex": BitfinexBTCUSD,
-    "blockchain": BlockchainBTCUSD,
-    "bittrex": BittrexBTCUSD,
-    "kraken": KrakenBTCUSD,
-    "kucoin": KucoinBTCUSD,
-    "binance": BinanceBTCUSD,
-    "gemini": GeminiBTCUSD,
-    "okcoin": OkCoinBTCUSD,
-    "itbit": ItBitBTCUSD,
-    "bitfinex_rif": BitfinexRIFBTC,
-    "bithumbpro_rif": BithumbproRIFBTC,
-    "coinbene_rif": CoinbeneRIFBTC,
-    "kucoin_rif": KucoinRIFBTC,
-    "binance_rif": BinanceRIFBTC,
-    "mxc_rif": MxcRIFBTC,
+    "btc_usd_coinbase": CoinBaseBTCUSD,
+    "btc_usd_bitstamp": BitstampBTCUSD,
+    "btc_usd_bitgo": BitGOBTCUSD,
+    "btc_usd_bitfinex": BitfinexBTCUSD,
+    "btc_usd_blockchain": BlockchainBTCUSD,
+    "btc_usd_bittrex": BittrexBTCUSD,
+    "btc_usd_kraken": KrakenBTCUSD,
+    "btc_usd_kucoin": KucoinBTCUSD,
+    "btc_usd_binance": BinanceBTCUSD,
+    "btc_usd_gemini": GeminiBTCUSD,
+    "btc_usd_okcoin": OkCoinBTCUSD,
+    "btc_usd_itbit": ItBitBTCUSD,
+    "rif_btc_bitfinex": BitfinexRIFBTC,
+    "rif_btc_bithumbpro": BithumbproRIFBTC,
+    "rif_btc_coinbene": CoinbeneRIFBTC,
+    "rif_btc_kucoin": KucoinRIFBTC,
+    "rif_btc_binance": BinanceRIFBTC,
+    "rif_btc_mxc": MxcRIFBTC,
+    "usd_ars_local": LocalUSDARS,
+    "usd_cop_local": LocalUSDCOP,
 }
 
 

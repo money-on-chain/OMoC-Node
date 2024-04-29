@@ -41,7 +41,7 @@ PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=False)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version
-VERSION = "1.3.6.8"
+VERSION = "1.3.6.9"
 
 # This four are for the gas_price fix. Sometime the gas_price reaches 20Gwei
 # Used the first time if the gas price exceeds the admitted
