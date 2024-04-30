@@ -31,11 +31,11 @@ COPY ./servers/oracle ./oracle
 COPY ./servers/exchanges.json ./exchanges.json
 COPY ./servers/requirements.txt ./requirements.txt 
 
-COPY ./Docker/run.sh ./
-COPY ./Docker/conf/env_file ./.env
+COPY ./Docker/files/run.sh ./
+COPY ./Docker/files/env_file ./.env
 
 RUN mkdir /root/.moc_prices_source
-COPY ./Docker/conf/redis.json /root/.moc_prices_source/
+COPY ./Docker/files/redis.json /root/.moc_prices_source/
 
 RUN chmod +x run.sh 
 
