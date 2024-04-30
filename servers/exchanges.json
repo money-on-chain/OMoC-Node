@@ -10,9 +10,9 @@
         {"name": "rif_btc_binance", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
     ],
     "USDARS": [
-        {"name": "usd_ars_local", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+        {"name": "usd_ars_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
     ],
     "USDCOP": [
-        {"name": "usd_cop_local", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+        {"name": "usd_cop_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
     ]
 }

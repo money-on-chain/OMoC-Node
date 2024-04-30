@@ -378,30 +378,35 @@ class KucoinRIFBTC(PriceEngineBase):
         return d_price_info
 
 
-class LocalUSDARS(PriceEngineBase):
-    name = "local_ars"
-    description = "Local_ARS"
+class ApiBase(PriceEngineBase):
+
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
+        d_price_info['price'] = Decimal(response_json['value'])
+        d_price_info['volume'] = 0.0
+        return d_price_info
+
+
+class ApiBTCUSD(ApiBase):
+    name = "api_btc_usd"
+    description = "Api BTCUSD"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=BTC%2FUSD"
+    convert = "BTC_USD"
+    
+
+class ApiUSDARS(ApiBase):
+    name = "api_ars"
+    description = "Api USDARS"
     uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=USD%2FARS(CCB)"
     convert = "USD_ARS"
 
-    def map(self, response_json, age):
-        d_price_info = super().map(response_json, age)
-        d_price_info['price'] = Decimal(response_json['value'])
-        d_price_info['volume'] = 0.0
-        return d_price_info
 
-
-class LocalUSDCOP(PriceEngineBase):
-    name = "local_cop"
-    description = "Local_COP"
+class ApiUSDCOP(ApiBase):
+    name = "api_cop"
+    description = "Api USDCOP"
     uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=USD%2FCOP(CCB)"
     convert = "USD_COP"
 
-    def map(self, response_json, age):
-        d_price_info = super().map(response_json, age)
-        d_price_info['price'] = Decimal(response_json['value'])
-        d_price_info['volume'] = 0.0
-        return d_price_info
 
 
 base_engines_names = {
@@ -423,8 +428,9 @@ base_engines_names = {
     "rif_btc_kucoin": KucoinRIFBTC,
     "rif_btc_binance": BinanceRIFBTC,
     "rif_btc_mxc": MxcRIFBTC,
-    "usd_ars_local": LocalUSDARS,
-    "usd_cop_local": LocalUSDCOP,
+    "btc_usd_api": ApiBTCUSD,
+    "usd_ars_api": ApiUSDARS,
+    "usd_cop_api": ApiUSDCOP,
 }
 
 
