@@ -2,17 +2,16 @@
 
 if [ "$NOT_RUN_MPS_API_SERVER" != true ] ; then
     
+    echo ""
+    echo ""
+    echo "Start local Redis server..."
+    redis-server --save "" --appendonly no &
+    sleep 5
 
     echo ""
     echo ""
     echo "Show the weighing setting:"
     moc_prices_source_check --weighing
-    sleep 5
-
-    echo ""
-    echo ""
-    echo "Start local Redis server..."
-    redis-server --save "" --appendonly no &
     sleep 5
 
     echo ""
