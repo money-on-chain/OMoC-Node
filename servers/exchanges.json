@@ -14,5 +14,8 @@
     ],
     "USDCOP": [
         {"name": "usd_cop_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+    ],
+    "RIFUSD": [
+        {"name": "rif_usd_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
     ]
 }

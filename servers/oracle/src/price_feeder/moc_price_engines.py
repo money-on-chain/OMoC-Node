@@ -408,6 +408,12 @@ class ApiUSDCOP(ApiBase):
     convert = "USD_COP"
 
 
+class ApiRIFUSD(ApiBase):
+    name = "api_rif"
+    description = "Api RIFUSD"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=RIF%2FUSDT"
+    convert = "RIF_USD"
+
 
 base_engines_names = {
     "btc_usd_coinbase": CoinBaseBTCUSD,
@@ -431,6 +437,7 @@ base_engines_names = {
     "btc_usd_api": ApiBTCUSD,
     "usd_ars_api": ApiUSDARS,
     "usd_cop_api": ApiUSDCOP,
+    "rif_usd_api": ApiRIFUSD,
 }
 
 
