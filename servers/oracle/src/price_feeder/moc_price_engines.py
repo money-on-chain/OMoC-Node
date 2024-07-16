@@ -11,6 +11,7 @@ import requests
 
 from oracle.src import monitor
 from oracle.src.oracle_configuration import OracleConfiguration
+from common import settings
 
 
 logger = logging.getLogger(__name__)
@@ -377,25 +378,66 @@ class KucoinRIFBTC(PriceEngineBase):
         return d_price_info
 
 
+class ApiBase(PriceEngineBase):
+
+    def map(self, response_json, age):
+        d_price_info = super().map(response_json, age)
+        d_price_info['price'] = Decimal(response_json['value'])
+        d_price_info['volume'] = 0.0
+        return d_price_info
+
+
+class ApiBTCUSD(ApiBase):
+    name = "api_btc_usd"
+    description = "Api BTCUSD"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=BTC%2FUSD"
+    convert = "BTC_USD"
+    
+
+class ApiUSDARS(ApiBase):
+    name = "api_ars"
+    description = "Api USDARS"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=USD%2FARS(CCB)"
+    convert = "USD_ARS"
+
+
+class ApiUSDCOP(ApiBase):
+    name = "api_cop"
+    description = "Api USDCOP"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=USD%2FCOP(CCB)"
+    convert = "USD_COP"
+
+
+class ApiRIFUSD(ApiBase):
+    name = "api_rif"
+    description = "Api RIFUSD"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=RIF%2FUSDT"
+    convert = "RIF_USD"
+
+
 base_engines_names = {
-    "coinbase": CoinBaseBTCUSD,
-    "bitstamp": BitstampBTCUSD,
-    "bitgo": BitGOBTCUSD,
-    "bitfinex": BitfinexBTCUSD,
-    "blockchain": BlockchainBTCUSD,
-    "bittrex": BittrexBTCUSD,
-    "kraken": KrakenBTCUSD,
-    "kucoin": KucoinBTCUSD,
-    "binance": BinanceBTCUSD,
-    "gemini": GeminiBTCUSD,
-    "okcoin": OkCoinBTCUSD,
-    "itbit": ItBitBTCUSD,
-    "bitfinex_rif": BitfinexRIFBTC,
-    "bithumbpro_rif": BithumbproRIFBTC,
-    "coinbene_rif": CoinbeneRIFBTC,
-    "kucoin_rif": KucoinRIFBTC,
-    "binance_rif": BinanceRIFBTC,
-    "mxc_rif": MxcRIFBTC,
+    "btc_usd_coinbase": CoinBaseBTCUSD,
+    "btc_usd_bitstamp": BitstampBTCUSD,
+    "btc_usd_bitgo": BitGOBTCUSD,
+    "btc_usd_bitfinex": BitfinexBTCUSD,
+    "btc_usd_blockchain": BlockchainBTCUSD,
+    "btc_usd_bittrex": BittrexBTCUSD,
+    "btc_usd_kraken": KrakenBTCUSD,
+    "btc_usd_kucoin": KucoinBTCUSD,
+    "btc_usd_binance": BinanceBTCUSD,
+    "btc_usd_gemini": GeminiBTCUSD,
+    "btc_usd_okcoin": OkCoinBTCUSD,
+    "btc_usd_itbit": ItBitBTCUSD,
+    "rif_btc_bitfinex": BitfinexRIFBTC,
+    "rif_btc_bithumbpro": BithumbproRIFBTC,
+    "rif_btc_coinbene": CoinbeneRIFBTC,
+    "rif_btc_kucoin": KucoinRIFBTC,
+    "rif_btc_binance": BinanceRIFBTC,
+    "rif_btc_mxc": MxcRIFBTC,
+    "btc_usd_api": ApiBTCUSD,
+    "usd_ars_api": ApiUSDARS,
+    "usd_cop_api": ApiUSDCOP,
+    "rif_usd_api": ApiRIFUSD,
 }
 
 

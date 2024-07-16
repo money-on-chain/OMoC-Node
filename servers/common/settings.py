@@ -1,4 +1,4 @@
-import os
+import os, sys
 import pathlib
 
 from starlette.config import Config
@@ -6,7 +6,11 @@ from starlette.datastructures import URL
 
 from common.helpers import parseTimeDelta
 
-config = Config(".env")
+try:
+    config = Config(".env")
+except FileNotFoundError as e:
+    print(e, file=sys.stderr)
+    exit(1)
 
 # Block chain server url
 NODE_URL = config('NODE_URL', cast=URL, default=None)
@@ -23,7 +27,12 @@ CONTRACT_ROOT_FOLDER = config('CONTRACT_ROOT_FOLDER', cast=pathlib.Path,
 # The server expect to find in this folder the *.json files with the abi an addresses of contracts
 CONTRACT_FOLDER = config('CONTRACT_FOLDER', cast=pathlib.Path,
                          default=os.path.join(CONTRACT_ROOT_FOLDER, "build", "contracts"))
-REGISTRY_ADDR = config('REGISTRY_ADDR', cast=str)
+
+try:
+    REGISTRY_ADDR = config('REGISTRY_ADDR', cast=str)
+except KeyError as e:
+    print("Config env 'REGISTRY_ADDR' is missing.", file=sys.stderr)
+    exit(1)
 
 # Timeout used when connection to the blockchain node
 WEB3_TIMEOUT = parseTimeDelta(config('WEB3_TIMEOUT ', cast=str, default="30 secs"))
@@ -41,7 +50,7 @@ PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=False)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version
-VERSION = "1.3.6.8"
+VERSION = "1.3.6.9"
 
 # This four are for the gas_price fix. Sometime the gas_price reaches 20Gwei
 # Used the first time if the gas price exceeds the admitted
@@ -54,3 +63,5 @@ GAS_PRICE_HARD_LIMIT_MAX = config('GAS_PRICE_HARD_LIMIT_MAX', cast=int, default=
 GAS_PRICE_HARD_LIMIT_MULTIPLIER = config('GAS_PRICE_HARD_LIMIT_MULTIPLIER', cast=int, default=1) # 1 means no changes
 
 COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, default=2500000)
+
+MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')

@@ -1,12 +1,21 @@
 {
     "BTCUSD": [
-        {"name": "bitstamp", "ponderation": "0.22", "min_volume": 0.0, "max_delay": 0},
-        {"name": "bitfinex", "ponderation": "0.18", "min_volume": 0.0, "max_delay": 0},
-        {"name": "kraken", "ponderation": "0.18", "min_volume": 0.0, "max_delay": 0},
-        {"name": "coinbase", "ponderation": "0.25", "min_volume": 0.0, "max_delay": 0},
-        {"name": "gemini", "ponderation": "0.17", "min_volume": 0.0, "max_delay": 0}
+        {"name": "btc_usd_bitstamp", "ponderation": "0.22", "min_volume": 0.0, "max_delay": 0},
+        {"name": "btc_usd_bitfinex", "ponderation": "0.18", "min_volume": 0.0, "max_delay": 0},
+        {"name": "btc_usd_kraken", "ponderation": "0.18", "min_volume": 0.0, "max_delay": 0},
+        {"name": "btc_usd_coinbase", "ponderation": "0.25", "min_volume": 0.0, "max_delay": 0},
+        {"name": "btc_usd_gemini", "ponderation": "0.17", "min_volume": 0.0, "max_delay": 0}
     ],
     "RIFBTC": [
-        {"name": "binance_rif", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+        {"name": "rif_btc_binance", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+    ],
+    "USDARS": [
+        {"name": "usd_ars_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+    ],
+    "USDCOP": [
+        {"name": "usd_cop_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
+    ],
+    "RIFUSD": [
+        {"name": "rif_usd_api", "ponderation": "1", "min_volume": 0.0, "max_delay": 0}
     ]
 }
