@@ -24,29 +24,29 @@ class PriceFollower:
 
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
-            logger.info(
-                "%r : Price changed %r blocks ago" % (
-                    self._coin_pair, block_chain_info.block_num - self.price_change_block))
+            #logger.info(
+            #    "%r : Price changed %r blocks ago" % (
+            #        self._coin_pair, block_chain_info.block_num - self.price_change_block))
             return block_chain_info.block_num - self.price_change_block
 
         delta = helpers.price_delta(block_chain_info.blockchain_price, exchange_price.price)
         if delta < conf.price_delta_pct:
-            logger.info("%r : We are not fall backs and/or the price didn't change enough %r < %r,"
-                        " block chain price %r exchange price %r" %
-                        (self._coin_pair, delta, conf.price_delta_pct,
-                         block_chain_info.blockchain_price, exchange_price.price))
+            #logger.info("%r : We are not fall backs and/or the price didn't change enough %r < %r,"
+            #            " block chain price %r exchange price %r" %
+            #            (self._coin_pair, delta, conf.price_delta_pct,
+            #             block_chain_info.blockchain_price, exchange_price.price))
             return None
 
         # The publication has changed
         if self.price_change_pub_block != block_chain_info.last_pub_block:
-            logger.info(
-                "%r : The publication block has changed: %r != %r" % (
-                    self._coin_pair, self.price_change_pub_block, block_chain_info.last_pub_block))
+            #logger.info(
+            #    "%r : The publication block has changed: %r != %r" % (
+            #        self._coin_pair, self.price_change_pub_block, block_chain_info.last_pub_block))
             self.price_change_pub_block = block_chain_info.last_pub_block
 
         # We detected a price change in current publication but is the first change
         self.price_change_block = block_chain_info.block_num
-        logger.info("%r : The price has changed, right now" % self._coin_pair)
+        #logger.info("%r : The price has changed, right now" % self._coin_pair)
         return 0
 
 
@@ -95,7 +95,7 @@ class OracleTurn:
         # WARN if oracles won't get to publish before price expires
         ####################################
         if conf.trigger_valid_publication_blocks < len(entering_fallback_sequence) + 1:
-            logger.warning("PRICE will EXPIRE before oracles get to publish. Check configuration.")
+            pass  # logger.warning("PRICE will EXPIRE before oracles get to publish. Check configuration.")
         ####################################
 
         # WARN if valid_price_period_in_blocks < trigger_valid_publication_blocks and return False
@@ -126,7 +126,7 @@ class OracleTurn:
 
         if blocks_since_price_change is None:
             msg = "%r : %s Price didn't change enough." % (self._coin_pair, oracle_addr)
-            logger.info(msg)
+            #logger.info(msg)
             return False, msg
 
         if blocks_since_price_change < conf.price_publish_blocks:

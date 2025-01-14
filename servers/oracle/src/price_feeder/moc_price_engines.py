@@ -525,7 +525,7 @@ class PriceEngines(object):
         if len(l_prices)==0:
             return None
         idx = weighted_median_idx(l_prices, l_weights)
-        monitor.exchange_log("%s median: %s" % (self._coin_pair, l_prices[idx]))
+        #monitor.exchange_log("%s median: %s" % (self._coin_pair, l_prices[idx]))
         return f_prices[_idxback[idx]]
 
     def get_weighted_median(self, f_prices):

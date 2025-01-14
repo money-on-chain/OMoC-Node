@@ -104,15 +104,15 @@ class BlockChainPK(AnyHttpUrl):
 
 class BlockchainStateLoop(BgTaskExecutor):
     def __init__(self, conf):
-        logger.debug('initializing BlockchainStateLoop')
+        #logger.debug('initializing BlockchainStateLoop')
         self.conf = conf
         self.gas_calc = GasCalculator()
         super().__init__(name="BlockchainStateLoop", main=self.run)
 
     async def run(self):
-        logger.info("BlockchainStateLoop loop start")
+        #logger.info("BlockchainStateLoop loop start")
         await self.gas_calc.update()
-        logger.info("BlockchainStateLoop loop done")
+        #logger.info("BlockchainStateLoop loop done")
         return self.conf.ORACLE_BLOCKCHAIN_STATE_DELAY 
 
 
@@ -142,7 +142,7 @@ class GasCalculator:
     def set_last_price(self, gas_price):
         if self.last_price != gas_price:
             self.last_price = gas_price
-            logger.info(f"A new gas price was calculated: {gas_price}")           
+            # logger.info(f"A new gas price was calculated: {gas_price}")           
 
     def get_gas_price_plus_x_perc(self, gas_price):
         return gas_price + gas_price * (self.gas_percentage_admitted / 100)
