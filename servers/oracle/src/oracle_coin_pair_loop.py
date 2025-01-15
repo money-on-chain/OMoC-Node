@@ -13,6 +13,7 @@ from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
 from common.services.blockchain import is_error, BlockchainStateLoop
+from common.services.signal_service import SignalService
 from oracle.src import monitor, oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService, FullOracleRoundInfo
@@ -43,7 +44,7 @@ class OracleCoinPairLoop(BgTaskExecutor):
         self._oracle_turn = OracleTurn(self._conf, cps.coin_pair)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
-
+        self.signal = SignalService()
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
 
     async def run(self):
@@ -83,8 +84,9 @@ class OracleCoinPairLoop(BgTaskExecutor):
                 # retry immediately.
                 return 1
         else:
-            logger.info("%r : OracleCoinPairLoop ------------> Is NOT my turn: %s block %r, %r, %r" %
-                        (self._coin_pair, self._oracle_addr, blockchain_info.block_num,
+            signals = await self.signal.getlen_call()
+            logger.info("%r : OracleCoinPairLoop ----%d-----> Is NOT my turn: %s block %r, %r, %r" %
+                        (self._coin_pair, signals, self._oracle_addr, blockchain_info.block_num,
                          blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 

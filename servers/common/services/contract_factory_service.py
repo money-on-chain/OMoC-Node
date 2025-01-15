@@ -77,8 +77,11 @@ class MocContractFactoryService(ContractFactoryService):
         networks = options["networks"]
         network = settings.MOC_NETWORK
         if network not in networks:
-            raise Exception("Invalid moc network name %r. Available: %r" % (
-                            network, networks.keys()))
+            # in case of no network, fallback to "the-other" Factory..
+            return BlockChain(settings.NODE_URL, settings.CHAIN_ID,
+                                    settings.WEB3_TIMEOUT), None, None
+            # raise Exception("Invalid moc network name %r. Available: %r" % (
+            #                 network, networks.keys()))
         options = networks[network]
         addresses = options["addresses"]
         url = settings.NODE_URL if settings.NODE_URL is not None else options[
