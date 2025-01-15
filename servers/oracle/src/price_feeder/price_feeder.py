@@ -80,14 +80,11 @@ class PriceFeederLoop(BgTaskExecutor):
         tm_utc = val['timestamp'].timestamp()
         price = val['price']
 
-        l_times = [p_price['timestamp'].timestamp() for p_price in w_data]
-        l_names = [p_price['name'] for p_price in w_data]
-        l_prices = [p_price['price'] for p_price in w_data]
-
-        info = [(x[1], str(x[0]), x[2]) for x in sorted(zip(l_prices, l_names, l_times))]
-
-
-        #logger.info("%s median: %r %r %r, %r" % (self._coin_pair, val['name'],
+        # l_times = [p_price['timestamp'].timestamp() for p_price in w_data]
+        # l_names = [p_price['name'] for p_price in w_data]
+        # l_prices = [p_price['price'] for p_price in w_data]
+        # info = [(x[1], str(x[0]), x[2]) for x in sorted(zip(l_prices, l_names, l_times))]
+        # logger.info("%s median: %r %r %r, %r" % (self._coin_pair, val['name'],
         #                                                 str(price), tm_utc, info))
 
         last_price_fetch_wei = int(price * (10 ** self._conf.ORACLE_PRICE_DIGITS))
