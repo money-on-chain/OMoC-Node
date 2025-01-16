@@ -71,8 +71,9 @@ class OracleCoinPairLoop(BgTaskExecutor):
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
-            logger.info("%r : OracleCoinPairLoop ------------> Is my turn I'm chosen: %s block %r, %r, %r" %
-                        (self._coin_pair, self._oracle_addr, blockchain_info.block_num,
+            signals = await self.signal.getlen_call()
+            logger.info("%r : OracleCoinPairLoop ----%d--------> Is my turn I'm chosen: %s block %r, %r, %r" %
+                        (self._coin_pair, signals, self._oracle_addr, blockchain_info.block_num,
                          blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
             publish_success = await self.publish(blockchain_info.selected_oracles,
                                                  PublishPriceParams(self._conf.MESSAGE_VERSION,
