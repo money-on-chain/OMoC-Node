@@ -58,9 +58,8 @@ class RequestValidation:
         message = self.params.prepare_price_msg()
         self.validate_signature(message, signature)
         our_acc = oracle_settings.get_oracle_account()
-        s = crypto.sign_message(hexstr="0x" + message,
-                                account=our_acc)
-        logger.info("%r:%s : sign result: %r" % (self.cp, our_acc.short(), s))
+        s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
+        logger.info("%r:%s : sign result: %r" % (self.cp, our_acc.short, s))
         return message, s
 
     def validate_params(self):

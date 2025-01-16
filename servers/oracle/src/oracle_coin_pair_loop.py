@@ -12,6 +12,7 @@ from hexbytes import HexBytes
 from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
+from common.helpers import MyCfgdLogger
 from common.services.blockchain import is_error, BlockchainStateLoop
 from common.services.signal_service import SignalService
 from oracle.src import monitor, oracle_settings
@@ -29,7 +30,7 @@ OracleSignature = typing.NamedTuple("OracleSignature",
                                      ('signature', HexBytes)])
 
 
-class OracleCoinPairLoop(BgTaskExecutor):
+class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
     def __init__(self, conf: OracleConfiguration,
                  cps: OracleCoinPairService,
                  price_feeder_loop: PriceFeederLoop,
@@ -39,44 +40,44 @@ class OracleCoinPairLoop(BgTaskExecutor):
         self.bs_loop = bs_loop
         self._conf = conf
         self._oracle_addr = oracle_settings.get_oracle_account().addr
+        self._oracle_addr_short = oracle_settings.get_oracle_account().short
         self._cps = cps
         self._coin_pair = cps.coin_pair
         self._oracle_turn = OracleTurn(self._conf, cps.coin_pair)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
         self.signal = SignalService()
-        super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
+        MyCfgdLogger.__init__(': ', self._coin_pair)
+        BgTaskExecutor.__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
 
     async def run(self):
-        #logger.info("%r : OracleCoinPairLoop start" % self._coin_pair)
+        self.debug("OracleCoinPairLoop start")
         #logger.debug(f"--+OracleCoinPairLoop ID {id(self)}")
         round_info = await self._cps.get_round_info()
         if is_error(round_info):
-            logger.error("%r : OracleCoinPairLoop ERROR getting round info %r" % (self._coin_pair, round_info))
+            self.error(f"ERROR getting round info {repr(round_info)}")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         if round_info.round == 0:
-            logger.info("%r : OracleCoinPairLoop Waiting for the initial round...", (self._coin_pair,))
+            self.info(f"OCPL:Waiting for the initial round...")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         exchange_price = await self._price_feeder_loop.get_last_price(time.time(), True)
         if not exchange_price or exchange_price.ts_utc <= 0:
-            logger.info(
-                "%r : OracleCoinPairLoop Still don't have a valid price %r" % (self._coin_pair, exchange_price))
+            self.info(f"Still don't have a valid price {exchange_price}")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         blockchain_info = self.vi_loop.get()
         if not blockchain_info:
-            logger.info("%r : OracleCoinPairLoop waiting for blockchain info" % self._coin_pair)
+            self.info(f"waiting for blockchain info")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
             signals = await self.signal.getlen_call()
             inibido = self.signal.is_paused()
             XX = 'ok' if not inibido else 'XX'
-            logger.info("%r : OracleCoinPairLoop ---[%s %s]----> Is my turn I'm chosen: %s block %r, %r, %r" %
-                        (self._coin_pair, repr(signals), XX, self._oracle_addr,
-                         blockchain_info.block_num,
+            self.info("---[%s %s]----> Is my turn I'm chosen: %s block %r, %r, %r" %
+                        (repr(signals), XX, self._oracle_addr, blockchain_info.block_num,
                          blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
             if not inibido:
                 publish_success = await self.publish(blockchain_info.selected_oracles,
@@ -90,38 +91,35 @@ class OracleCoinPairLoop(BgTaskExecutor):
                     return 1
         else:
             signals = repr(await self.signal.getlen_call())
-            logger.info("%r : OracleCoinPairLoop ----%s-----> Is NOT my turn: %s block %r, %r, %r" %
-                        (self._coin_pair, signals, self._oracle_addr, blockchain_info.block_num,
+            self.info("----%s-----> Is NOT my turn: %s block %r, %r, %r" %
+                        (signals, self._oracle_addr, blockchain_info.block_num,
                          blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
     async def publish(self, oracles, params: PublishPriceParams):
         message = params.prepare_price_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
-        logger.debug("%r : %r GOT MESSAGE %r" % (self._coin_pair, self._oracle_addr, message))
-        logger.info("%r : OracleCoinPairLoop %r GOT MESSAGE params %r and signature %r" %
-                    (self._coin_pair, self._oracle_addr, params, signature))
+        self.debug(f"we {self._oracle_addr} GOT MESSAGE {message}")
+        self.info(f"we {self._oracle_addr} GOT MESSAGE params {params} and signature {signature}")
 
         # send message to all oracles to sign
-        logger.info("%r : OracleCoinPairLoop %r GATHERING SIGNATURES, last pub block %r, price %r" %
-                    (self._coin_pair, self._oracle_addr, params.last_pub_block, params.price))
+        self.info(f"we {self._oracle_addr} GATHERING SIGNATURES:"
+                  f"last pub blk {params.last_pub_block}, price: {params.price}")
         sigs = await gather_signatures(oracles, params, message, signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
         if len(sigs) < len(oracles) // 2 + 1:
-            logger.error(
-                "%r : OracleCoinPairLoop %r Publish: Not enough signatures" % (self._coin_pair, self._oracle_addr))
+            self.error(f"we {self._oracle_addr} Publish: Not enough signatures")
             return False
 
         if settings.DEBUG:
-            logger.info(
-                "%r : OracleCoinPairLoop %r GOT SIGS %r and params %r recover %r" %
-                (self._coin_pair, self._oracle_addr, sigs, params,
-                 [crypto.recover(hexstr=message, signature=x) for x in sigs]))
+            self.info(f"we {self._oracle_addr} GOT SIGS %r and params %r recover %r" %
+                (sigs, params, [crypto.recover(hexstr=message, signature=x) for x in sigs]))
 
+        self.info(f"we({self._oracle_addr}) publishing price: {params.price}")
         monitor.publish_log("%r : %r publishing price: %r" % (self._coin_pair, self._oracle_addr, params.price))
         try:
-            logger.info("%r : OracleCoinPairLoop %r SENDING TRANSACTION, last pub block %r, price %r" %
-                        (self._coin_pair, self._oracle_addr, params.last_pub_block, params.price))
+            self.info(f"we({self._oracle_addr}) SENDING TRANSACTION, "
+                      f"last pub block {params.last_pub_block}, price {params.price}")
             tx = await self._cps.publish_price(params.version,
                                                params.coin_pair,
                                                params.price,
@@ -132,25 +130,23 @@ class OracleCoinPairLoop(BgTaskExecutor):
                                                wait=True,
                                                last_gas_price=await self.bs_loop.gas_calc.get_current())
             if is_error(tx):
-                logger.info("%r : OracleCoinPairLoop %r ERROR PUBLISHING %r" % (self._coin_pair, self._oracle_addr, tx))
+                self.info(f"we{self._oracle_addr} ERROR PUBLISHING {repr(tx)}")
                 return False
-            logger.info("//////////////////////////////////////////////////")
-            logger.info("//////////////////////////////////////////////////")
-            logger.info("//////////////////////////////////////////////////")
-            logger.info(
-                "%r : OracleCoinPairLoop %r --------------------> PRICE PUBLISHED %r" % (
-                    self._coin_pair, self._oracle_addr, tx))
-            logger.info("//////////////////////////////////////////////////")
-            logger.info("//////////////////////////////////////////////////")
-            logger.info("//////////////////////////////////////////////////")
+            self.info("//////////////////////////////////////////////////")
+            self.info("//////////////////////////////////////////////////")
+            self.info("//////////////////////////////////////////////////")
+            self.info(f"we {self._oracle_addr} --------------------> PRICE PUBLISHED {repr(tx)}")
+            self.info("//////////////////////////////////////////////////")
+            self.info("//////////////////////////////////////////////////")
+            self.info("//////////////////////////////////////////////////")
             # Last pub block has changed, force an update of the block chain info.
             await self.vi_loop.force_update()
             return True
         except asyncio.CancelledError as e:
             raise e
         except Exception as err:
-            logger.error("%r : OracleCoinPairLoop %r Publish: %r" % (self._coin_pair, self._oracle_addr, err))
-            logger.warning(traceback.format_exc())
+            self.error(f"{self._oracle_addr} Publish: {repr(err)}")
+            self.warning(traceback.format_exc())
             return False
 
 

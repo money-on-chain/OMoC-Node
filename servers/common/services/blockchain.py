@@ -89,8 +89,9 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
             skey = skey[2:]
         return super(BlockchainAccount, cls).__new__(cls, addr, Secret(skey))
 
+    @property
     def short(self):
-        return self.addr[:7]+'..'
+        return self.addr[:7]+'…'
 
 class BlockChainPK(AnyHttpUrl):
     @classmethod

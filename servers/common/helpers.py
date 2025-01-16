@@ -116,9 +116,9 @@ def dt_now_at_utc() -> datetime:
 
 
 class MyCfgdLogger:
-    def __init__(self, sep=' ', *tags):
+    def __init__(self, sep=': ', *tags):
         self.tags = tags
-        self.prepared = ':'.join(str(tag) for tag in tags)+sep
+        self.prepared = ': '.join(str(tag) for tag in tags)+sep
 
     def _log(self, prio, msg, *args, **kwargs):
         final_msg = self.prepared+msg
