@@ -18,7 +18,13 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         self._conf = conf
         self._cps = cps
         self._coin_pair = cps.coin_pair
+        self.last_logged = None
         super().__init__(name="SchedulerCoinPairLoop", main=self.run)
+
+    def log_round(self, round_info):
+        if self.last_logged is None:
+            self.log("Round %r" % (round_info,))
+            self.last_logged = round_info
 
     async def run(self):
         #self.log("start")
@@ -26,7 +32,7 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         if is_error(round_info):
             self.error("error get_round_info error %r" % (round_info,))
             return self._conf.SCHEDULER_POOL_DELAY
-        self.log("Round %r" % (round_info,))
+        self.log_round(round_info)
 
         block_timestamp = await self._cps.get_last_block_timestamp()
         if not self._is_right_block(round_info, block_timestamp):
@@ -49,8 +55,8 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
             self.error("error get_last_block error %r" % d2s(block_timestamp))
             return False
         if round_info.lockPeriodTimestamp > block_timestamp:
-            self.log("The round is running, wait %s < %s " %
-                     (d2s(block_timestamp), d2s(round_info.lockPeriodTimestamp)))
+            # self.log("The round is running, wait %s < %s " %
+            #         (d2s(block_timestamp), d2s(round_info.lockPeriodTimestamp)))
             return False
         self.log("Current block %r" % d2s(block_timestamp))
         return True
