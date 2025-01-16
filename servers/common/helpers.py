@@ -113,3 +113,24 @@ def get_ip_addresses(hostname):
 def dt_now_at_utc() -> datetime:
     now = datetime.now(timezone.utc)
     return now
+
+
+class MyCfgdLogger:
+    def __init__(self, sep=' ', *tags):
+        self.tags = tags
+        self.prepared = ':'.join(tags)+sep
+
+    def _log(self, prio, msg, *args, **kwargs):
+        final_msg = self.prepared+msg
+        f = getattr(logger, prio)
+        f(final_msg, *args, **kwargs)
+        return final_msg
+
+    def debug(self, msg, *args, **kwargs):
+        return self._log('debug', msg, *args, **kwargs)
+
+    def info(self, msg, *args, **kwargs):
+        return self._log('info', msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        return self._log('error', msg, *args, **kwargs)
