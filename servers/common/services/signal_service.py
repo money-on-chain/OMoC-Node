@@ -57,7 +57,8 @@ class SignalService:
         results = w3_multicall.callWBlock()
         print("results:", repr(results))
         self.last_value = results[0], results[1]
+        return self.last_value
 
     async def getlen_call(self):
-        return await run_in_executor(self.sync_fetch)
-        # return await self.contract.bc_call('getlen',)
+        await run_in_executor(self.sync_fetch)
+        return self.last_value
