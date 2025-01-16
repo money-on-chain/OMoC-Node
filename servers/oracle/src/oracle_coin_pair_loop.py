@@ -72,10 +72,11 @@ class OracleCoinPairLoop(BgTaskExecutor):
 
         if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
             signals = await self.signal.getlen_call()
-            inibido = (signals==None) or (signals[0]==0)
+            inibido = self.signal.is_paused()
             XX = 'ok' if not inibido else 'XX'
             logger.info("%r : OracleCoinPairLoop ---[%s %s]----> Is my turn I'm chosen: %s block %r, %r, %r" %
-                        (self._coin_pair, repr(signals), XX, self._oracle_addr, blockchain_info.block_num,
+                        (self._coin_pair, repr(signals), XX, self._oracle_addr,
+                         blockchain_info.block_num,
                          blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
             if not inibido:
                 publish_success = await self.publish(blockchain_info.selected_oracles,
