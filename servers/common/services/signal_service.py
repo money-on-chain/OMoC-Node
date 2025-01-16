@@ -55,7 +55,6 @@ class SignalService:
         w3_multicall.add(W3Multicall.Call(self.SIGNAL_ADDRESS, self.SIGNAL_SIGNATURE))
         w3_multicall.address = self.MULTICALL_ADDR
         results = w3_multicall.callWBlock()
-        print("results:", repr(results))
         self.last_value = results[0], results[1]
         return self.last_value
 
