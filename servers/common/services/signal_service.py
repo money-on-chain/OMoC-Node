@@ -44,10 +44,12 @@ class SignalService:
         "type": "function"
     }]
 
-    def __init__(self):
+    def __init__(self, blockchain, cp):
+        self.cp = cp
+        self.blockchain = blockchain
         self.last_value = self.last_block = None
         self.last_pub = None
-        self.blockchain, _, _ = MocContractFactoryService.PrepareBlockchainOptionsAddresses()
+        # self.blockchain, _, _ = MocContractFactoryService.PrepareBlockchainOptionsAddresses()
 
     @property
     def w3(self):
@@ -78,3 +80,9 @@ class SignalService:
         if self.is_running:
             return self.last_value==0
         return False
+
+    def max_pub_block(self, blockchain_last_pub_block: int):
+        if self.is_paused():
+            if not (self.last_pub is None):
+                return max(blockchain_last_pub_block, self.last_pub)
+        return blockchain_last_pub_block

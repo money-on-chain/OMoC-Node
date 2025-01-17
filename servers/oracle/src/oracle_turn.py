@@ -6,6 +6,7 @@ from common.helpers import MyCfgdLogger
 from common.services.blockchain import to_med
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
+from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration, OracleTurnConfiguration
 from oracle.src.oracle_settings import get_oracle_account
 from oracle.src.select_next import select_next_addresses
@@ -53,10 +54,11 @@ class PriceFollower(MyCfgdLogger):
 
 
 class OracleTurn(MyCfgdLogger):
-    def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair):
+    def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair, cps: OracleCoinPairService):
         self._conf: OracleConfiguration = conf
         self._coin_pair: CoinPair = coin_pair
         self.price_follower = PriceFollower(coin_pair)
+        self._signal = cps.signal
         super().__init__(':', coin_pair, get_oracle_account().short)
 
     # Called by /sign endpoint
@@ -78,7 +80,6 @@ class OracleTurn(MyCfgdLogger):
                                  oracle_addr,
                                  exchange_price: PriceWithTimestamp,
                                  oracle_addresses):
-
         if not self.is_oracle_selected_in_round(vi.selected_oracles, oracle_addr):
             return False, self.info(f"is not {oracle_addr} turn we are not in the current round selected oracles")
 
@@ -93,7 +94,7 @@ class OracleTurn(MyCfgdLogger):
         # WARN if oracles won't get to publish before price expires
         ####################################
         if conf.trigger_valid_publication_blocks < len(entering_fallback_sequence) + 1:
-            pass  # logger.warning("PRICE will EXPIRE before oracles get to publish. Check configuration.")
+            self.debug("PRICE will EXPIRE before oracles get to publish. Check configuration.")
         ####################################
 
         # WARN if valid_price_period_in_blocks < trigger_valid_publication_blocks and return False
@@ -104,8 +105,8 @@ class OracleTurn(MyCfgdLogger):
                    %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
                                                       conf.trigger_valid_publication_blocks))
         ####################################
-
-        start_block_pub_period_before_price_expires = vi.last_pub_block + \
+        last_pub_block = self.signal.max_pub_block(vi.last_pub_block)   ### XXX /// HERE TENUKI
+        start_block_pub_period_before_price_expires = last_pub_block + \
                                                       vi.valid_price_period_in_blocks - \
                                                       conf.trigger_valid_publication_blocks
         self.debug(f"block_num {vi.block_num}  start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
@@ -157,6 +158,7 @@ class OracleTurn(MyCfgdLogger):
         # Gets blocks since publication is allowed from blocks_since_pub_is_allowed and uses it as index in the amount
         # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
+        # XXX /// here TENUKI
         entering_fallback_sequence_index = blocks_since_pub_is_allowed \
             if blocks_since_pub_is_allowed is not None \
                and blocks_since_pub_is_allowed < len(entering_fallback_sequence) \

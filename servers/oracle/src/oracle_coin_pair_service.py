@@ -8,6 +8,7 @@ from common.services.coin_pair_price_service import CoinPairService
 from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
+from common.services.signal_service import SignalService
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,11 @@ class OracleCoinPairService:
         self._info_service = info_service
         self._oracle_manager_service = oracle_manager_service
         self._coin_pair_info = coin_pair_info
+        self._signal_service = SignalService(blockchain, str(self.coin_pair))
+
+    @property
+    def signal(self) -> SignalService:
+        return self._signal_service
 
     @property
     def coin_pair(self) -> CoinPair:

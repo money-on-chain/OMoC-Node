@@ -8,8 +8,8 @@ from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
 
 logger = logging.getLogger(__name__)
-
 d2s = lambda ts: datetime.fromtimestamp(ts)
+
 
 class SchedulerCoinPairLoop(BgTaskExecutor):
     def __init__(self, conf: OracleConfiguration, cps: OracleCoinPairService,
