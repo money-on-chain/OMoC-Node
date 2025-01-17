@@ -22,6 +22,7 @@ class SchedulerCoinPairLoop(BgTaskExecutor):
         super().__init__(name="SchedulerCoinPairLoop", main=self.run)
 
     def log_round(self, round_info):
+        self.log("Round %r" % (round_info,))
         if self.last_logged is None:
             self.log("Round %r" % (round_info,))
             self.last_logged = round_info

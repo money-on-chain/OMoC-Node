@@ -46,6 +46,7 @@ class SignalService:
 
     def __init__(self):
         self.last_value = self.last_block = None
+        self.last_pub = None
         self.blockchain, _, _ = MocContractFactoryService.PrepareBlockchainOptionsAddresses()
 
     @property
@@ -58,6 +59,8 @@ class SignalService:
         w3_multicall.address = self.MULTICALL_ADDR
         results = w3_multicall.callWBlock()
         self.last_value, self.last_block = results[0][0], results[1]
+        if self.is_paused():
+            self.last_pub = self.last_block
 
     async def getlen_call(self):
         await run_in_executor(self.sync_fetch)

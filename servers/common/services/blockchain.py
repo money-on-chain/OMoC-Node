@@ -78,6 +78,14 @@ class BlockChainAddress(AnyHttpUrl):
         return parse_addr(v.lower())
 
 
+def to_med(address_string: str) -> str:
+    return address_string[:15] + '…'
+
+
+def to_short(address_string: str) -> str:
+    return address_string[:7] + '…'
+
+
 class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
                                           ('key', Secret)])):
     def __new__(cls, addr, key):
@@ -91,11 +99,11 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
 
     @property
     def short(self):
-        return self.addr[:7]+'…'
+        return to_short(self.addr)
 
     @property
     def med(self):
-        return self.addr[:16]+'…'
+        return to_med(self.addr)
 
 
 class BlockChainPK(AnyHttpUrl):
