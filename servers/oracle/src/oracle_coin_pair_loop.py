@@ -48,8 +48,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self._oracle_turn = OracleTurn(self._conf, cps.coin_pair, cps)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
-        MyCfgdLogger.__init__(self,': ', self._coin_pair, _acc.short)
-        BgTaskExecutor.__init__(self, name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
+        super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
+        self.reset(': ', self._coin_pair, _acc.short)
 
     @property
     def signal(self) -> SignalService:
