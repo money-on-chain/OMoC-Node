@@ -93,6 +93,11 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
     def short(self):
         return self.addr[:7]+'…'
 
+    @property
+    def med(self):
+        return self.addr[:16]+'…'
+
+
 class BlockChainPK(AnyHttpUrl):
     @classmethod
     def __get_validators__(cls) -> 'CallableGenerator':
