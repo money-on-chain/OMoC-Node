@@ -71,12 +71,7 @@ class SignalService:
     def is_running(self):
         return self.last_block is not None
 
-    def _is_paused(self):
+    def is_paused(self):
         if self.is_running:
             return self.last_value==0
         return False
-
-    def is_paused(self):
-        ret = self._is_paused()
-        print("is-paused:", ret)
-        return ret
