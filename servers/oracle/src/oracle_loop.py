@@ -61,7 +61,7 @@ class OracleLoop(BgTaskExecutor):
             tasks.extend([pf_loop, bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
                                                  cp_loop, pf_loop, bl_loop,
-                                                 OracleTurn(self.conf, cp_service.coin_pair))
+                                                 cp_loop._oracle_turn)  # OracleTurn(self.conf, cp_service.coin_pair))
         if oracle_settings.SCHEDULER_RUN_ORACLE_SCHEDULER:
             tasks.append(SchedulerCoinPairLoop(self.conf, cp_service, self.bs_loop))
         for x in tasks:
