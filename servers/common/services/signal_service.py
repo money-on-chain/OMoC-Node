@@ -25,10 +25,12 @@ class MulticallWBlock(W3Multicall):
             outputs.append(call_output)
         return outputs, aggregated[0]
 
+# LockModule#Lock - 0x6AB47d47cF45C4aaA5c7F33c6632390674EfA294
+# Multicall3Module#Multicall3 - 0x9a74f110586971345A396C74228094A04f5A5eA6
 
 class SignalService:
-    MULTICALL_ADDR = '0x6FdB1c9e1a1A8beD2EE22a3d5E62CA330ee88ecb'
-    SIGNAL_ADDRESS = '0xD5746777FE34a3562aD3abc1501629ca0190F23B'.lower()
+    MULTICALL_ADDR = '0x9a74f110586971345A396C74228094A04f5A5eA6'
+    SIGNAL_ADDRESS = '0x6AB47d47cF45C4aaA5c7F33c6632390674EfA294'.lower()
     SIGNAL_SIGNATURE = 'getlen()(uint)'
     ABI = [{
         "inputs": [],
@@ -76,5 +78,5 @@ class SignalService:
 
     def is_paused(self):
         ret = self._is_paused()
-        print("ispaused:", ret)
+        print("is-paused:", ret)
         return ret
