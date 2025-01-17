@@ -8,7 +8,9 @@ services:
     ports:
       - "3001:3001"
     environment:
-      ON_ERROR_PRINT_STACK_TRACE: true
+      ON_ERROR_PRINT_STACK_TRACE: "true"
+      MULTICALL: 0x0
+      QUEUE: 0x0
       CHAIN_ID: 1337
       NODE_URL: http://192.168.1.54:8545
       REGISTRY_ADDR: '0xA57B8a5584442B467b4689F1144D269d096A3daF'
