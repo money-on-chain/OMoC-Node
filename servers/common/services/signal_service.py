@@ -49,7 +49,7 @@ class SignalService:
         self.blockchain = blockchain
         self.last_value = self.last_block = None
         self.last_pub = None
-        # self.blockchain, _, _ = MocContractFactoryService.PrepareBlockchainOptionsAddresses()
+        self.sync_fetch()  # prevent running without values!
 
     @property
     def w3(self):
