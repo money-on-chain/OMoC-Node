@@ -69,7 +69,7 @@ class OracleTurn(MyCfgdLogger):
     # Called byt coin_pair_price_loop
     def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
         oracle_addresses = select_next_addresses(vi.last_pub_block_hash, vi.selected_oracles)
-        self.info(f" -fallbacks: {[to_med(repr(x)) for x in oracle_addresses]} / {[to_med(repr(x)) for x in vi.selected_oracles]}")
+        self.info(f" -fallbacks: {[to_med(repr(x)) for x in oracle_addresses]} / {[to_med(x.addr) for x in vi.selected_oracles]}")
         (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)
         return is_my_turn
 
