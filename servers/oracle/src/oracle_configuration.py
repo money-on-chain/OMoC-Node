@@ -209,7 +209,13 @@ class OracleConfiguration:
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
                 "description": "Delay in which the gas price is gathered",
                 "default": 60
-            }
+            },
+            "MULTICALL_ADDR": {
+                "priority": self.Order.configuration_default_blockchain,
+                "configuration": lambda: config('MULTICALL_ADDR', cast=str),
+                "blockchain": lambda p: self._eternal_storage_service.get_address(p),
+                "description": "Address of the multicall-contract (used for conditional publication)",
+            },
         }
         self.from_conf = set()
         self.from_default = set()

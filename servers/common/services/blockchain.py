@@ -120,38 +120,32 @@ class BlockChainPK(AnyHttpUrl):
 
 class BlockchainStateLoop(BgTaskExecutor):
     def __init__(self, conf):
-        #logger.debug('initializing BlockchainStateLoop')
+        logger.debug('initializing BlockchainStateLoop')
         self.conf = conf
         self.gas_calc = GasCalculator()
         super().__init__(name="BlockchainStateLoop", main=self.run)
 
     async def run(self):
-        #logger.info("BlockchainStateLoop loop start")
+        logger.debug("BlockchainStateLoop loop start")
         await self.gas_calc.update()
-        #logger.info("BlockchainStateLoop loop done")
+        logger.debug("BlockchainStateLoop loop done")
         return self.conf.ORACLE_BLOCKCHAIN_STATE_DELAY 
 
 
 class GasCalculator:
-
     def __init__(self):
-
         logger.info('Initializing GasCalculator ...')
-
         def get(var_name, show_fnc=repr):
             value = getattr(settings, var_name)
             logger.info(f"    Getting parameter {repr(var_name)} -> {show_fnc(value)}")
             return value
-
         self.node_url = str(get('NODE_URL', str))
         self.default_gas_price = get('DEFAULT_GAS_PRICE')
         self.gas_percentage_admitted = get('GAS_PERCENTAGE_ADMITTED')
         self.gas_price_hard_limit_min = get('GAS_PRICE_HARD_LIMIT_MIN')
         self.gas_price_hard_limit_max = get('GAS_PRICE_HARD_LIMIT_MAX')
         self.gas_price_hard_limit_multiplier = get('GAS_PRICE_HARD_LIMIT_MULTIPLIER')
-
-        self.last_price = None 
-
+        self.last_price = None
         self.W3 = Web3(HTTPProvider(self.node_url,
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
 
@@ -175,7 +169,6 @@ class GasCalculator:
 
     @exec_with_catch_async
     async def get_current(self):
-
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
         
         if gas_price is None:

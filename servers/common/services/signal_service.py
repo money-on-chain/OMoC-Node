@@ -3,7 +3,9 @@ from typing import Optional
 from eth_typing import BlockIdentifier
 
 from common.services.blockchain import run_in_executor
-from common.services.contract_factory_service import MocContractFactoryService
+from common.services.contract_factory_service import MocContractFactoryService, ContractFactoryService
+from oracle.src.oracle_configuration import OracleConfiguration
+from oracle.src.oracle_settings import GET_MOC_ADDR_COINPAIR
 from w3multicall.multicall import W3Multicall
 from w3multicall.multicall import _decode_output, _unpack_aggregate_outputs, _encode_data
 
@@ -29,7 +31,12 @@ class MulticallWBlock(W3Multicall):
 # Multicall3Module#Multicall3 - 0x9a74f110586971345A396C74228094A04f5A5eA6
 
 class SignalService:
-    MULTICALL_ADDR = '0x9a74f110586971345A396C74228094A04f5A5eA6'
+    """This depends on:
+
+    - ORACLE_CONFIGURATION.MULTICALL_ADDR = the multicall contract
+    - environment: MOC_ADDR_{coinpair}' => to take variables from
+    """
+    # MULTICALL_ADDR = '0x9a74f110586971345A396C74228094A04f5A5eA6'
     SIGNAL_ADDRESS = '0x6AB47d47cF45C4aaA5c7F33c6632390674EfA294'.lower()
     SIGNAL_SIGNATURE = 'getlen()(uint)'
     ABI = [{
@@ -44,7 +51,15 @@ class SignalService:
         "type": "function"
     }]
 
+    @classmethod
+    def GetConf(cls) -> OracleConfiguration:
+        return OracleConfiguration(
+                ContractFactoryService.get_contract_factory_service())
+
     def __init__(self, blockchain, cp):
+        conf = self.GetConf()
+        self.MULTICALL_ADDR = conf.MULTICALL_ADDR
+        self.MOC_ADDR = GET_MOC_ADDR_COINPAIR(cp)
         self.cp = cp
         self.blockchain = blockchain
         self.last_value = self.last_block = None
@@ -57,7 +72,8 @@ class SignalService:
 
     def sync_fetch(self):
         w3_multicall = MulticallWBlock(self.w3)
-        w3_multicall.add(W3Multicall.Call(self.SIGNAL_ADDRESS, self.SIGNAL_SIGNATURE))
+        w3_multicall.add(
+            W3Multicall.Call(self.MOC_ADDR, self.SIGNAL_SIGNATURE))
         w3_multicall.address = self.MULTICALL_ADDR
         results = w3_multicall.callWBlock()
         self.last_value, self.last_block = results[0][0], results[1]

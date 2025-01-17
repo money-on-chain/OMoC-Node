@@ -1,16 +1,13 @@
 version: "3.8"
 services:
-  #debug:
-  #  image: debian:latest
-  #  command: /bin/sh -c "sleep 10000000"
   omoc1:
     image: omoc_node:latest
     ports:
       - "3001:3001"
     environment:
       ON_ERROR_PRINT_STACK_TRACE: "true"
-      MULTICALL: 0x0
-      QUEUE: 0x0
+      MULTICALL_ADDR: '0x9a74f110586971345a396c74228094a04f5a5ea6'
+      MOC_ADDR_BTC_USD: '0x6ab47d47cf45c4aaa5c7f33c6632390674efa294'
       CHAIN_ID: 1337
       NODE_URL: http://192.168.1.54:8545
       REGISTRY_ADDR: '0xA57B8a5584442B467b4689F1144D269d096A3daF'
@@ -23,6 +20,9 @@ services:
     ports:
       - "3002:3001"
     environment:
+      ON_ERROR_PRINT_STACK_TRACE: "true"
+      MULTICALL_ADDR: '0x9a74f110586971345a396c74228094a04f5a5ea6'
+      MOC_ADDR_BTC_USD: '0x6ab47d47cf45c4aaa5c7f33c6632390674efa294'
       CHAIN_ID: 1337
       NODE_URL: http://192.168.1.54:8545
       REGISTRY_ADDR: '0xA57B8a5584442B467b4689F1144D269d096A3daF'
@@ -35,6 +35,9 @@ services:
     ports:
       - "3003:3001"
     environment:
+      ON_ERROR_PRINT_STACK_TRACE: "true"
+      MULTICALL_ADDR: '0x9a74f110586971345a396c74228094a04f5a5ea6'
+      MOC_ADDR_BTC_USD: '0x6ab47d47cf45c4aaa5c7f33c6632390674efa294'
       CHAIN_ID: 1337
       NODE_URL: http://192.168.1.54:8545
       REGISTRY_ADDR: '0xA57B8a5584442B467b4689F1144D269d096A3daF'
