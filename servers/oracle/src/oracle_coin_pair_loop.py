@@ -82,7 +82,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         oracle_order = ' '.join(to_short(addr) for addr in oracle_order)
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
-        msg = "Is my turn I'm chosen" if my_turn else 'not my turn'
+        msg = "Is  MY TURN" if my_turn else 'not my turn'
         self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]" %
                   (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
