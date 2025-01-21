@@ -13,7 +13,7 @@ from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
 from common.helpers import MyCfgdLogger
-from common.services.blockchain import is_error, BlockchainStateLoop
+from common.services.blockchain import is_error, BlockchainStateLoop, to_short
 from common.services.conditional_publish import ConditionalPublishServiceBase
 from oracle.src import monitor, oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
@@ -78,14 +78,15 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             self.debug(f"waiting for blockchain info")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-        signals = self.signal.last_value
-        if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
-            inibido = self.signal.is_paused()
-            XX = 'ok' if not inibido else 'XX'
-            self.info("---[%s %s]----> Is my turn I'm chosen: %s block %r, %r, %r" %
-                        (repr(signals), XX, self._oracle_addr_med, blockchain_info.block_num,
-                         blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
-            if not inibido:
+        my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
+        oracle_order = [to_short(addr) for addr in oracle_order]
+
+        self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
+        self.info("---%s----> %s blk %r/%r, %r" %
+                  (self.signal, "Is my turn I'm chosen" if my_turn else 'not my turn', blockchain_info.block_num,
+                   blockchain_info.last_pub_block, oracle_order))
+        if my_turn:
+            if not self.signal.is_paused():
                 publish_success = await self.publish(blockchain_info.selected_oracles,
                                                      PublishPriceParams(self._conf.MESSAGE_VERSION,
                                                                         self._coin_pair,
@@ -95,10 +96,6 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                 if not publish_success:
                     # retry immediately.
                     return 1
-        else:
-            self.info("----%s-----> Is NOT my turn: %s block %r, %r, %r" %
-                        (signals, self._oracle_addr_med, blockchain_info.block_num,
-                         blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
     async def publish(self, oracles, params: PublishPriceParams):

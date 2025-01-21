@@ -115,6 +115,9 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
         self.cp = cp
         self.last_value = None
 
+    def __str__(self):
+        return '--'
+
     @property
     def is_running(self):
         return True
@@ -195,6 +198,10 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     @property
     def _tuple_value(self):
         return (self.last_value, self.last_block) if self.is_running else None
+
+    def __str__(self):
+        values = ','.join(str(x) for x in self.last_value).replace('True', 'T').replace('False','F')
+        return '[%s|%s]'%(values, 'P.' if self.is_paused() else 'ok')
 
     @property
     def is_running(self):

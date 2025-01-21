@@ -110,13 +110,14 @@ def is_oracle_turn_aux(oracleTurn,
     last_pub_block_hash = "0x0000000000000000000000000001"
     blockchain_price = 11.1 + blockchain_price_diff
     exchange_price = 11.1 + exchange_price_diff
-    return oracleTurn.is_oracle_turn(oracleBCInfo2(selected_oracles,
+    is_turn, oracle_order = oracleTurn.is_oracle_turn(oracleBCInfo2(selected_oracles,
                                                    block_num,
                                                    last_pub_block,
                                                    last_pub_block_hash,
                                                    blockchain_price),
                                      oracle_addr,
                                      priceWithTS(exchange_price, 0))
+    return is_turn
 
 
 block_num_list = [12, 14, 16, 18]
