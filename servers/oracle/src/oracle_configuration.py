@@ -212,7 +212,7 @@ class OracleConfiguration(MyCfgdLogger):
                 "default": 60
             },
             "MULTICALL_ADDR": {
-                "priority": self.Order.configuration_default_blockchain,
+                "priority": self.Order.configuration_default,
                 "configuration": lambda: config('MULTICALL_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Address of the multicall-contract (used for conditional publication)",
