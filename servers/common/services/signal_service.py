@@ -103,6 +103,7 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
     def __init__(self, cp, cfg_str):
         logger.warning(f" * ConditionalPublishService disabled for {cp}. (cfg string: {repr(cfg_str)})")
         self.cp = cp
+        self.last_value = None
 
     @property
     def is_running(self):

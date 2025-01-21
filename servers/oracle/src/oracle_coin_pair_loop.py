@@ -58,6 +58,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
     async def run(self):
         self.debug("OracleCoinPairLoop start")
         #logger.debug(f"--+OracleCoinPairLoop ID {id(self)}")
+        await self.signal.update()
+
         round_info = await self._cps.get_round_info()
         if is_error(round_info):
             self.error(f"ERROR getting round info {repr(round_info)}")
@@ -77,9 +79,9 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             self.info(f"waiting for blockchain info")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
+        signals = self.signal.last_value
         if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
-            inibido = await self.signal.update__is_paused()
-            signals = self.signal.last_value
+            inibido = self.signal.is_paused()
             XX = 'ok' if not inibido else 'XX'
             self.info("---[%s %s]----> Is my turn I'm chosen: %s block %r, %r, %r" %
                         (repr(signals), XX, self._oracle_addr_med, blockchain_info.block_num,
@@ -95,7 +97,6 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                     # retry immediately.
                     return 1
         else:
-            signals = repr(await self.signal.getlen_call())
             self.info("----%s-----> Is NOT my turn: %s block %r, %r, %r" %
                         (signals, self._oracle_addr_med, blockchain_info.block_num,
                          blockchain_info.last_pub_block, blockchain_info.last_pub_block_hash.hex()))
