@@ -3,7 +3,7 @@ import typing
 from decimal import Decimal
 from enum import Enum
 
-from common.helpers import parseTimeDelta
+from common.helpers import parseTimeDelta, MyCfgdLogger
 from common.services.blockchain import is_error
 from common.services.contract_factory_service import ContractFactoryService
 from common.settings import config
@@ -18,7 +18,7 @@ OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
                                              ])
 
 
-class OracleConfiguration:
+class OracleConfiguration(MyCfgdLogger):
     class Order(Enum):
         blockchain_configuration_default = 1
         configuration_blockchain_default = 2
@@ -26,10 +26,11 @@ class OracleConfiguration:
         configuration_default = 4
 
     def __init__(self, cf: ContractFactoryService):
+        super().__init__(': ', 'Ocfg')
         registry_addr = config('REGISTRY_ADDR', cast=str)
         if registry_addr is None:
             raise ValueError("Missing REGISTRY_ADDR!!!")
-        logger.info("Configuration Registry address: %s" % registry_addr)
+        self.info("Configuration Registry address: %s" % registry_addr)
         self._eternal_storage_service = cf.get_eternal_storage(registry_addr)
 
         self.parameters = {
@@ -224,7 +225,6 @@ class OracleConfiguration:
     def __getattr__(self, name):
         if name in self.values:
             return self.values[name]
-        raise AttributeError("OracleConfigurationLoop has no attribute '%s'" % name)
 
     def __dir__(self):
         return self.mapping.keys()
@@ -241,11 +241,11 @@ class OracleConfiguration:
                     else:
                         val = read_val
                     self.from_conf.add(p)
-                    logger.info("Setting parameter %r from environ -> %r" % (p, val))
+                    self.info("Setting parameter %r from environ -> %r" % (p, val))
                 except KeyError:
                     pass
                 except (TypeError, ValueError) as err:
-                    logger.error("Error getting key %s from environ %r" % (p, err))
+                    self.error("Error getting key %s from environ %r" % (p, err))
 
             if val is None and "default" in param and param["default"] is not None:
                 val = param["default"]
@@ -256,13 +256,13 @@ class OracleConfiguration:
                 else:
                     val = read_val
                 self.from_default.add(p)
-                logger.info("Setting parameter %r from default -> %r" % (p, val))
+                self.info("Setting parameter %r from default -> %r" % (p, val))
 
             if val is None:
                 val = await self._get_from_blockchain(p, param)
 
             if val is None:
-                logger.warning("Missing value %s" % p)
+                self.warning("Missing value %s" % p)
                 continue
             self.values[p] = val
 
@@ -270,7 +270,7 @@ class OracleConfiguration:
         for (p, param) in self.parameters.items():
             val = await self._get_from_blockchain(p, param)
             if val is not None and self.values[p] != val:
-                logger.info("Setting param %r from blockchain registry -> %r" % (p, val))
+                self.info("Setting param %r from blockchain registry -> %r" % (p, val))
                 self.values[p] = val
 
     async def _get_from_blockchain(self, p, param):
@@ -285,9 +285,9 @@ class OracleConfiguration:
         if is_error(val):
             msg = "Error getting param from blockchain %r -> %r" % (p, val)
             if p not in self.values or self.values[p] is None:
-                logger.error(msg)
+                self.error(msg)
             else:
-                logger.warning(msg)
+                self.warning(msg)
             return None
         return val
 

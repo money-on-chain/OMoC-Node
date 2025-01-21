@@ -45,6 +45,7 @@ ORACLE_COIN_PAIR_FILTER = json.loads(config('ORACLE_COIN_PAIR_FILTER', cast=str,
 GET_MOC_ADDR_COINPAIR = lambda coinpair: config(f'MOC_ADDR_{coinpair.upper()}',
                                                   cast=str, default="")
 
+
 def load_exchange_info():
     with open("exchanges.json", "r") as f:
         data = json.loads(f.read())

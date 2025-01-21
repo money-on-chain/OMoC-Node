@@ -129,11 +129,5 @@ class MyCfgdLogger:
         f(final_msg, *args, **kwargs)
         return final_msg
 
-    def debug(self, msg, *args, **kwargs):
-        return self._log('debug', msg, *args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        return self._log('info', msg, *args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        return self._log('error', msg, *args, **kwargs)
+    for prio in ['debug', 'info', 'error', 'warning']:
+        exec(f"{prio} = lambda self, msg, prio='{prio}', *args, **kw: self._log(prio, msg, *args, **kw)")

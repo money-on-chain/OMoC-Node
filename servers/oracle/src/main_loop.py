@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class MainLoop(BgTaskExecutor):
-
     def __init__(self):
         self.cf = ContractFactoryService.get_contract_factory_service()
         self.conf = OracleConfiguration(self.cf)

@@ -14,7 +14,7 @@ from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import is_error, BlockchainStateLoop
-from common.services.signal_service import SignalService
+from common.services.signal_service import ConditionalPublishServiceBase
 from oracle.src import monitor, oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService, FullOracleRoundInfo
@@ -52,7 +52,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self.reset(': ', self._coin_pair, _acc.short)
 
     @property
-    def signal(self) -> SignalService:
+    def signal(self) -> ConditionalPublishServiceBase:
         return self._cps.signal
 
     async def run(self):
@@ -78,8 +78,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         if self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price):
-            signals = await self.signal.getlen_call()
-            inibido = self.signal.is_paused()
+            inibido = await self.signal.update__is_paused()
+            signals = self.signal.last_value
             XX = 'ok' if not inibido else 'XX'
             self.info("---[%s %s]----> Is my turn I'm chosen: %s block %r, %r, %r" %
                         (repr(signals), XX, self._oracle_addr_med, blockchain_info.block_num,
