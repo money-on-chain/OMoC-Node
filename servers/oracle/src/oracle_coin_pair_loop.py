@@ -49,7 +49,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
-        self.reset(': ', self._coin_pair, _acc.short)
+        self.reset(None, self._coin_pair, _acc.short)
 
     @property
     def signal(self) -> ConditionalPublishServiceBase:
@@ -79,12 +79,12 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
-        oracle_order = [to_short(addr) for addr in oracle_order]
+        oracle_order = ' '.join(to_short(addr) for addr in oracle_order)
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
-        self.info("---%s----> %s blk %r/%r, %r" %
-                  (self.signal, "Is my turn I'm chosen" if my_turn else 'not my turn', blockchain_info.block_num,
-                   blockchain_info.last_pub_block, oracle_order))
+        msg = "Is my turn I'm chosen" if my_turn else 'not my turn'
+        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]" %
+                  (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
             if not self.signal.is_paused():
                 publish_success = await self.publish(blockchain_info.selected_oracles,

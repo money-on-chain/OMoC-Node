@@ -59,7 +59,7 @@ class OracleTurn(MyCfgdLogger):
         self._coin_pair: CoinPair = coin_pair
         self.price_follower = PriceFollower(coin_pair)
         self._signal = cps.signal
-        super().__init__(':', coin_pair, get_oracle_account().short)
+        super().__init__(None, coin_pair, get_oracle_account().short)
 
     # Called by /sign endpoint
     def validate_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
@@ -115,7 +115,7 @@ class OracleTurn(MyCfgdLogger):
             can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
                                                     oracle_addr, oracle_addresses, entering_fallback_sequence)
             if can_I_publish:
-                return True, self.info(f"{oracle_addr} selected to publish before prices expires")
+                return True, self.debug(f"I'm selected to publish before prices expires")
 
         blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price)
 
@@ -131,9 +131,9 @@ class OracleTurn(MyCfgdLogger):
         can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
                                                 oracle_addr, oracle_addresses, entering_fallback_sequence)
         if can_I_publish:
-            return True, self.info(f"{oracle_addr} selected to publish after price change. "
+            return True, self.debug(f"{oracle_addr} selected to publish after price change. "
                                    f"Blocks since price change: {blocks_since_price_change}")
-        return False, self.info(f"{oracle_addr} is NOT the chosen fallback {blocks_since_price_change}")
+        return False, self.debug(f" {oracle_addr} is NOT the chosen fallback {blocks_since_price_change}")
 
     @staticmethod
     def is_selected_oracle(oracle_addresses, oracle_addr):
