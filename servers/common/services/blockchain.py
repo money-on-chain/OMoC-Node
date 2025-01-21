@@ -152,7 +152,7 @@ class GasCalculator:
     def set_last_price(self, gas_price):
         if self.last_price != gas_price:
             self.last_price = gas_price
-            # logger.info(f"A new gas price was calculated: {gas_price}")           
+            logger.debug(f"A new gas price was calculated: {gas_price}")
 
     def get_gas_price_plus_x_perc(self, gas_price):
         return gas_price + gas_price * (self.gas_percentage_admitted / 100)
@@ -163,9 +163,7 @@ class GasCalculator:
         return int(self.get_gas_price_plus_x_perc(self.last_price))
 
     def is_gas_price_out_of_range(self, gas_price):
-        if gas_price > self.get_last_price():
-            return True
-        return False
+        return gas_price > self.get_last_price()
 
     @exec_with_catch_async
     async def get_current(self):

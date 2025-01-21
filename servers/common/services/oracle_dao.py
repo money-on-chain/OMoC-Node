@@ -4,7 +4,7 @@ from typing import List
 import collections
 from datetime import datetime
 
-from common.services.blockchain import BlockChainAddress
+from common.services.blockchain import BlockChainAddress, to_med
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +48,6 @@ OracleRoundInfo = typing.NamedTuple("OracleRoundInfo",
                                      ])
 
 
-#class RoundInfo(collections.namedtuple("RoundInfo", [('round', int),
-#                                            ("startBlock", int),
-#                                            ("lockPeriodTimestamp", int),
-#                                            ("totalPoints", int),
-#                                            ("selectedOwners", List[str]),
-#                                            ("selectedOracles", List[str])])):
 class RoundInfo(collections.namedtuple("RoundInfo", ['round',
                                             "startBlock",
                                             "lockPeriodTimestamp",
@@ -63,9 +57,8 @@ class RoundInfo(collections.namedtuple("RoundInfo", ['round',
     def __repr__(self):
         lock = datetime.fromtimestamp(self.lockPeriodTimestamp)
         lock = lock.time()
-        #return f"RoundInfo(round={self.round}, startBlock={self.startBlock}, lockPeriodTimestamp={lock}, totalPoints={self.totalPoints}, selectedOwners={self.selectedOwners}, selectedOracles={self.selectedOracles})"
-        selectedOracles = '[%s]'% (', '.join(['%s'%(oracle[:6]+'..'+oracle[-2:]) for oracle in self.selectedOracles]))
-        return f"RoundInfo(rnd={self.round}, startBlk={self.startBlock}, lockPeriod={lock}, selectedOracles={selectedOracles})"
+        selected_oracles = ', '.join(to_med(str(oracle)) for oracle in self.selectedOracles)
+        return f"RoundInfo(rnd={self.round}, startBlk={self.startBlock}, lockPeriod={lock}, selectedOracles={selected_oracles})"
 
 
 FullOracleRoundInfo = typing.NamedTuple("FullOracleRoundInfo",

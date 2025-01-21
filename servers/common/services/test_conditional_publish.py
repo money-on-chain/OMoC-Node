@@ -2,7 +2,7 @@ import os
 from pprint import pprint
 
 from common.services.blockchain import BlockChain
-from common.services.signal_service import ConditionalPublishService
+from common.services.conditional_publish import ConditionalPublishService
 
 ONCE = True
 

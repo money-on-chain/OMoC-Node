@@ -63,10 +63,10 @@ def run_and_wait_async(func, *args, **kwargs):
 
 
 class ConditionalPublishServiceBase:
-    """This depends on:
+    """This depends on these settings:
 
     - ORACLE_CONFIGURATION.MULTICALL_ADDR = the multicall contract
-    - environment: MOC_ADDR_{coinpair}' => to take variables from
+    - MOC_ADDR_{coinpair}' => to take variables from. eg: MOC_ADDR_BTCUSD=0x...
     """
     @classmethod
     def SyncCreate(cls, blockchain, cp) -> "ConditionalPublishServiceBase":
@@ -109,7 +109,7 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
     def is_running(self):
         return True
 
-    def getConditionActive(self, value, currentBlockNr):
+    def getConditionActive(self, *args, **kw):
         return True
 
     async def update(self):
@@ -128,12 +128,6 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     getBts = 'getBts()(uint256)'
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)'
 
-    """
-    This depends on:
-
-    - ORACLE_CONFIGURATION.MULTICALL_ADDR = the multicall contract
-    - environment: MOC_ADDR_{coinpair}' => to take variables from
-    """
     def __init__(self, blockchain, cp, multicall, addr):
         self.blockchain = blockchain
         logger.info(f" * ConditionalPublishService setup for {cp}: moc: {addr} multicall: {multicall}.")

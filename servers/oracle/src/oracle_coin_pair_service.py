@@ -8,7 +8,7 @@ from common.services.coin_pair_price_service import CoinPairService
 from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
-from common.services.signal_service import ConditionalPublishServiceBase
+from common.services.conditional_publish import ConditionalPublishServiceBase
 
 
 logger = logging.getLogger(__name__)
