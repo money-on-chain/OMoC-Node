@@ -25,7 +25,14 @@ class MulticallWBlock(W3Multicall):
         }
         rpc_response = self.web3.eth.call(eth_call_params, block_identifier=block_identifier)
         aggregated = _decode_output(rpc_response, W3Multicall.MULTICALL_OUTPUT_TYPES)
-        unpacked = _unpack_aggregate_outputs(aggregated[1])
+        try:
+            unpacked = _unpack_aggregate_outputs(aggregated[1])
+        except TypeError:
+            if rpc_response==b'':
+                msg = f'Response from Multicall/MOC contract is not valid: {rpc_response}.'
+                logger.error(msg)
+                raise Exception(msg)
+            raise
         outputs = []
         for call, (success, output) in zip(self.calls, unpacked):
             call_output = _decode_output(output, call.output_types, None, True)
@@ -74,8 +81,11 @@ class ConditionalPublishServiceBase:
             ContractFactoryService.get_contract_factory_service())
         run_and_wait_async(oc.initialize)
         cp_addr = GET_MOC_ADDR_COINPAIR(cp)
-        if cp_addr in ('', '0x0', 'false', 'disabled'):
+        null_opts = ('', '0x0', 'false', 'disabled')
+        if cp_addr in null_opts:
             return DisabledConditionalPublishService(cp, cp_addr)
+        if oc.MULTICALL_ADDR in null_opts:
+            return DisabledConditionalPublishService(cp, oc.MULTICALL_ADDR)
         return ConditionalPublishService(blockchain, cp, oc.MULTICALL_ADDR, GET_MOC_ADDR_COINPAIR(cp))
 
     async def update__is_paused(self):
