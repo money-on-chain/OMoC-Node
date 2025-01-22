@@ -121,8 +121,8 @@ class ConditionalPublishServiceBase:
         run_and_wait_async(oc.initialize)
         cfg = ConditionalConfig(cp, oc)
         if not cfg.check_valid():
-            return DisabledConditionalPublishService(cp, oc.MULTICALL_ADDR)
-        return ConditionalPublishService(blockchain, cp, oc.MULTICALL_ADDR, GET_MOC_ADDR_COINPAIR(cp))
+            return DisabledConditionalPublishService(cfg)
+        return ConditionalPublishService(blockchain, cfg)
 
     async def update__is_paused(self):
         await self.update()
