@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import logging
 from typing import Optional
 
@@ -10,7 +11,6 @@ from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_settings import GET_MOC_ADDR_COINPAIR
 from w3multicall.multicall import W3Multicall
 from w3multicall.multicall import _decode_output, _unpack_aggregate_outputs, _encode_data
-
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class MulticallWBlock(W3Multicall):
         try:
             unpacked = _unpack_aggregate_outputs(aggregated[1])
         except TypeError:
-            if rpc_response==b'':
+            if rpc_response == b'':
                 msg = f'Response from Multicall/MOC contract is not valid: {rpc_response}.'
                 logger.error(msg)
                 raise Exception(msg)
@@ -58,6 +58,7 @@ def run_and_wait_async(func, *args, **kwargs):
 
         def run(self):
             self.result = asyncio.run(self.func(*self.args, **self.kwargs))
+
     # we do already have a loop and so..
     # try:
     #     loop = asyncio.get_running_loop()
@@ -69,22 +70,57 @@ def run_and_wait_async(func, *args, **kwargs):
     thread.join()
 
 
-class ConditionalPublishServiceBase:
-    """This depends on these settings:
+_NULL_OPTS = ('', '0x0', 'false', 'disabled')
 
-    - ORACLE_CONFIGURATION.MULTICALL_ADDR = the multicall contract
-    - MOC_ADDR_{coinpair}' => to take variables from. eg: MOC_ADDR_BTCUSD=0x...
-    """
+
+class ConditionalConfig:
+    _VARS = ('MOC_BASE_BUCKET_', 'MOC_EMA_', 'MOC_CORE_', 'MULTICALL_ADDR')
+    @classmethod
+    def Get(cls, cp: str, ocfg: OracleConfiguration, name):
+        name = (name + cp) if name.endswith('_') else name
+        return getattr(ocfg, name.upper(), None)
+
+    def __init__(self, cp: str, ocfg: OracleConfiguration):
+        self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
+        valid = True
+        self.cp = cp.upper()
+        for var in ConditionalConfig._VARS:
+            value = ConditionalConfig.Get(self.cp, ocfg, var)
+            if value in _NULL_OPTS:
+                logger.warning(f" * ConditionalPublishService: Config variable {var} have no valid value: {value}.")
+                valid = False
+            valid = valid and (value is not None)
+            setattr(self, '_'+var, value)
+        self.valid = valid
+
+    def check_valid(self):
+        return self.valid
+
+    @property
+    def MOC_BASE_BUCKET(self):
+        return self._MOC_BASE_BUCKET
+
+    @property
+    def MOC_EMA(self):
+        return self._MOC_EMA
+
+    @property
+    def MOC_CORE(self):
+        return self._MOC_CORE
+
+    @property
+    def MULTICALL_ADDR(self):
+        return self._MULTICALL_ADDR
+
+
+class ConditionalPublishServiceBase:
     @classmethod
     def SyncCreate(cls, blockchain, cp) -> "ConditionalPublishServiceBase":
         oc = OracleConfiguration(
             ContractFactoryService.get_contract_factory_service())
         run_and_wait_async(oc.initialize)
-        cp_addr = GET_MOC_ADDR_COINPAIR(cp)
-        null_opts = ('', '0x0', 'false', 'disabled')
-        if cp_addr in null_opts:
-            return DisabledConditionalPublishService(cp, cp_addr)
-        if oc.MULTICALL_ADDR in null_opts:
+        cfg = ConditionalConfig.CreateFrom(cp, oc)
+        if not cfg.check_valid():
             return DisabledConditionalPublishService(cp, oc.MULTICALL_ADDR)
         return ConditionalPublishService(blockchain, cp, oc.MULTICALL_ADDR, GET_MOC_ADDR_COINPAIR(cp))
 
@@ -110,9 +146,9 @@ class ConditionalPublishServiceBase:
 
 
 class DisabledConditionalPublishService(ConditionalPublishServiceBase):
-    def __init__(self, cp, cfg_str):
-        logger.warning(f" * ConditionalPublishService disabled for {cp}. (cfg string: {repr(cfg_str)})")
-        self.cp = cp
+    def __init__(self, cfg: ConditionalConfig):
+        logger.warning(f" * ConditionalPublishService disabled for {cfg.cp}.")
+        self.cfg = cfg
         self.last_value = None
 
     def __str__(self):
@@ -141,12 +177,10 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     getBts = 'getBts()(uint256)'
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)'
 
-    def __init__(self, blockchain, cp, multicall, addr):
+    def __init__(self, blockchain, cfg: ConditionalConfig):
         self.blockchain = blockchain
-        logger.info(f" * ConditionalPublishService setup for {cp}: moc: {addr} multicall: {multicall}.")
-        self.MOC_ADDR = self._w3.toChecksumAddress(addr)
-        self.MULTICALL_ADDR = self._w3.toChecksumAddress(multicall)
-        self.cp = cp
+        self.cfg = cfg
+        logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
         self.last_value = self.last_block = None
         self.last_pub = None
         self._sync_fetch()  # prevent running without values!
@@ -159,19 +193,19 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         #           "type": "uint256"}],
         #       "stateMutability": "view",
         #       "type": "function"}
-        return W3Multicall.Call(self.MOC_ADDR, self.qACLockedInPending)
+        return W3Multicall.Call(self.cfg.MOC_BASE_BUCKET, self.qACLockedInPending)
 
     def _call_condition2_shouldCalculateEMA(self):
         # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self.MOC_ADDR, self.shouldCalculateEma)
+        return W3Multicall.Call(self.cfg.MOC_EMA, self.shouldCalculateEma)
 
     def _call_condition3_getBts(self):
         # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self.MOC_ADDR, self.getBts)
+        return W3Multicall.Call(self.cfg.MOC_CORE, self.getBts)
 
     def _call_condition4_nextTCInterestPayment(self):
         # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self.MOC_ADDR, self.nextTCInterestPayment)
+        return W3Multicall.Call(self.cfg.MOC_BASE_BUCKET, self.nextTCInterestPayment)
 
     @property
     def _w3(self):
@@ -181,7 +215,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         w3_multicall = MulticallWBlock(self._w3)
         for condition in conditions:
             w3_multicall.add(condition)
-        w3_multicall.address = self.MULTICALL_ADDR
+        w3_multicall.address = self.cfg.MULTICALL_ADDR
         return w3_multicall.callWBlock()
 
     def _sync_fetch(self):
@@ -200,8 +234,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return (self.last_value, self.last_block) if self.is_running else None
 
     def __str__(self):
-        values = ','.join(str(x) for x in self.last_value).replace('True', 'T').replace('False','F')
-        return '[%s|%s]'%(values, 'P.' if self.is_paused() else 'ok')
+        values = ','.join(str(x) for x in self.last_value).replace('True', 'T').replace('False', 'F')
+        return '[%s/%s|%s]' % (values, self.last_pub, 'P.' if self.is_paused() else 'ok')
 
     @property
     def is_running(self):

@@ -138,7 +138,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             self.info(f"we {self._oracle_addr_med} --------------------> PRICE PUBLISHED {repr(tx)}")
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
-            # Last pub block has changed, force an update of the block chain info.
+            # Last pub block has changed, force an update of the blockchain info.
             await self.vi_loop.force_update()
             return True
         except asyncio.CancelledError as e:
