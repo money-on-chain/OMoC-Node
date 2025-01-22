@@ -258,7 +258,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return False
 
     def max_pub_block(self, blockchain_last_pub_block: int):
-        if self.is_paused():
+        if self.is_running:
             if not (self.last_pub is None):
                 return max(blockchain_last_pub_block, self.last_pub)
         return blockchain_last_pub_block
