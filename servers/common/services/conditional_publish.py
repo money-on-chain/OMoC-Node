@@ -119,7 +119,7 @@ class ConditionalPublishServiceBase:
         oc = OracleConfiguration(
             ContractFactoryService.get_contract_factory_service())
         run_and_wait_async(oc.initialize)
-        cfg = ConditionalConfig.CreateFrom(cp, oc)
+        cfg = ConditionalConfig(cp, oc)
         if not cfg.check_valid():
             return DisabledConditionalPublishService(cp, oc.MULTICALL_ADDR)
         return ConditionalPublishService(blockchain, cp, oc.MULTICALL_ADDR, GET_MOC_ADDR_COINPAIR(cp))
