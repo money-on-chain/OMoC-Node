@@ -88,7 +88,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         try:
             cur = blockchain_info.blockchain_price/ETHER
         except Exception as err:
-            cur = '({err})'
+            cur = f'({err})'
         self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  X:{exchange_price/ETHER} C:{cur}" %
                   (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
