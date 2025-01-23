@@ -97,7 +97,7 @@ class ConditionalConfig:
         for var in ConditionalConfig._VARS:
             value = ConditionalConfig.GetCP(self.cp, var)
             valid = self.validate(valid, var, value)
-            setattr(self, f'_{var}_{self.cp}', value)  # set "protected" variable..
+            setattr(self, f'_{var}', value)  # set "protected" variable..
 
         value = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
         valid = self.validate(valid, 'MULTICALL_ADDR', value)
@@ -204,29 +204,32 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         #           "type": "uint256"}],
         #       "stateMutability": "view",
         #       "type": "function"}
-        return W3Multicall.Call(self.cfg.MOC_BASE_BUCKET, self.qACLockedInPending)
+        return W3Multicall.Call(self._fix(self.cfg.MOC_BASE_BUCKET), self.qACLockedInPending)
 
     def _call_condition2_shouldCalculateEMA(self):
         # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self.cfg.MOC_EMA, self.shouldCalculateEma)
+        return W3Multicall.Call(self._fix(self.cfg.MOC_EMA), self.shouldCalculateEma)
 
     def _call_condition3_getBts(self):
         # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self.cfg.MOC_CORE, self.getBts)
+        return W3Multicall.Call(self._fix(self.cfg.MOC_CORE), self.getBts)
 
     def _call_condition4_nextTCInterestPayment(self):
         # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self.cfg.MOC_BASE_BUCKET, self.nextTCInterestPayment)
+        return W3Multicall.Call(self._fix(self.cfg.MOC_BASE_BUCKET), self.nextTCInterestPayment)
 
     @property
     def _w3(self):
         return self.blockchain.W3
+    
+    def _fix(self, a):
+        return self._w3.toChecksumAddress(a)
 
     def _sync_fetch_multiple(self, *conditions):
         w3_multicall = MulticallWBlock(self._w3)
         for condition in conditions:
             w3_multicall.add(condition)
-        w3_multicall.address = self.cfg.MULTICALL_ADDR
+        w3_multicall.address = self._fix(self.cfg.MULTICALL_ADDR)
         return w3_multicall.callWBlock()
 
     def _sync_fetch(self):

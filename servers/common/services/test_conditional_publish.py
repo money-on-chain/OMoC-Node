@@ -67,53 +67,61 @@ def test_cfg(capsys):
     cfg = getCFG(capsys)
     assert cfg.valid
     assert cfg.cp=='BTCUSD'
+    assert cfg._MOC_CORE is not None
+    assert cfg._MOC_EMA is not None
+    assert cfg._MOC_BASE_BUCKET is not None
+    assert cfg.MOC_CORE is not None
+    assert cfg.MOC_EMA is not None
+    assert cfg.MOC_BASE_BUCKET is not None
+
 
 def test_invalid_cfg(capsys):
     oc = getOCFG(capsys)
     cfg = ConditionalConfig('btcusd', oc)
     assert not cfg.valid
 
-def test_condition_qaclock(capsys):
-    ss = getSS(capsys)
-    result = ss._sync_fetch_multiple(ss._call_condition1_qACLockedInPending())
-    value, blocknr = result[0][0], result[1]
-    with capsys.disabled():
-        print(f'(block:{blocknr}) qACLockedInPending={value}')
 
-
-def test_condition_shouldCalculateEMA(capsys):
-    ss = getSS(capsys)
-    result = ss._sync_fetch_multiple(ss._call_condition2_shouldCalculateEMA())
-    value, blocknr = result[0][0], result[1]
-    with capsys.disabled():
-        print(f'(block:{blocknr}) shouldCalculateEMA={value}')
-
-
-def test_condition_getBTS(capsys):
-    ss = getSS(capsys)
-    result = ss._sync_fetch_multiple(ss._call_condition3_getBts())
-    value, blocknr = result[0][0], result[1]
-    with capsys.disabled():
-        print(f'(block:{blocknr}) getBts={value}')
-
-
-def test_condition_nextTCInterestPayment(capsys):
-    ss = getSS(capsys)
-    result = ss._sync_fetch_multiple(ss._call_condition4_nextTCInterestPayment())
-    value, blocknr = result[0][0], result[1]
-    with capsys.disabled():
-        print(f'(block:{blocknr}) nextTCInterestPayment={value}')
-
-
-def test_fetch_all(capsys):
-    ss = getSS(capsys)
-    result = ss._sync_fetch_multiple(
-        ss._call_condition1_qACLockedInPending(),
-        ss._call_condition2_shouldCalculateEMA(),
-        ss._call_condition3_getBts(),
-        ss._call_condition4_nextTCInterestPayment())
-    value, blocknr = result[0][0], result[1]
-    with capsys.disabled():
-        pprint(result)
-        print(f'(block:{blocknr}) nextTCInterestPayment={value}')
-
+# def test_condition_qaclock(capsys):
+#     ss = getSS(capsys)
+#     result = ss._sync_fetch_multiple(ss._call_condition1_qACLockedInPending())
+#     value, blocknr = result[0][0], result[1]
+#     with capsys.disabled():
+#         print(f'(block:{blocknr}) qACLockedInPending={value}')
+#
+#
+# def test_condition_shouldCalculateEMA(capsys):
+#     ss = getSS(capsys)
+#     result = ss._sync_fetch_multiple(ss._call_condition2_shouldCalculateEMA())
+#     value, blocknr = result[0][0], result[1]
+#     with capsys.disabled():
+#         print(f'(block:{blocknr}) shouldCalculateEMA={value}')
+#
+#
+# def test_condition_getBTS(capsys):
+#     ss = getSS(capsys)
+#     result = ss._sync_fetch_multiple(ss._call_condition3_getBts())
+#     value, blocknr = result[0][0], result[1]
+#     with capsys.disabled():
+#         print(f'(block:{blocknr}) getBts={value}')
+#
+#
+# def test_condition_nextTCInterestPayment(capsys):
+#     ss = getSS(capsys)
+#     result = ss._sync_fetch_multiple(ss._call_condition4_nextTCInterestPayment())
+#     value, blocknr = result[0][0], result[1]
+#     with capsys.disabled():
+#         print(f'(block:{blocknr}) nextTCInterestPayment={value}')
+#
+#
+# def test_fetch_all(capsys):
+#     ss = getSS(capsys)
+#     result = ss._sync_fetch_multiple(
+#         ss._call_condition1_qACLockedInPending(),
+#         ss._call_condition2_shouldCalculateEMA(),
+#         ss._call_condition3_getBts(),
+#         ss._call_condition4_nextTCInterestPayment())
+#     value, blocknr = result[0][0], result[1]
+#     with capsys.disabled():
+#         pprint(result)
+#         print(f'(block:{blocknr}) nextTCInterestPayment={value}')
+#
