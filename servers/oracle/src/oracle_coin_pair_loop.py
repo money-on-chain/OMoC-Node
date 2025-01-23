@@ -29,6 +29,8 @@ OracleSignature = typing.NamedTuple("OracleSignature",
                                     [("addr", str),
                                      ('signature', HexBytes)])
 
+ETHER = 10**18
+
 
 class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
     def __init__(self, conf: OracleConfiguration,
@@ -83,7 +85,11 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
         msg = "Is  MY TURN" if my_turn else 'not my turn'
-        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]" %
+        try:
+            cur = blockchain_info.blockchain_price/ETHER
+        except Exception as err:
+            cur = '({err})'
+        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  X:{exchange_price/ETHER} C:{cur}" %
                   (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
             if not self.signal.is_paused():
