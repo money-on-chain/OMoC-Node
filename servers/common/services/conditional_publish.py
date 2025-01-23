@@ -1,5 +1,4 @@
 import asyncio
-import dataclasses
 import logging
 from typing import Optional
 
@@ -83,10 +82,9 @@ class ConditionalConfig:
     def GetRegular(cls, ocfg: OracleConfiguration, name: str):
         return getattr(ocfg, name.upper(), None)
 
-    @staticmethod
-    def validate(valid: bool, var: str, value: str):
+    def validate(self, valid: bool, var: str, value: str):
         if value in _NULL_OPTS:
-            logger.warning(f" * ConditionalPublishService: Config variable {var} have no valid value: {value}.")
+            logger.warning(f" * ConditionalPublishService: ({self.cp}) Config variable {var} have no valid value: '{value}'.")
             valid = False
         return valid and (value is not None)
 
