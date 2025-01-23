@@ -8,7 +8,7 @@ from eth_typing import BlockIdentifier
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_settings import GET_MOC_ADDR_COINPAIR
+from oracle.src.oracle_settings import GET_VAR_COINPAIR
 from w3multicall.multicall import W3Multicall
 from w3multicall.multicall import _decode_output, _unpack_aggregate_outputs, _encode_data
 
@@ -74,23 +74,34 @@ _NULL_OPTS = ('', '0x0', 'false', 'disabled')
 
 
 class ConditionalConfig:
-    _VARS = ('MOC_BASE_BUCKET_', 'MOC_EMA_', 'MOC_CORE_', 'MULTICALL_ADDR')
+    _VARS = ('MOC_BASE_BUCKET', 'MOC_EMA', 'MOC_CORE', )
+
     @classmethod
-    def Get(cls, cp: str, ocfg: OracleConfiguration, name):
-        name = (name + cp) if name.endswith('_') else name
+    def GetCP(cls, cp: str, name: str):
+        return GET_VAR_COINPAIR(name, cp)
+    @classmethod
+    def GetRegular(cls, ocfg: OracleConfiguration, name: str):
         return getattr(ocfg, name.upper(), None)
 
+    @staticmethod
+    def validate(valid: bool, var: str, value: str):
+        if value in _NULL_OPTS:
+            logger.warning(f" * ConditionalPublishService: Config variable {var} have no valid value: {value}.")
+            valid = False
+        return valid and (value is not None)
+
     def __init__(self, cp: str, ocfg: OracleConfiguration):
+        self.cp = cp.upper()
         self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
         valid = True
-        self.cp = cp.upper()
         for var in ConditionalConfig._VARS:
-            value = ConditionalConfig.Get(self.cp, ocfg, var)
-            if value in _NULL_OPTS:
-                logger.warning(f" * ConditionalPublishService: Config variable {var} have no valid value: {value}.")
-                valid = False
-            valid = valid and (value is not None)
-            setattr(self, '_'+var, value)
+            value = ConditionalConfig.GetCP(self.cp, ocfg, var)
+            valid = self.validate(valid, var, value)
+            setattr(self, f'_{var}_{self.cp}', value)  # set "protected" variable..
+
+        value = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
+        valid = self.validate(valid, 'MULTICALL_ADDR', value)
+        setattr(self, f'_MULTICALL_ADDR', value)  # set "protected" variable..
         self.valid = valid
 
     def check_valid(self):

@@ -42,7 +42,7 @@ ORACLE_MONITOR_LOG_PUBLISHED_PRICE = config('ORACLE_MONITOR_LOG_PUBLISHED_PRICE'
 ORACLE_COIN_PAIR_FILTER = json.loads(config('ORACLE_COIN_PAIR_FILTER', cast=str,
                                             default="[]"))
 
-GET_MOC_ADDR_COINPAIR = lambda coinpair: config(f'MOC_ADDR_{coinpair.upper()}',
+GET_VAR_COINPAIR = lambda var, coinpair: config(f'{var}_{coinpair.upper()}',
                                                   cast=str, default="")
 
 
