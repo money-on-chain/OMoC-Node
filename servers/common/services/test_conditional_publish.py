@@ -1,31 +1,77 @@
 import os
+from contextlib import contextmanager
 from pprint import pprint
 
 from common.services.blockchain import BlockChain
-from common.services.conditional_publish import ConditionalPublishService
+from common.services.conditional_publish import ConditionalPublishService, ConditionalConfig, run_and_wait_async
+from common.services.contract_factory_service import ContractFactoryService
+from oracle.src.oracle_configuration import OracleConfiguration
 
 ONCE = True
 
+@contextmanager
+def with_env( *env_tuples ):
+    prevs = {}
+    for varname, value in env_tuples:
+        prevs[varname] = os.environ.get(varname)
+        os.environ[varname] = value
+    try:
+        yield
+    finally:
+        for varname, value in prevs.items():
+            if value is None:
+                del os.environ[varname]
+            else:
+                os.environ[varname] = value
+
+def _get_env():
+    return with_env(('MULTICALL_ADDR', '0x72440269630E393d38975Db7fA7Cb4D14e7eC061'),
+                  ('MOC_CORE_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
+                  ('MOC_EMA_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
+                  ('MOC_BASE_BUCKET_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'))
+
+
+def getOCFG(capsys):
+    with _get_env():
+        ocfg = OracleConfiguration(ContractFactoryService.get_contract_factory_service())
+        run_and_wait_async(ocfg.initialize)
+        return ocfg
+
+def getCFG(capsys):
+    oc = getOCFG(capsys)
+    with _get_env():
+        return ConditionalConfig('btcusd', oc)
 
 def getSS(capsys):
     global ONCE
-    multicall = os.environ.get('MULTICALL_ADDR', '0x72440269630E393d38975Db7fA7Cb4D14e7eC061')
-    addr = os.environ.get('MOC_ADDR', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571')
     node_url = os.environ.get('NODE_URL', 'http://127.0.0.1:8545')
     chainid = os.environ.get('CHAIN_ID', '1337')
-
     if ONCE:
         ONCE = False
         with capsys.disabled():
             print(f'Testing Conditional publishing var check with:')
-            print(f' Multicall contract at: {multicall} (overwrite with MULTICALL_ADDR=...)')
-            print(f' MOC (mock or real) at: {addr} (overwrite with MOC_ADDR=...)')
+            # print(f' Multicall contract at: {multicall} (overwrite with MULTICALL_ADDR=...)')
+            # print(f' MOC (mock or real) at: {addr} (overwrite with MOC_ADDR=...)')
             print(f' RPC Node at: {node_url} (overwrite with MOC_ADDR=...)')
             print(f' Chain_id: {chainid} (overwrite with CHAIN_ID=...)')
-
+    cfg = getCFG(capsys)
     bc = BlockChain(node_url, chainid, 1)
-    return ConditionalPublishService(blockchain=bc, cp ='BTCUSD', multicall=multicall, addr=addr)
+    return ConditionalPublishService(bc, cfg)
 
+
+def test_ocfg(capsys):
+    ocfg = getOCFG(capsys)
+    assert ocfg.MULTICALL_ADDR is not None
+
+def test_cfg(capsys):
+    cfg = getCFG(capsys)
+    assert cfg.valid
+    assert cfg.cp=='BTCUSD'
+
+def test_invalid_cfg(capsys):
+    oc = getOCFG(capsys)
+    cfg = ConditionalConfig('btcusd', oc)
+    assert not cfg.valid
 
 def test_condition_qaclock(capsys):
     ss = getSS(capsys)

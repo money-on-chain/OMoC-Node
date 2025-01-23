@@ -95,7 +95,7 @@ class ConditionalConfig:
         self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
         valid = True
         for var in ConditionalConfig._VARS:
-            value = ConditionalConfig.GetCP(self.cp, ocfg, var)
+            value = ConditionalConfig.GetCP(self.cp, var)
             valid = self.validate(valid, var, value)
             setattr(self, f'_{var}_{self.cp}', value)  # set "protected" variable..
 
