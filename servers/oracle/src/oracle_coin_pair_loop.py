@@ -46,16 +46,19 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self._oracle_addr_med =_acc.med
         self._oracle_addr_short = _acc.short
         self._cps = cps
+        self.signal.set_conf_and_loop(conf, vi_loop)
         self._coin_pair = cps.coin_pair
         self._oracle_turn = OracleTurn(self._conf, cps.coin_pair, cps)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
+        self._signal_service = ConditionalPublishServiceBase.SyncCreate(
+            cps._blockchain, str(cps.coin_pair))
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
         self.reset(None, self._coin_pair, _acc.short)
 
     @property
     def signal(self) -> ConditionalPublishServiceBase:
-        return self._cps.signal
+        return self._signal_service
 
     async def run(self):
         self.debug("OracleCoinPairLoop start")
@@ -79,6 +82,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         if not blockchain_info:
             self.debug(f"waiting for blockchain info")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
+        self.signal.from_blockchain(blockchain_info)
 
         my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
         oracle_order = ' '.join(to_short(addr) for addr in oracle_order)

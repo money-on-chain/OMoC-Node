@@ -25,11 +25,11 @@ class OracleCoinPairService:
         self._info_service = info_service
         self._oracle_manager_service = oracle_manager_service
         self._coin_pair_info = coin_pair_info
-        self._signal_service = ConditionalPublishServiceBase.SyncCreate(blockchain, str(self.coin_pair))
+#        self._signal_service = ConditionalPublishServiceBase.SyncCreate(blockchain, str(self.coin_pair))
 
-    @property
-    def signal(self) -> ConditionalPublishServiceBase:
-        return self._signal_service
+    # @property
+    # def signal(self) -> ConditionalPublishServiceBase:
+    #     return self._signal_service
 
     @property
     def coin_pair(self) -> CoinPair:
