@@ -215,7 +215,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return self._conf.trigger_valid_publication_blocks
 
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
-        self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
+        if blockchain_info is not None:
+            self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
 
     def _call_condition1_qACLockedInPending(self):
         #     { "inputs": [],
@@ -270,7 +271,9 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     @property
     def adjusted_last_pub(self):
-        return self._last_pub - self.valid_price_period_in_blocks + self._trigger_valid_publication_blocks
+        if self._expiration_blocks is None:
+            return self._last_pub
+        return self._last_pub - self._expiration_blocks + self._trigger_valid_publication_blocks
 
     def __str__(self):
         values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')
