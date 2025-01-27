@@ -47,11 +47,11 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self._oracle_addr_short = _acc.short
         self._cps = cps
         self._coin_pair = cps.coin_pair
-        self._oracle_turn = OracleTurn(self._conf, cps.coin_pair, cps)
         self._price_feeder_loop = price_feeder_loop
         self.vi_loop = vi_loop
         self._signal_service = ConditionalPublishServiceBase.SyncCreate(
             cps._blockchain, str(cps.coin_pair), vi_loop)
+        self._oracle_turn = OracleTurn(self._conf, cps.coin_pair, self._signal_service)
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
         self.reset(None, self._coin_pair, _acc.short)
 

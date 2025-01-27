@@ -6,7 +6,6 @@ from common.helpers import MyCfgdLogger
 from common.services.blockchain import to_med
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
-from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration, OracleTurnConfiguration
 from oracle.src.oracle_settings import get_oracle_account
 from oracle.src.select_next import select_next_addresses
@@ -54,11 +53,11 @@ class PriceFollower(MyCfgdLogger):
 
 
 class OracleTurn(MyCfgdLogger):
-    def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair, cps: OracleCoinPairService):
+    def __init__(self, conf: OracleConfiguration, coin_pair: CoinPair, signal):
         self._conf: OracleConfiguration = conf
         self._coin_pair: CoinPair = coin_pair
         self.price_follower = PriceFollower(coin_pair)
-        self._signal = cps.signal
+        self._signal = signal
         super().__init__(None, coin_pair, get_oracle_account().short)
 
     # Called by /sign endpoint
