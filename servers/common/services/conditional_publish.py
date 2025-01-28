@@ -4,6 +4,7 @@ from typing import Optional
 
 from eth_typing import BlockIdentifier
 
+from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from common.services.oracle_dao import OracleBlockchainInfo
@@ -135,6 +136,10 @@ class ConditionalPublishServiceBase:
             return DisabledConditionalPublishService(cfg)
         return ConditionalPublishService(blockchain, cfg, oc, loop)
 
+    def __init__(self, cfg: ConditionalConfig):
+        self.cfg = cfg
+        self.logger = MyCfgdLogger(': ', str(self.cfg.cp))
+
     def set_conf_and_loop(self, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
         pass
 
@@ -164,8 +169,8 @@ class ConditionalPublishServiceBase:
 
 class DisabledConditionalPublishService(ConditionalPublishServiceBase):
     def __init__(self, cfg: ConditionalConfig):
-        logger.warning(f" * ConditionalPublishService disabled for {cfg.cp}.")
-        self.cfg = cfg
+        super().__init__(cfg)
+        self.logger.warning(f" * ConditionalPublishService disabled for {cfg.cp}.")
         self.last_value = None
 
     def __str__(self):
@@ -200,9 +205,9 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     _expiration_blocks = None
 
     def __init__(self, blockchain, cfg: ConditionalConfig, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
+        super().__init__(cfg)
         self.blockchain = blockchain
-        self.cfg = cfg
-        logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
+        self.logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
         self.set_conf_and_loop(conf, loop)  # ready before fetch
         self._sync_fetch()  # prevent running without values!
 
@@ -212,28 +217,19 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     @property
     def _trigger_valid_publication_blocks(self):
-        return self._conf.trigger_valid_publication_blocks
+        return self._conf.oracle_turn_conf.trigger_valid_publication_blocks
 
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
         if blockchain_info is not None:
             self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
 
     def _call_condition1_qACLockedInPending(self):
-        #     { "inputs": [],
-        #       "name": "qACLockedInPending",
-        #       "outputs": [{"name": "",
-        #           "internalType": "uint256",
-        #           "type": "uint256"}],
-        #       "stateMutability": "view",
-        #       "type": "function"}
         return W3Multicall.Call(self._fix(self.cfg.MOC_BASE_BUCKET), self.qACLockedInPending)
 
     def _call_condition2_shouldCalculateEMA(self):
-        # function shouldCalculateEma() public view returns (bool)
         return W3Multicall.Call(self._fix(self.cfg.MOC_EMA), self.shouldCalculateEma)
 
     def _call_condition3_getBts(self):
-        # function shouldCalculateEma() public view returns (bool)
         return W3Multicall.Call(self._fix(self.cfg.MOC_CORE), self.getBts)
 
     def _call_condition4_nextTCInterestPayment(self):
@@ -271,9 +267,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     @property
     def adjusted_last_pub(self):
-        if None in (self._expiration_blocks, self._trigger_valid_publication_blocks):
+        trigger_blocks = self._trigger_valid_publication_blocks
+        if None in (self._expiration_blocks, trigger_blocks):
+            if self._expiration_blocks is None:
+                self.logger.warning("Expiration blocks : None")
+            if trigger_blocks is None:
+                self.logger.warning("Trigger blocks : None")
             return self._last_pub
-        return self._last_pub - self._expiration_blocks + self._trigger_valid_publication_blocks
+        return self._last_pub - self._expiration_blocks + trigger_blocks
 
     def __str__(self):
         values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')

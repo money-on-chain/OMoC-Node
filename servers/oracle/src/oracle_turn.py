@@ -20,9 +20,9 @@ class PriceFollower(MyCfgdLogger):
         self.price_change_pub_block = -1
         super().__init__(" : ", coin_pair)
 
-    # How many blocks since last publication in the block chain and a price change
     def price_changed_blocks(self, conf: OracleTurnConfiguration, block_chain_info: OracleBlockchainInfo,
                              exchange_price: PriceWithTimestamp):
+        """How many blocks since last publication in the blockchain and a price change"""
         if block_chain_info.last_pub_block < 0 or block_chain_info.block_num < 0:
             raise Exception("%r : Invalid block number", self._coin_pair)
 
