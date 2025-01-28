@@ -268,12 +268,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     @property
     def adjusted_last_pub(self):
         trigger_blocks = self._trigger_valid_publication_blocks
-        if None in (self._expiration_blocks, trigger_blocks):
-            if self._expiration_blocks is None:
-                self.logger.warning("Expiration blocks : None")
-            if trigger_blocks is None:
-                self.logger.warning("Trigger blocks : None")
+        if self._expiration_blocks is None:
+            self.logger.warning("Expiration blocks : None")
             return self._last_pub
+        if trigger_blocks is None:
+            self.logger.warning("Trigger blocks : None")
+            trigger_blocks = 0
         return self._last_pub - self._expiration_blocks + trigger_blocks
 
     def __str__(self):
