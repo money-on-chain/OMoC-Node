@@ -106,7 +106,7 @@ class OracleTurn(MyCfgdLogger):
                    %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
                                                       conf.trigger_valid_publication_blocks))
         ####################################
-        last_pub_block = self._signal.max_pub_block(vi.last_pub_block)
+        last_pub_block = self._signal.max_pub_block(vi.last_pub_block)  # XXX TENUKI
         start_block_pub_period_before_price_expires = (last_pub_block - conf.trigger_valid_publication_blocks +
                                                    self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
 
