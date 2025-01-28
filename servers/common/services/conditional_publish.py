@@ -271,7 +271,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     @property
     def adjusted_last_pub(self):
-        if self._expiration_blocks is None:
+        if None in (self._expiration_blocks, self._trigger_valid_publication_blocks):
             return self._last_pub
         return self._last_pub - self._expiration_blocks + self._trigger_valid_publication_blocks
 
