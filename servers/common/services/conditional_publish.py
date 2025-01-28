@@ -76,7 +76,7 @@ _NULL_OPTS = ('', '0x0', 'false', 'disabled')
 
 
 class ConditionalConfig:
-    _VARS = ('MOC_BASE_BUCKET', 'MOC_EMA', 'MOC_CORE', )
+    _VARS = ('MOC_QUEUE', 'MOC_BASE_BUCKET', 'MOC_EMA', 'MOC_CORE', )
 
     @classmethod
     def GetCP(cls, cp: str, name: str):
@@ -93,7 +93,7 @@ class ConditionalConfig:
 
     def __init__(self, cp: str, ocfg: OracleConfiguration):
         self.cp = cp.upper()
-        self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
+        self._MOC_QUEUE = self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
         valid = True
         for var in ConditionalConfig._VARS:
             value = ConditionalConfig.GetCP(self.cp, var)
@@ -107,6 +107,10 @@ class ConditionalConfig:
 
     def check_valid(self):
         return self.valid
+
+    @property
+    def MOC_QUEUE(self):
+        return self._MOC_QUEUE
 
     @property
     def MOC_BASE_BUCKET(self):
@@ -194,7 +198,7 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
 
 
 class ConditionalPublishService(ConditionalPublishServiceBase):
-    qACLockedInPending = 'qACLockedInPending()(uint256)'
+    queueIsEmpty = 'isEmpty()(bool)'
     shouldCalculateEma = 'shouldCalculateEma()(bool)'
     getBts = 'getBts()(uint256)'
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)'
@@ -223,8 +227,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if blockchain_info is not None:
             self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
 
-    def _call_condition1_qACLockedInPending(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_BASE_BUCKET), self.qACLockedInPending)
+    def _call_condition1_queueIsEmpty(self):
+        return W3Multicall.Call(self._fix(self.cfg.MOC_QUEUE), self.queueIsEmpty)
 
     def _call_condition2_shouldCalculateEMA(self):
         return W3Multicall.Call(self._fix(self.cfg.MOC_EMA), self.shouldCalculateEma)
@@ -252,7 +256,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     def _sync_fetch(self):
         results = self._sync_fetch_multiple(
-            self._call_condition1_qACLockedInPending(),
+            self._call_condition1_queueIsEmpty(),
             self._call_condition2_shouldCalculateEMA(),
             self._call_condition3_getBts(),
             self._call_condition4_nextTCInterestPayment(),
@@ -285,8 +289,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return self._last_block is not None
 
     def getConditionActive(self, value, currentBlockNr):
-        qACLockedInPending, calcEMA, Bts, nextTC = value
-        return (qACLockedInPending > 0) or calcEMA or (Bts == 0) or (nextTC < currentBlockNr)
+        isEmpty, calcEMA, Bts, nextTC = value
+        return (not isEmpty) or calcEMA or (Bts == 0) or (nextTC < currentBlockNr)
 
     async def update(self):
         await run_in_executor(self._sync_fetch)
