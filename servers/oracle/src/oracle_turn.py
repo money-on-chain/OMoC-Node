@@ -4,6 +4,7 @@ import typing
 from common import helpers
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import to_med
+from common.services.conditional_publish import ConditionalPublishServiceBase
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
 from oracle.src.oracle_configuration import OracleConfiguration, OracleTurnConfiguration
@@ -21,7 +22,7 @@ class PriceFollower(MyCfgdLogger):
         super().__init__(" : ", coin_pair)
 
     def price_changed_blocks(self, conf: OracleTurnConfiguration, block_chain_info: OracleBlockchainInfo,
-                             exchange_price: PriceWithTimestamp):
+                             exchange_price: PriceWithTimestamp, signal: ConditionalPublishServiceBase):
         """How many blocks since last publication in the blockchain and a price change"""
         if block_chain_info.last_pub_block < 0 or block_chain_info.block_num < 0:
             raise Exception("%r : Invalid block number", self._coin_pair)
@@ -33,10 +34,11 @@ class PriceFollower(MyCfgdLogger):
             return diff
 
         delta = helpers.price_delta(block_chain_info.blockchain_price, exchange_price.price)
-        if delta < conf.price_delta_pct:
+        threshold_delta = signal.get_price_delta(conf.price_delta_pct)
+        if delta < threshold_delta:
             self.debug("We are not fall backs and/or the price didn't change enough %r < %r,"
                        " block chain price %r exchange price %r" %
-                       (delta, conf.price_delta_pct,
+                       (delta, threshold_delta,
                         block_chain_info.blockchain_price, exchange_price.price))
             return
 
@@ -104,19 +106,20 @@ class OracleTurn(MyCfgdLogger):
                    %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
                                                       conf.trigger_valid_publication_blocks))
         ####################################
-        last_pub_block = self._signal.max_pub_block(vi.last_pub_block)   ### XXX /// HERE TENUKI
-        start_block_pub_period_before_price_expires = last_pub_block + \
-                                                      vi.valid_price_period_in_blocks - \
-                                                      conf.trigger_valid_publication_blocks
-        self.debug(f"block_num {vi.block_num}  start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
-                     f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks}")
+        last_pub_block = self._signal.max_pub_block(vi.last_pub_block)
+        start_block_pub_period_before_price_expires = (last_pub_block - conf.trigger_valid_publication_blocks +
+                                                   self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
+
+        self.debug(f"block_num {vi.block_num}  "
+                   f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
+                   f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks}")
         if vi.block_num >= start_block_pub_period_before_price_expires:
             can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
                                                     oracle_addr, oracle_addresses, entering_fallback_sequence)
             if can_I_publish:
                 return True, self.debug(f"I'm selected to publish before prices expires")
 
-        blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price)
+        blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
 
         if blocks_since_price_change is None:
             return False, self.debug(f"{oracle_addr} Price didn't change enough.")

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from decimal import Decimal
 from typing import Optional
 
 from eth_typing import BlockIdentifier
@@ -8,6 +9,7 @@ from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from common.services.oracle_dao import OracleBlockchainInfo
+from common.settings import config
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_settings import GET_VAR_COINPAIR
@@ -72,6 +74,10 @@ def run_and_wait_async(func, *args, **kwargs):
     thread.join()
 
 
+class InvalidCfg(Exception):
+    pass
+
+
 _NULL_OPTS = ('', '0x0', 'false', 'disabled')
 
 
@@ -85,9 +91,9 @@ class ConditionalConfig:
     def GetRegular(cls, ocfg: OracleConfiguration, name: str):
         return getattr(ocfg, name.upper(), None)
 
-    def validate(self, valid: bool, var: str, value: str):
-        if value in _NULL_OPTS:
-            logger.warning(f" * ConditionalPublishService: ({self.cp}) Config variable {var} have no valid value: '{value}'.")
+    def validate(self, valid: bool, var: str, value: str, _null_opts=_NULL_OPTS):
+        if value in _null_opts:
+            logger.warning(f" * ConditionalPublishService: ({self.cp}) Conf.var: {var} have no valid value: '{value}'.")
             valid = False
         return valid and (value is not None)
 
@@ -100,13 +106,31 @@ class ConditionalConfig:
             valid = self.validate(valid, var, value)
             setattr(self, f'_{var}', value)  # set "protected" variable..
 
-        value = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
-        valid = self.validate(valid, 'MULTICALL_ADDR', value)
-        setattr(self, f'_MULTICALL_ADDR', value)  # set "protected" variable..
+        self._MULTICALL_ADDR = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
+        valid = self.validate(valid, 'MULTICALL_ADDR', self._MULTICALL_ADDR)
+
+        self._ORACLE_OFFLINE_CFG = config('ORACLE_OFFLINE_CFG_'+self.pc, cast=bool, default=False)
+        valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
+        self._PRICE_DELTA_PCT = config('PRICE_DELTA_PCT_'+self.pc, cast=Decimal, default=-1)
+        valid = self.validate(valid, 'PRICE_DELTA_PCT_', self._PRICE_DELTA_PCT)
+        self._ORACLE_PRICE_PUBLISH_BLOCKS = config('ORACLE_PRICE_PUBLISH_BLOCKS_'+self.pc, cast=int, default='-1')
+        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_', self._ORACLE_PRICE_PUBLISH_BLOCKS)
         self.valid = valid
 
     def check_valid(self):
         return self.valid
+
+    @property
+    def ORACLE_OFFLINE_CFG(self):
+        return self._ORACLE_OFFLINE_CFG
+
+    @property
+    def PRICE_DELTA_PCT(self):
+        return self._PRICE_DELTA_PCT
+
+    @property
+    def ORACLE_PRICE_PUBLISH_BLOCKS(self):
+        return self._ORACLE_PRICE_PUBLISH_BLOCKS
 
     @property
     def MOC_BASE_BUCKET(self):
@@ -132,9 +156,17 @@ class ConditionalPublishServiceBase:
             ContractFactoryService.get_contract_factory_service())
         run_and_wait_async(oc.initialize)
         cfg = ConditionalConfig(cp, oc)
-        if not cfg.check_valid():
+        try:
+            if not cfg.ORACLE_OFFLINE_CFG:
+                logger.warning(f" * ConditionalPublishService disabled for {cfg.cp} because of ORACLE_OFFLINE_CFG.")
+                return DisabledConditionalPublishService(cfg)
+            if not cfg.check_valid():
+                logger.warning(f" * ConditionalPublishService disabled for {cfg.cp} not valid cfg!.")
+                return DisabledConditionalPublishService(cfg)
+            return ConditionalPublishService(blockchain, cfg, oc, loop)
+        except InvalidCfg as err:
+            logger.error(err)
             return DisabledConditionalPublishService(cfg)
-        return ConditionalPublishService(blockchain, cfg, oc, loop)
 
     def __init__(self, cfg: ConditionalConfig):
         self.cfg = cfg
@@ -166,6 +198,12 @@ class ConditionalPublishServiceBase:
     def max_pub_block(self, blockchain_last_pub_block: int):
         raise NotImplementedError
 
+    def get_price_delta(self, default_delta):
+        raise NotImplementedError
+
+    def get_valid_price_period(self, default_value):
+        raise NotImplementedError
+
 
 class DisabledConditionalPublishService(ConditionalPublishServiceBase):
     def __init__(self, cfg: ConditionalConfig):
@@ -192,6 +230,12 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
     def max_pub_block(self, blockchain_last_pub_block: int):
         return blockchain_last_pub_block
 
+    def get_price_delta(self, default_delta):
+        return default_delta
+
+    def get_valid_price_period(self, default_value):
+        raise default_value
+
 
 class ConditionalPublishService(ConditionalPublishServiceBase):
     qACLockedInPending = 'qACLockedInPending()(uint256)'
@@ -206,6 +250,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     def __init__(self, blockchain, cfg: ConditionalConfig, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
         super().__init__(cfg)
+        if cfg.PRICE_DELTA_PCT<0 or cfg.PRICE_DELTA_PCT>100:
+            raise InvalidCfg('Invalid price delta setup')
         self.blockchain = blockchain
         self.logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
         self.set_conf_and_loop(conf, loop)  # ready before fetch
@@ -214,6 +260,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     def set_conf_and_loop(self, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
         self._conf = conf
         self.from_blockchain(loop.get())
+
+    def get_price_delta(self, default_delta):
+        return self.cfg.PRICE_DELTA_PCT if self.is_paused() else default_delta
+
+    def get_valid_price_period(self, default_value):
+        return self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS if self.is_paused() else default_value
 
     @property
     def _trigger_valid_publication_blocks(self):
