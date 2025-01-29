@@ -278,7 +278,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if trigger_blocks is None:
             self.logger.warning("Trigger blocks : None")
             trigger_blocks = 0
-        return self._last_pub - self._expiration_blocks + trigger_blocks
+        return self._last_pub - self._expiration_blocks + trigger_blocks - 1
 
     def __str__(self):
         values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')
