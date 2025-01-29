@@ -109,11 +109,11 @@ class ConditionalConfig:
         self._MULTICALL_ADDR = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
         valid = self.validate(valid, 'MULTICALL_ADDR', self._MULTICALL_ADDR)
 
-        self._ORACLE_OFFLINE_CFG = config('ORACLE_OFFLINE_CFG_'+self.pc, cast=bool, default=False)
+        self._ORACLE_OFFLINE_CFG = config('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
         valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
-        self._PRICE_DELTA_PCT = config('PRICE_DELTA_PCT_'+self.pc, cast=Decimal, default=-1)
+        self._PRICE_DELTA_PCT = config('PRICE_DELTA_PCT_'+self.cp, cast=Decimal, default=-1)
         valid = self.validate(valid, 'PRICE_DELTA_PCT_', self._PRICE_DELTA_PCT)
-        self._ORACLE_PRICE_PUBLISH_BLOCKS = config('ORACLE_PRICE_PUBLISH_BLOCKS_'+self.pc, cast=int, default='-1')
+        self._ORACLE_PRICE_PUBLISH_BLOCKS = config('ORACLE_PRICE_PUBLISH_BLOCKS_'+self.cp, cast=int, default='-1')
         valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_', self._ORACLE_PRICE_PUBLISH_BLOCKS)
         self.valid = valid
 
