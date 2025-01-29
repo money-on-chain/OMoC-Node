@@ -1,18 +1,17 @@
-import asyncio
-import logging
-from decimal import Decimal
-from typing import Optional
-
 from eth_typing import BlockIdentifier
 
+import asyncio
+import logging
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from common.services.oracle_dao import OracleBlockchainInfo
 from common.settings import config
+from decimal import Decimal
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_settings import GET_VAR_COINPAIR
+from typing import Optional
 from w3multicall.multicall import W3Multicall
 from w3multicall.multicall import _decode_output, _unpack_aggregate_outputs, _encode_data
 
@@ -74,7 +73,11 @@ def run_and_wait_async(func, *args, **kwargs):
     thread.join()
 
 
-class InvalidCfg(Exception):
+class NoConditionalPublication(Exception):
+    pass
+
+
+class InvalidCfg(NoConditionalPublication):
     pass
 
 
@@ -159,25 +162,20 @@ class ConditionalPublishServiceBase:
         oc = OracleConfiguration(
             ContractFactoryService.get_contract_factory_service())
         run_and_wait_async(oc.initialize)
-        cfg = ConditionalConfig(cp, oc)
+        ccfg = ConditionalConfig(cp, oc)
         try:
-            if not cfg.ORACLE_OFFLINE_CFG:
-                logger.warning(f" * ConditionalPublishService disabled for {cfg.cp} because of ORACLE_OFFLINE_CFG.")
-                return DisabledConditionalPublishService(cfg)
-            if not cfg.check_valid():
-                logger.warning(f" * ConditionalPublishService disabled for {cfg.cp} not valid cfg!.")
-                return DisabledConditionalPublishService(cfg)
-            return ConditionalPublishService(blockchain, cfg, oc, loop)
-        except InvalidCfg as err:
+            if not ccfg.ORACLE_OFFLINE_CFG:
+                raise NoConditionalPublication(f" * ConditionalPublishService disabled for {ccfg.cp} because of ORACLE_OFFLINE_CFG.")
+            if not ccfg.check_valid():
+                raise InvalidCfg(f" * ConditionalPublishService disabled for {ccfg.cp} not valid cfg!.")
+            return ConditionalPublishService(blockchain, ccfg, loop)
+        except NoConditionalPublication as err:
             logger.error(err)
-            return DisabledConditionalPublishService(cfg)
+            return DisabledConditionalPublishService(ccfg)
 
-    def __init__(self, cfg: ConditionalConfig):
-        self.cfg = cfg
+    def __init__(self, ccfg: ConditionalConfig):
+        self.cfg = ccfg
         self.logger = MyCfgdLogger(': ', str(self.cfg.cp))
-
-    def set_conf_and_loop(self, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
-        pass
 
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
         pass
@@ -210,9 +208,9 @@ class ConditionalPublishServiceBase:
 
 
 class DisabledConditionalPublishService(ConditionalPublishServiceBase):
-    def __init__(self, cfg: ConditionalConfig):
-        super().__init__(cfg)
-        self.logger.warning(f" * ConditionalPublishService disabled for {cfg.cp}.")
+    def __init__(self, ccfg: ConditionalConfig):
+        super().__init__(ccfg)
+        self.logger.warning(f" * ConditionalPublishService disabled for {ccfg.cp}.")
         self.last_value = None
 
     def __str__(self):
@@ -246,34 +244,24 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     shouldCalculateEma = 'shouldCalculateEma()(bool)'
     getBts = 'getBts()(uint256)'
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)'
-    _conf: OracleConfiguration
     _last_value = None
     _last_block = None
-    _last_pub = None
     _expiration_blocks = None
 
-    def __init__(self, blockchain, cfg: ConditionalConfig, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
-        super().__init__(cfg)
-        if cfg.PRICE_DELTA_PCT<0 or cfg.PRICE_DELTA_PCT>100:
+    def __init__(self, blockchain, ccfg: ConditionalConfig, loop: OracleBlockchainInfoLoop):
+        super().__init__(ccfg)
+        if ccfg.PRICE_DELTA_PCT<0 or ccfg.PRICE_DELTA_PCT>100:
             raise InvalidCfg('Invalid price delta setup')
         self.blockchain = blockchain
         self.logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
-        self.set_conf_and_loop(conf, loop)  # ready before fetch
-        self._sync_fetch()  # prevent running without values!
-
-    def set_conf_and_loop(self, conf: OracleConfiguration, loop: OracleBlockchainInfoLoop):
-        self._conf = conf
         self.from_blockchain(loop.get())
+        self._sync_fetch()  # prevent running without values!
 
     def get_price_delta(self, default_delta):
         return self.cfg.PRICE_DELTA_PCT if self.is_paused() else default_delta
 
     def get_valid_price_period(self, default_value):
         return self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS if self.is_paused() else default_value
-
-    @property
-    def _trigger_valid_publication_blocks(self):
-        return self._conf.oracle_turn_conf.trigger_valid_publication_blocks
 
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
         if blockchain_info is not None:
@@ -314,27 +302,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             self._call_condition4_nextTCInterestPayment(),
         )
         self._last_value, self._last_block = results[0], results[1]
-        if self.is_paused():
-            self._last_pub = self._last_block
 
     @property
     def _tuple_value(self):
         return (self._last_value, self._last_block) if self.is_running else None
 
-    @property
-    def adjusted_last_pub(self):
-        trigger_blocks = self._trigger_valid_publication_blocks
-        if self._expiration_blocks is None:
-            self.logger.warning("Expiration blocks : None")
-            return self._last_pub
-        if trigger_blocks is None:
-            self.logger.warning("Trigger blocks : None")
-            trigger_blocks = 0
-        return self._last_pub - self._expiration_blocks + trigger_blocks - 1
-
     def __str__(self):
         values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')
-        return '[%s/%s|%s]' % (values, self.adjusted_last_pub, 'P.' if self.is_paused() else 'ok')
+        return '[%s|%s]' % (values, 'P.' if self.is_paused() else 'ok')
 
     @property
     def is_running(self):
@@ -355,9 +330,3 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if self.is_running:
             return not self.getConditionActive(self._last_value, self._last_block)
         return False
-
-    def max_pub_block(self, blockchain_last_pub_block: int):
-        if self.is_running:
-            if not (self._last_pub is None):
-                return max(blockchain_last_pub_block, self.adjusted_last_pub)
-        return blockchain_last_pub_block
