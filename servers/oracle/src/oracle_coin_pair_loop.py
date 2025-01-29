@@ -1,14 +1,14 @@
-import asyncio
-import json
-import logging
 import time
-import traceback
-import typing
 
 import urllib3
 from aiohttp import ClientConnectorError, InvalidURL, ClientResponseError
 from hexbytes import HexBytes
 
+import asyncio
+import json
+import logging
+import traceback
+import typing
 from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
@@ -95,16 +95,15 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  X:{exchange_price.price/ETHER} C:{cur}" %
                   (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
-            if not self.signal.is_paused():
-                publish_success = await self.publish(blockchain_info.selected_oracles,
-                                                     PublishPriceParams(self._conf.MESSAGE_VERSION,
-                                                                        self._coin_pair,
-                                                                        exchange_price,
-                                                                        self._oracle_addr,
-                                                                        blockchain_info.last_pub_block))
-                if not publish_success:
-                    # retry immediately.
-                    return 1
+            publish_success = await self.publish(blockchain_info.selected_oracles,
+                                                 PublishPriceParams(self._conf.MESSAGE_VERSION,
+                                                                    self._coin_pair,
+                                                                    exchange_price,
+                                                                    self._oracle_addr,
+                                                                    blockchain_info.last_pub_block))
+            if not publish_success:
+                # retry immediately.
+                return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
     async def publish(self, oracles, params: PublishPriceParams):

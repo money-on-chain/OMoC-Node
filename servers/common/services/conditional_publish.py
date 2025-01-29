@@ -180,9 +180,9 @@ class ConditionalPublishServiceBase:
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
         pass
 
-    async def update__is_paused(self):
+    async def update__offline_cfg(self):
         await self.update()
-        return self.is_paused()
+        return self.offline_cfg()
 
     @property
     def is_running(self):
@@ -194,7 +194,7 @@ class ConditionalPublishServiceBase:
     async def update(self):
         raise NotImplementedError
 
-    def is_paused(self):
+    def offline_cfg(self):
         raise NotImplementedError
 
     def max_pub_block(self, blockchain_last_pub_block: int):
@@ -226,7 +226,7 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
     async def update(self):
         pass
 
-    def is_paused(self):
+    def offline_cfg(self):
         return False
 
     def max_pub_block(self, blockchain_last_pub_block: int):
@@ -258,10 +258,10 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         self._sync_fetch()  # prevent running without values!
 
     def get_price_delta(self, default_delta):
-        return self.cfg.PRICE_DELTA_PCT if self.is_paused() else default_delta
+        return self.cfg.PRICE_DELTA_PCT if self.offline_cfg() else default_delta
 
     def get_valid_price_period(self, default_value):
-        return self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS if self.is_paused() else default_value
+        return self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS if self.offline_cfg() else default_value
 
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
         if blockchain_info is not None:
@@ -309,7 +309,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     def __str__(self):
         values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')
-        return '[%s|%s]' % (values, 'P.' if self.is_paused() else 'ok')
+        return '[%s|%s]' % (values, 'P.' if self.offline_cfg() else 'ok')
 
     @property
     def is_running(self):
@@ -322,11 +322,11 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     async def update(self):
         await run_in_executor(self._sync_fetch)
 
-    async def update__is_paused(self):
+    async def update__offline_cfg(self):
         await self.update()
-        return self.is_paused()
+        return self.offline_cfg()
 
-    def is_paused(self):
+    def offline_cfg(self):
         if self.is_running:
             return not self.getConditionActive(self._last_value, self._last_block)
         return False
