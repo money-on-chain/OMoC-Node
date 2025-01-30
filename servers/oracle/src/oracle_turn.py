@@ -159,13 +159,13 @@ class OracleTurn(MyCfgdLogger):
         # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
         # XXX /// here TENUKI
-        entering_fallback_sequence_index = blocks_since_pub_is_allowed \
-            if blocks_since_pub_is_allowed is not None \
-               and blocks_since_pub_is_allowed < len(entering_fallback_sequence) \
-            else len(entering_fallback_sequence) - 1
+        condition = ((blocks_since_pub_is_allowed is not None) and
+                     (blocks_since_pub_is_allowed < len(entering_fallback_sequence)))
+        entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
+                                            len(entering_fallback_sequence) - 1)
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
-        self.info(f"FB: cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
-                  f" seq: {[to_short(str(x)) for x in selected_fallbacks]} / {type(selected_fallbacks[0])}")
+        self.info(f"FB: bck#:{blocks_since_pub_is_allowed} cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
+                  f" seq: {[to_short(str(x)) for x in selected_fallbacks]}  total: {len(oracle_addresses)}")
         return oracle_addr in selected_fallbacks
 
     @staticmethod
