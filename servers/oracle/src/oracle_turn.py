@@ -3,7 +3,7 @@ import typing
 
 from common import helpers
 from common.helpers import MyCfgdLogger
-from common.services.blockchain import to_med
+from common.services.blockchain import to_med, to_short
 from common.services.conditional_publish import ConditionalPublishServiceBase
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
@@ -152,8 +152,7 @@ class OracleTurn(MyCfgdLogger):
             entering_fallback_sequence.append(selected_oracles_len)
         return entering_fallback_sequence
 
-    @staticmethod
-    def can_oracle_publish(blocks_since_pub_is_allowed, oracle_addr, oracle_addresses, entering_fallback_sequence):
+    def can_oracle_publish(self, blocks_since_pub_is_allowed, oracle_addr, oracle_addresses, entering_fallback_sequence):
         if OracleTurn.is_selected_oracle(oracle_addresses, oracle_addr):
             return True
         # Gets blocks since publication is allowed from blocks_since_pub_is_allowed and uses it as index in the amount
@@ -165,6 +164,8 @@ class OracleTurn(MyCfgdLogger):
                and blocks_since_pub_is_allowed < len(entering_fallback_sequence) \
             else len(entering_fallback_sequence) - 1
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
+        self.info(f"FB: cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
+                  f" seq: {[to_short(str(x)) for x in selected_fallbacks]} / {type(selected_fallbacks[0])}")
         return oracle_addr in selected_fallbacks
 
     @staticmethod

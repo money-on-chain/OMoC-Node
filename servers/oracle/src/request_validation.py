@@ -1,7 +1,6 @@
-import logging
-
 from hexbytes import HexBytes
 
+import logging
 from common import crypto, helpers
 from common.crypto import verify_signature
 from common.services.oracle_dao import PriceWithTimestamp
@@ -59,7 +58,7 @@ class RequestValidation:
         self.validate_signature(message, signature)
         our_acc = oracle_settings.get_oracle_account()
         s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
-        logger.info("%r:%s : sign result: %r" % (self.cp, our_acc.short, s))
+        logger.debug("%r:%s : sign result: %r" % (self.cp, our_acc.short, s))
         return message, s
 
     def validate_params(self):
