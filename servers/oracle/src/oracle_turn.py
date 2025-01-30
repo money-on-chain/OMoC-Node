@@ -25,7 +25,7 @@ class PriceFollower(MyCfgdLogger):
                              exchange_price: PriceWithTimestamp, signal: ConditionalPublishServiceBase):
         """How many blocks since last publication in the blockchain and a price change"""
         if block_chain_info.last_pub_block < 0 or block_chain_info.block_num < 0:
-            raise Exception("%r : Invalid block number", self._coin_pair)
+            raise Exception("%r : Invalid block number" % self._coin_pair)
 
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
@@ -37,7 +37,7 @@ class PriceFollower(MyCfgdLogger):
         threshold_delta = signal.get_price_delta(conf.price_delta_pct)
         if delta < threshold_delta:
             self.debug("We are not fall backs and/or the price didn't change enough %r < %r,"
-                       " block chain price %r exchange price %r" %
+                       " blockchain price %r exchange price %r" %
                        (delta, threshold_delta,
                         block_chain_info.blockchain_price, exchange_price.price))
             return
@@ -131,9 +131,10 @@ class OracleTurn(MyCfgdLogger):
         can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
                                                 oracle_addr, oracle_addresses, entering_fallback_sequence)
         if can_I_publish:
-            return True, self.debug(f"{oracle_addr} selected to publish after price change. "
-                                   f"Blocks since price change: {blocks_since_price_change}")
-        return False, self.debug(f" {oracle_addr} is NOT the chosen fallback {blocks_since_price_change}")
+            return True, self.info(f"{oracle_addr} selected to pub after $ change. "
+                                   f"Blocks since change: {blocks_since_price_change}  ({conf.price_publish_blocks})")
+        return False, self.info(f" {oracle_addr} is NOT the chosen fallback {blocks_since_price_change} "
+                                f" ({conf.price_publish_blocks})")
 
     @staticmethod
     def is_selected_oracle(oracle_addresses, oracle_addr):
