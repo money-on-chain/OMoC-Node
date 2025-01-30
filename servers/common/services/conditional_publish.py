@@ -236,7 +236,7 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
         return default_delta
 
     def get_valid_price_period(self, default_value):
-        raise default_value
+        return default_value
 
 
 class ConditionalPublishService(ConditionalPublishServiceBase):
