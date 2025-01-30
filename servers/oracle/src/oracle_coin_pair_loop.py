@@ -121,13 +121,13 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return False
 
         if settings.DEBUG:
-            self.info(f"GOT SIGS %r and params %r recover %r" %
-                (sigs, params, [crypto.recover(hexstr=message, signature=x) for x in sigs]))
+            self.debug(f"GOT SIGS %r and params %r recover %r" %
+                ([to_short(x) for x in sigs], params,
+                 [to_short(crypto.recover(hexstr=message, signature=x)) for x in sigs]))
 
-        self.info(f"publishing price: {params.price}")
         monitor.publish_log("%r : %r publishing price: %r" % (self._coin_pair, self._oracle_addr, params.price))
         try:
-            self.info(f"SENDING TRANSACTION, "
+            self.info(f"publishing price: {params.price} SENDING TRANSACTION, "
                       f"last pub block {params.last_pub_block}, price {params.price}")
             tx = await self._cps.publish_price(params.version,
                                                params.coin_pair,
@@ -139,7 +139,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                wait=True,
                                                last_gas_price=await self.bs_loop.gas_calc.get_current())
             if is_error(tx):
-                self.info(f"ERROR PUBLISHING {repr(tx)}")
+                self.error(f"ERROR PUBLISHING {repr(tx)}")
                 return False
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
@@ -182,7 +182,7 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
     if not x.port is None:
         target_uri+=':%d'%x.port
     target_uri += "/sign/"
-    logger.info("%s : Trying to get signatures from: %s == %s" % (params.coin_pair, target_uri, oracle.addr), )
+    logger.debug("%s : Trying to get signatures from: %s == %s" % (params.coin_pair, target_uri, oracle.addr))
     try:
         post_data = {
             "version": str(params.version),
@@ -246,5 +246,5 @@ async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
         return
 
     # TODO: Verify that the oracle is still in the approved set (to avoid consuming gas later)
-    logger.info("%s : Got valid signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
+    logger.debug("%s : Got valid signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
     return OracleSignature(oracle.addr, signature)
