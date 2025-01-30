@@ -110,9 +110,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         message = params.prepare_price_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
-
         # send message to all oracles to sign
-        self.info(f"GATHERING SIGNATURES:"
+        self.debug(f"GATHERING SIGNATURES:"
                   f"last pub blk {params.last_pub_block}, price: {params.price}")
         sigs = await gather_signatures(oracles, params, message, signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
