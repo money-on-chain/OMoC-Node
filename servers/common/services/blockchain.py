@@ -79,11 +79,11 @@ class BlockChainAddress(AnyHttpUrl):
 
 
 def to_med(address_string: str) -> str:
-    return address_string[:15] + '…'
+    return str(address_string)[:15] + '…'  # str or hexBytes()
 
 
 def to_short(address_string: str) -> str:
-    return address_string[:7] + '…'
+    return str(address_string)[:7] + '…'
 
 
 class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
