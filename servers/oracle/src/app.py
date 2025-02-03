@@ -1,9 +1,8 @@
-import logging
-import traceback
-
 from fastapi import Form, HTTPException, Response, Request
 from starlette.responses import JSONResponse
 
+import logging
+import traceback
 from common import settings, run_uvicorn
 from common.helpers import dt_now_at_utc
 from common.services.blockchain import BlockChain
@@ -37,7 +36,7 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
         return await call_next(request)
     try:
         (ip, port) = request.client
-        logger.info("Got a connection to %s from %r" % (request.url.path, ip))
+        logger.debug("Got a connection to %s from %r" % (request.url.path, ip))
         if not (request.url.path in OPEN_ENDPOINTS):
             if not main_executor.is_valid_ip(ip):
                 raise Exception("%s %r" % (not_authorized_msg, ip))

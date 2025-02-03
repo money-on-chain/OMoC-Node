@@ -105,21 +105,20 @@ class OracleTurn(MyCfgdLogger):
             return False, self.error("valid_price_period_in_blocks should be higher than trigger_valid_publication_blocks \
                    %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
                                                       conf.trigger_valid_publication_blocks))
+
+        blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
+
         ####################################
         start_block_pub_period_before_price_expires = (vi.last_pub_block - conf.trigger_valid_publication_blocks +
                                                    self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
         self.debug(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
                    f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks}")
-        #if vi.block_num >= start_block_pub_period_before_price_expires:
-        #    can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
-        #                                            oracle_addr, oracle_addresses, entering_fallback_sequence)
-        #    if can_I_publish:
-        #        return True, self.debug(f"I'm selected to publish before prices expires")
-        if vi.block_num < start_block_pub_period_before_price_expires:
-            return False, self.debug("Price not expired yet")
-
-        blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
+        if vi.block_num >= start_block_pub_period_before_price_expires:
+           can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
+                                                   oracle_addr, oracle_addresses, entering_fallback_sequence)
+           if can_I_publish:
+               return True, self.debug(f"I'm selected to publish before prices expires")
 
         if blocks_since_price_change is None:
             return False, self.debug(f"{oracle_addr} Price didn't change enough.")
@@ -128,8 +127,6 @@ class OracleTurn(MyCfgdLogger):
             return False, self.warning("%s Price changed but still waiting to reach %r blocks to be allowed. %r < %r" %
                         (oracle_addr, conf.price_publish_blocks, blocks_since_price_change, conf.price_publish_blocks))
 
-        #self.debug("2 ---> %r %r %r %r %r" % (blocks_since_price_change, conf.price_publish_blocks, oracle_addr,
-        #                                      oracle_addresses, entering_fallback_sequence))
         can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
                                                 oracle_addr, oracle_addresses, entering_fallback_sequence)
         if can_I_publish:
