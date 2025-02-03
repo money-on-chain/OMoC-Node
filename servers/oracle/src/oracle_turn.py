@@ -113,7 +113,9 @@ class OracleTurn(MyCfgdLogger):
                                                    self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
         self.debug(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
-                   f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks}")
+                   f"trigger_valid_publication_blocks {conf.trigger_valid_publication_blocks}"
+                   f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks} "
+                   f"f={self._signal.get_valid_price_period(vi.valid_price_period_in_blocks)}")
         if vi.block_num >= start_block_pub_period_before_price_expires:
            can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
                                                    oracle_addr, oracle_addresses, entering_fallback_sequence)
