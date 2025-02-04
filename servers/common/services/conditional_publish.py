@@ -83,6 +83,7 @@ class InvalidCfg(NoConditionalPublication):
 
 _NULL_OPTS = ('', '0x0', 'false', 'disabled')
 
+DefaultDecimal = Decimal('-2')
 
 class ConditionalConfig:
     _VARS = ('MOC_QUEUE', 'MOC_BASE_BUCKET', 'MOC_EMA', 'MOC_CORE', )
@@ -114,10 +115,16 @@ class ConditionalConfig:
 
         self._ORACLE_OFFLINE_CFG = config('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
         valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
-        self._PRICE_DELTA_PCT = config('PRICE_DELTA_PCT_'+self.cp, cast=Decimal, default=-1)
-        valid = self.validate(valid, 'PRICE_DELTA_PCT_', self._PRICE_DELTA_PCT)
-        self._ORACLE_PRICE_PUBLISH_BLOCKS = config('ORACLE_PRICE_PUBLISH_BLOCKS_'+self.cp, cast=int, default='-1')
-        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_', self._ORACLE_PRICE_PUBLISH_BLOCKS)
+
+        self._PRICE_DELTA_PCT_NEED = config('PRICE_DELTA_PCT_NEED_'+self.cp, cast=Decimal, default=DefaultDecimal)
+        valid = self.validate(valid, 'PRICE_DELTA_PCT_NEED_', self._PRICE_DELTA_PCT_NEED)
+        self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED = config('ORACLE_PRICE_PUBLISH_BLOCKS_NEED_'+self.cp, cast=int, default=DefaultDecimal)
+        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_', self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED)
+
+        self._PRICE_DELTA_PCT_UNNEED = config('PRICE_DELTA_PCT_UNNEED_'+self.cp, cast=Decimal, default=-1)
+        valid = self.validate(valid, 'PRICE_DELTA_PCT_UNNEED_', self._PRICE_DELTA_PCT_UNNEED)
+        self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED = config('ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_'+self.cp, cast=int, default='-1')
+        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_', self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED)
         self.valid = valid
 
     def check_valid(self):
@@ -128,12 +135,20 @@ class ConditionalConfig:
         return self._ORACLE_OFFLINE_CFG
 
     @property
-    def PRICE_DELTA_PCT(self):
-        return self._PRICE_DELTA_PCT
+    def PRICE_DELTA_PCT_NEED(self):
+        return self._PRICE_DELTA_PCT_NEED
 
     @property
-    def ORACLE_PRICE_PUBLISH_BLOCKS(self):
-        return self._ORACLE_PRICE_PUBLISH_BLOCKS
+    def ORACLE_PRICE_PUBLISH_BLOCKS_NEED(self):
+        return self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED
+
+    @property
+    def PRICE_DELTA_PCT_UNNEED(self):
+        return self._PRICE_DELTA_PCT_UNNEED
+
+    @property
+    def ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED(self):
+        return self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED
 
     @property
     def MOC_QUEUE(self):
@@ -250,18 +265,27 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     def __init__(self, blockchain, ccfg: ConditionalConfig, loop: OracleBlockchainInfoLoop):
         super().__init__(ccfg)
-        if ccfg.PRICE_DELTA_PCT<0 or ccfg.PRICE_DELTA_PCT>100:
-            raise InvalidCfg('Invalid price delta setup')
+        if (ccfg.PRICE_DELTA_PCT_NEED<0 or ccfg.PRICE_DELTA_PCT_NEED>100) and (ccfg.PRICE_DELTA_PCT_NEED!=DefaultDecimal):
+            raise InvalidCfg('Invalid price delta pct need setup')
+        if (ccfg.PRICE_DELTA_PCT_UNNEED<0 or ccfg.PRICE_DELTA_PCT_UNNEED>100) and (ccfg.PRICE_DELTA_PCT_UNNEED!=DefaultDecimal):
+            raise InvalidCfg('Invalid price delta pct unneed setup')
         self.blockchain = blockchain
         self.logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
         self.from_blockchain(loop.get())
         self._sync_fetch()  # prevent running without values!
 
     def get_price_delta(self, default_delta):
-        return self.cfg.PRICE_DELTA_PCT if self.offline_cfg() else default_delta
+        x = self.cfg.PRICE_DELTA_PCT_UNNEED if self.offline_cfg() else self.cfg.PRICE_DELTA_PCT_NEED
+        if x == DefaultDecimal:
+            return default_delta
+        return x
 
     def get_valid_price_period(self, default_value):
-        return self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS if self.offline_cfg() else default_value
+        x = (self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED if self.offline_cfg() else
+                self.cfg.ORACLE_PRICE_PUBLISH_BLOCKS_NEED)
+        if x == DefaultDecimal:
+            return default_value
+        return x
 
     def from_blockchain(self, blockchain_info:OracleBlockchainInfo):
         if blockchain_info is not None:
