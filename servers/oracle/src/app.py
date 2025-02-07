@@ -96,8 +96,12 @@ async def read_info():
         data['coinpairs'] = list(cpm.keys())
         for cp in cpm.keys():
             obl: OracleBlockchainInfoLoop = cpm[cp].blockchain_info_loop
-            data[cp] = {'last_pub_block': obl._blockchain_info.last_pub_block}
+            data[cp] = {
+                'last_pub_block': obl._blockchain_info.last_pub_block,
+                'conditional-publication': cpm[cp].coin_pair_loop._signal_service.cfg_as_dict(),
+            }
             data[cp].update(fill_cp_info(obl._cps._coin_pair_service))
+
     except Exception as err:
         data['error'] = str(err)
     return data

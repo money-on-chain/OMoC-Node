@@ -1,9 +1,9 @@
-import os, sys
-import pathlib
-
 from starlette.config import Config
 from starlette.datastructures import URL
 
+import os
+import pathlib
+import sys
 from common.helpers import parseTimeDelta
 
 try:
@@ -50,7 +50,7 @@ PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=False)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version
-VERSION = "1.3.6.9"
+VERSION = "1.3.7.0"
 
 # These four are for the gas_price fix. Sometimes the gas_price reaches 20Gwei
 # Used the first time if the gas price exceeds the admitted

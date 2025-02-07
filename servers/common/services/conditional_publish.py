@@ -85,6 +85,7 @@ _NULL_OPTS = ('', '0x0', 'false', 'disabled')
 
 DefaultDecimal = Decimal('-2')
 
+
 class ConditionalConfig:
     _VARS = ('MOC_QUEUE', 'MOC_BASE_BUCKET', 'MOC_EMA', 'MOC_CORE', )
 
@@ -129,6 +130,21 @@ class ConditionalConfig:
 
     def check_valid(self):
         return self.valid
+
+    def as_dict(self):
+        return {
+            'COINPAIR': self.cp,
+            'ORACLE_OFFLINE_CFG': True,
+            'PRICE_DELTA_PCT_NEED': str(self.PRICE_DELTA_PCT_NEED),
+            'ORACLE_PRICE_PUBLISH_BLOCKS_NEED': self.ORACLE_PRICE_PUBLISH_BLOCKS_NEED,
+            'PRICE_DELTA_PCT_UNNEED': str(self.PRICE_DELTA_PCT_UNNEED),
+            'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED': self.ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED,
+            'MOC_QUEUE': self.MOC_QUEUE,
+            'MOC_BASE_BUCKET': self.MOC_BASE_BUCKET,
+            'MOC_EMA': self.MOC_EMA,
+            'MOC_CORE': self.MOC_CORE,
+            'MULTICALL_ADDR': self.MULTICALL_ADDR,
+        }
 
     @property
     def ORACLE_OFFLINE_CFG(self):
@@ -220,6 +236,9 @@ class ConditionalPublishServiceBase:
 
     def get_valid_price_period(self, default_value):
         raise NotImplementedError
+
+    def cfg_as_dict(self):
+        raise {self.__class__.__name__: self.cfg.as_dict()}
 
 
 class DisabledConditionalPublishService(ConditionalPublishServiceBase):
