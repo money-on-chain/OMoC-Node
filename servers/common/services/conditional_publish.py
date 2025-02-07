@@ -238,7 +238,7 @@ class ConditionalPublishServiceBase:
         raise NotImplementedError
 
     def cfg_as_dict(self):
-        raise {self.__class__.__name__: self.cfg.as_dict()}
+        return {self.__class__.__name__: self.cfg.as_dict()}
 
 
 class DisabledConditionalPublishService(ConditionalPublishServiceBase):
