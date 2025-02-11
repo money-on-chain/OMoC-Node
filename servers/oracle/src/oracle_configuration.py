@@ -1,12 +1,11 @@
 import logging
 import typing
-from decimal import Decimal
-from enum import Enum
-
 from common.helpers import parseTimeDelta, MyCfgdLogger
 from common.services.blockchain import is_error
 from common.services.contract_factory_service import ContractFactoryService
 from common.settings import config
+from decimal import Decimal
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +161,7 @@ class OracleConfiguration(MyCfgdLogger):
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: config('ORACLE_PRICE_PUBLISH_BLOCKS', cast=int),
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Selected oracle publishes after  ORACLE_PRICE_PUBLISH_BLOCKS  blocks of a price change.",
+                "description": "Selected oracle publishes after ORACLE_PRICE_PUBLISH_BLOCKS blocks of a price change.",
                 "default": 1,
             },
             "ORACLE_ENTERING_FALLBACKS_AMOUNTS": {

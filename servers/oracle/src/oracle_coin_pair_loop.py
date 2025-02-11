@@ -116,7 +116,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         sigs = await gather_signatures(oracles, params, message, signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
         if len(sigs) < len(oracles) // 2 + 1:
-            self.error(f"Publish: Not enough signatures")
+            self.info(f"Publish: Not enough signatures")
             return False
 
         if settings.DEBUG:
