@@ -134,7 +134,7 @@ class ConditionalConfig:
     def as_dict(self):
         return {
             'COINPAIR': self.cp,
-            'ORACLE_OFFLINE_CFG': True,
+            'ORACLE_OFFLINE_CFG': self.ORACLE_OFFLINE_CFG,
             'PRICE_DELTA_PCT_NEED': str(self.PRICE_DELTA_PCT_NEED),
             'ORACLE_PRICE_PUBLISH_BLOCKS_NEED': self.ORACLE_PRICE_PUBLISH_BLOCKS_NEED,
             'PRICE_DELTA_PCT_UNNEED': str(self.PRICE_DELTA_PCT_UNNEED),
