@@ -1,8 +1,10 @@
 import logging
 import typing
 from typing import List
+import collections
+from datetime import datetime
 
-from common.services.blockchain import BlockChainAddress
+from common.services.blockchain import BlockChainAddress, to_med
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +47,19 @@ OracleRoundInfo = typing.NamedTuple("OracleRoundInfo",
                                      ("selectedInRound", int)
                                      ])
 
-RoundInfo = typing.NamedTuple("RoundInfo", [('round', int),
-                                            ("startBlock", int),
-                                            ("lockPeriodTimestamp", int),
-                                            ("totalPoints", int),
-                                            ("selectedOwners", List[str]),
-                                            ("selectedOracles", List[str])])
+
+class RoundInfo(collections.namedtuple("RoundInfo", ['round',
+                                            "startBlock",
+                                            "lockPeriodTimestamp",
+                                            "totalPoints",
+                                            "selectedOwners",
+                                            "selectedOracles"])):
+    def __repr__(self):
+        lock = datetime.fromtimestamp(self.lockPeriodTimestamp)
+        lock = lock.time()
+        selected_oracles = ', '.join(to_med(str(oracle)) for oracle in self.selectedOracles)
+        return f"RoundInfo(rnd={self.round}, startBlk={self.startBlock}, lockPeriod={lock}, selectedOracles={selected_oracles})"
+
 
 FullOracleRoundInfo = typing.NamedTuple("FullOracleRoundInfo",
                                         [("addr", str),

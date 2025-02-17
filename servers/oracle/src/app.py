@@ -1,9 +1,8 @@
-import logging
-import traceback
-
 from fastapi import Form, HTTPException, Response, Request
 from starlette.responses import JSONResponse
 
+import logging
+import traceback
 from common import settings, run_uvicorn
 from common.helpers import dt_now_at_utc
 from common.services.blockchain import BlockChain
@@ -37,7 +36,7 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
         return await call_next(request)
     try:
         (ip, port) = request.client
-        logger.info("Got a connection to %s from %r" % (request.url.path, ip))
+        logger.debug("Got a connection to %s from %r" % (request.url.path, ip))
         if not (request.url.path in OPEN_ENDPOINTS):
             if not main_executor.is_valid_ip(ip):
                 raise Exception("%s %r" % (not_authorized_msg, ip))
@@ -97,8 +96,11 @@ async def read_info():
         data['coinpairs'] = list(cpm.keys())
         for cp in cpm.keys():
             obl: OracleBlockchainInfoLoop = cpm[cp].blockchain_info_loop
-            data[cp] = {'last_pub_block': obl._blockchain_info.last_pub_block}
+            data[cp] = { 'last_pub_block': obl._blockchain_info.last_pub_block }
+            if settings.DEBUG:
+                data[cp]['conditional-publication'] = cpm[cp].coin_pair_loop._signal_service.cfg_as_dict()
             data[cp].update(fill_cp_info(obl._cps._coin_pair_service))
+
     except Exception as err:
         data['error'] = str(err)
     return data

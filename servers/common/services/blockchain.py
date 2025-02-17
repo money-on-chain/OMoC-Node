@@ -78,6 +78,14 @@ class BlockChainAddress(AnyHttpUrl):
         return parse_addr(v.lower())
 
 
+def to_med(address_string: str) -> str:
+    return str(address_string)[:15] + '…'  # str or hexBytes()
+
+
+def to_short(address_string: str) -> str:
+    return str(address_string)[:7] + '…'
+
+
 class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
                                           ('key', Secret)])):
     def __new__(cls, addr, key):
@@ -88,6 +96,14 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
         if skey.startswith("0x"):
             skey = skey[2:]
         return super(BlockchainAccount, cls).__new__(cls, addr, Secret(skey))
+
+    @property
+    def short(self):
+        return to_short(self.addr)
+
+    @property
+    def med(self):
+        return to_med(self.addr)
 
 
 class BlockChainPK(AnyHttpUrl):
@@ -110,39 +126,33 @@ class BlockchainStateLoop(BgTaskExecutor):
         super().__init__(name="BlockchainStateLoop", main=self.run)
 
     async def run(self):
-        logger.info("BlockchainStateLoop loop start")
+        logger.debug("BlockchainStateLoop loop start")
         await self.gas_calc.update()
-        logger.info("BlockchainStateLoop loop done")
+        logger.debug("BlockchainStateLoop loop done")
         return self.conf.ORACLE_BLOCKCHAIN_STATE_DELAY 
 
 
 class GasCalculator:
-
     def __init__(self):
-
         logger.info('Initializing GasCalculator ...')
-
         def get(var_name, show_fnc=repr):
             value = getattr(settings, var_name)
             logger.info(f"    Getting parameter {repr(var_name)} -> {show_fnc(value)}")
             return value
-
         self.node_url = str(get('NODE_URL', str))
         self.default_gas_price = get('DEFAULT_GAS_PRICE')
         self.gas_percentage_admitted = get('GAS_PERCENTAGE_ADMITTED')
         self.gas_price_hard_limit_min = get('GAS_PRICE_HARD_LIMIT_MIN')
         self.gas_price_hard_limit_max = get('GAS_PRICE_HARD_LIMIT_MAX')
         self.gas_price_hard_limit_multiplier = get('GAS_PRICE_HARD_LIMIT_MULTIPLIER')
-
-        self.last_price = None 
-
+        self.last_price = None
         self.W3 = Web3(HTTPProvider(self.node_url,
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
 
     def set_last_price(self, gas_price):
         if self.last_price != gas_price:
             self.last_price = gas_price
-            logger.info(f"A new gas price was calculated: {gas_price}")           
+            logger.debug(f"A new gas price was calculated: {gas_price}")
 
     def get_gas_price_plus_x_perc(self, gas_price):
         return gas_price + gas_price * (self.gas_percentage_admitted / 100)
@@ -153,13 +163,10 @@ class GasCalculator:
         return int(self.get_gas_price_plus_x_perc(self.last_price))
 
     def is_gas_price_out_of_range(self, gas_price):
-        if gas_price > self.get_last_price():
-            return True
-        return False
+        return gas_price > self.get_last_price()
 
     @exec_with_catch_async
     async def get_current(self):
-
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
         
         if gas_price is None:

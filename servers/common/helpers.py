@@ -113,3 +113,31 @@ def get_ip_addresses(hostname):
 def dt_now_at_utc() -> datetime:
     now = datetime.now(timezone.utc)
     return now
+
+
+J = lambda args, sep='': ' '.join(str(tag) for tag in args) + sep
+
+
+class MyCfgdLogger:
+    def __init__(self, sep=None, *tags):
+        self.reset(sep, *tags)
+
+    def reset(self, sep=None, *tags):
+        if sep is None: sep = ': '
+        self.tags = tags
+        self.prepared = J(tags, sep)
+
+    def _log(self, prio, msg, *args, **kw):
+        final_msg = J([self.prepared+msg]+list(args))
+        if isinstance(prio, int):
+            logger.log(prio, final_msg, **kw)
+        else:
+            try:
+                f = getattr(logger, prio)
+            except AttributeError:
+                f = getattr(logger, 'warn')
+            f(final_msg, **kw)
+        return final_msg
+
+    for prio in ['debug', 'info', 'error', 'warning']:
+        exec(f"{prio} = lambda self, msg, *args, **kw: self._log('{prio}', msg, *args, **kw)")

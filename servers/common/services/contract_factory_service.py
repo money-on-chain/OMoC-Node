@@ -66,22 +66,31 @@ class ContractFactoryService:
 
 
 class MocContractFactoryService(ContractFactoryService):
-    def __init__(self):
-        self.abi_path = os.path.join(
+    @property
+    def abi_path(self):
+        return os.path.join(
             os.path.dirname(os.path.realpath(contract.__file__)), "abi")
+
+    @classmethod
+    def PrepareBlockchainOptionsAddresses(cls):
         options = ConnectionManager.options_from_config()
         networks = options["networks"]
         network = settings.MOC_NETWORK
         if network not in networks:
-            raise Exception("Invalid moc network name %r. Available: %r" % (
-                            network, networks.keys()))
-        self.options = networks[network]
-        self.addresses = self.options["addresses"]
+            # in case of no network, fallback to "the-other" Factory..
+            return BlockChain(settings.NODE_URL, settings.CHAIN_ID,
+                                    settings.WEB3_TIMEOUT), None, None
+            # raise Exception("Invalid moc network name %r. Available: %r" % (
+            #                 network, networks.keys()))
+        options = networks[network]
+        addresses = options["addresses"]
         url = settings.NODE_URL if settings.NODE_URL is not None else options[
             "uri"]
-        chain_id = settings.CHAIN_ID if settings.CHAIN_ID is not None else \
-        options["chain_id"]
-        blockchain = BlockChain(url, chain_id, settings.WEB3_TIMEOUT)
+        chain_id = settings.CHAIN_ID if settings.CHAIN_ID is not None else options["chain_id"]
+        return BlockChain(url, chain_id, settings.WEB3_TIMEOUT), options, addresses
+
+    def __init__(self):
+        blockchain, self.options, self.addresses = self.PrepareBlockchainOptionsAddresses()
         ContractFactoryService.__init__(self, blockchain)
 
     def get_coin_pair_price(self, addr) -> CoinPairService:

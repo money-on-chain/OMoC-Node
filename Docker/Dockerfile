@@ -27,6 +27,7 @@ WORKDIR /omoc-node
 COPY ./servers/build ./build
 COPY ./servers/common ./common
 COPY ./servers/oracle ./oracle
+COPY ./servers/w3multicall ./w3multicall
 
 COPY ./servers/exchanges.json ./exchanges.json
 COPY ./servers/requirements.txt ./requirements.txt 
