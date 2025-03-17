@@ -58,7 +58,7 @@ DEFAULT_GAS_PRICE = config('DEFAULT_GAS_PRICE', cast=int, default=65800000)
 # The percentage that is considered to be admitted
 GAS_PERCENTAGE_ADMITTED = config('GAS_PERCENTAGE_ADMITTED', cast=int, default=10)
 # Hard limits to the gas price
-GAS_PRICE_HARD_LIMIT_MIN = config('GAS_PRICE_HARD_LIMIT_MIN', cast=int, default=65800000)
+GAS_PRICE_HARD_LIMIT_MIN = config('GAS_PRICE_HARD_LIMIT_MIN', cast=int, default=0)  # 0 means no limit
 GAS_PRICE_HARD_LIMIT_MAX = config('GAS_PRICE_HARD_LIMIT_MAX', cast=int, default=0)  # 0 means no limit
 GAS_PRICE_HARD_LIMIT_MULTIPLIER = config('GAS_PRICE_HARD_LIMIT_MULTIPLIER', cast=int, default=1)  # 1 means no changes
 
@@ -66,4 +66,11 @@ COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, 
 
 MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')
 
-GAS_LIMIT_ADDR = config('GAS_LIMIT_ADDR', cast=str, default=None)
+gas_limit_addr_default = None
+
+if CHAIN_ID=='31':
+    gas_limit_addr_default = '0x2820f6d4D199B8D8838A4B26F9917754B86a0c1F'
+if CHAIN_ID=='30':
+    gas_limit_addr_default = '0xf773B590aF754D597770937Fa8ea7AbDf2668370'
+
+GAS_LIMIT_ADDR = config('GAS_LIMIT_ADDR', cast=str, default=gas_limit_addr_default)
