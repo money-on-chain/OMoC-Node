@@ -11,6 +11,7 @@ from common.services.coin_pair_price_service import CoinPairService
 from common.services.eternal_storage_service import EternalStorageService
 from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
+from common.services.gas_limit_service import GasLimitService
 from common.services.staking_machine_service import StakingMachineService
 from common.services.oracle_manager_service import OracleManagerService
 from common.services.supporters_service import SupportersService
@@ -47,6 +48,9 @@ class ContractFactoryService:
         raise Exception("Unimplemented")
 
     def get_moc_token(self, addr) -> MocTokenService:
+        raise Exception("Unimplemented")
+
+    def get_gas_limit(self, addr) -> GasLimitService:
         raise Exception("Unimplemented")
 
     def get_oracle_manager(self, addr) -> OracleManagerService:
@@ -105,6 +109,8 @@ class MocContractFactoryService(ContractFactoryService):
         abi = self._read_abi('DocToken.abi')
         return MocTokenService(self._get_contract(addr, abi))
 
+    #def get_gas_limit(self, addr) -> GasLimitService:
+    
     def get_oracle_manager(self, addr) -> OracleManagerService:
         abi = self._read_abi('OracleManager.abi')
         return OracleManagerService(self._get_contract(addr, abi))
@@ -140,6 +146,7 @@ class BuildDirContractFactoryService(ContractFactoryService):
         "ORACLE_MANAGER": "IOracleManager.json",
         "COIN_PAIR_PRICE": "ICoinPairPrice.json",
         "INFO_GETTER": "IOracleInfoGetter.json",
+        "GAS_LIMIT": "IGasLimit.json",
     }
     DATA = dict()
 
@@ -161,6 +168,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
     def get_moc_token(self, addr) -> MocTokenService:
         data = self._read_data("MOC_ERC20")
         return MocTokenService(self._get_contract(addr, data["abi"]))
+
+    def get_gas_limit(self, addr) -> GasLimitService:
+        data = self._read_data("GAS_LIMIT")
+        return GasLimitService(self._get_contract(addr, data["abi"]))
 
     def get_staking_machine(self, addr) -> StakingMachineService:
         i_staking_data = self._read_data("STAKING_MACHINE")
