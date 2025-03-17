@@ -12,6 +12,7 @@ from oracle.src.oracle_loop import OracleLoop
 from oracle.src.oracle_service import OracleService
 from oracle.src.scheduler_supporters_loop import SchedulerSupportersLoop
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,7 +52,7 @@ class MainLoop(BgTaskExecutor):
 
     def _startup(self):
         oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
-        self.bs_loop = BlockchainStateLoop(self.conf)
+        self.bs_loop = BlockchainStateLoop(self.conf, self.cf, settings.GAS_LIMIT_ADDR)
         self.oracle_loop = OracleLoop(self.conf, oracle_service, self.bs_loop)
         self.tasks.append(self.oracle_loop)
         self.tasks.append(self.bs_loop)

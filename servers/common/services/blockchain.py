@@ -13,6 +13,8 @@ from web3.exceptions import TransactionNotFound
 
 from common.bg_task_executor import BgTaskExecutor
 from common.helpers import dt_now_at_utc
+from common.services.contract_factory_service import ContractFactoryService
+from common.services.gas_limit_service import GasLimitService
 
 logger = logging.getLogger(__name__)
 
@@ -119,10 +121,11 @@ class BlockChainPK(AnyHttpUrl):
 
 
 class BlockchainStateLoop(BgTaskExecutor):
-    def __init__(self, conf):
+    def __init__(self, conf, contract_factory: ContractFactoryService, gas_limit_addr: str):
+        gas_limit_addr_service = contract_factory.get_contract_factory_service().get_gas_limit(gas_limit_addr) if gas_limit_addr is not None else None
         logger.debug('initializing BlockchainStateLoop')
         self.conf = conf
-        self.gas_calc = GasCalculator()
+        self.gas_calc = GasCalculator(gas_limit_addr_service)
         super().__init__(name="BlockchainStateLoop", main=self.run)
 
     async def run(self):
@@ -133,7 +136,7 @@ class BlockchainStateLoop(BgTaskExecutor):
 
 
 class GasCalculator:
-    def __init__(self):
+    def __init__(self, gas_limit_service: GasLimitService):
         logger.info('Initializing GasCalculator ...')
         def get(var_name, show_fnc=repr):
             value = getattr(settings, var_name)
@@ -148,6 +151,7 @@ class GasCalculator:
         self.last_price = None
         self.W3 = Web3(HTTPProvider(self.node_url,
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
+        self.gas_limit_service = gas_limit_service
 
     def set_last_price(self, gas_price):
         if self.last_price != gas_price:
@@ -169,6 +173,11 @@ class GasCalculator:
     async def get_current(self):
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
         
+        if self.gas_limit_service is not None:
+            gas_limit_service_value = await run_in_executor(lambda: self.gas_limit_service.value)
+        else:
+            gas_limit_service_value = None
+
         if gas_price is None:
             gas_price = self.get_last_price() if self.get_last_price() is not None else self.default_gas_price
         
@@ -176,9 +185,13 @@ class GasCalculator:
             gas_price = self.get_last_price()
 
         gas_price = gas_price * self.gas_price_hard_limit_multiplier
-        
+
         if self.gas_price_hard_limit_min > gas_price:
             gas_price = self.gas_price_hard_limit_min
+
+        if gas_limit_service_value is not None:
+            if (gas_limit_service_value + 1) > gas_price:
+                gas_price = (gas_limit_service_value + 1)
         
         if self.gas_price_hard_limit_max and self.gas_price_hard_limit_max < gas_price:
             gas_price = self.gas_price_hard_limit_max
