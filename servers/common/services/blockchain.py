@@ -13,6 +13,8 @@ from web3.exceptions import TransactionNotFound
 
 from common.bg_task_executor import BgTaskExecutor
 from common.helpers import dt_now_at_utc
+#from common.services.contract_factory_service import ContractFactoryService
+#from common.services.gas_limit_service import GasLimitService
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +80,14 @@ class BlockChainAddress(AnyHttpUrl):
         return parse_addr(v.lower())
 
 
+def to_med(address_string: str) -> str:
+    return str(address_string)[:15] + '…'  # str or hexBytes()
+
+
+def to_short(address_string: str) -> str:
+    return str(address_string)[:7] + '…'
+
+
 class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
                                           ('key', Secret)])):
     def __new__(cls, addr, key):
@@ -88,6 +98,14 @@ class BlockchainAccount(typing.NamedTuple('BlockchainAccount', [('addr', str),
         if skey.startswith("0x"):
             skey = skey[2:]
         return super(BlockchainAccount, cls).__new__(cls, addr, Secret(skey))
+
+    @property
+    def short(self):
+        return to_short(self.addr)
+
+    @property
+    def med(self):
+        return to_med(self.addr)
 
 
 class BlockChainPK(AnyHttpUrl):
@@ -103,46 +121,50 @@ class BlockChainPK(AnyHttpUrl):
 
 
 class BlockchainStateLoop(BgTaskExecutor):
-    def __init__(self, conf):
+    def __init__(self, conf, contract_factory, gas_limit_addr: str):
+    #def __init__(self, conf, contract_factory: ContractFactoryService, gas_limit_addr: str):
+        gas_limit_addr_service = None
+        if gas_limit_addr:
+            try:
+                gas_limit_addr_service = contract_factory.get_contract_factory_service(                
+                ).get_gas_limit(gas_limit_addr)
+            except ValueError as e:
+                logger.error(f"Env GAS_LIMIT_ADDR error ({e})")
         logger.debug('initializing BlockchainStateLoop')
         self.conf = conf
-        self.gas_calc = GasCalculator()
+        self.gas_calc = GasCalculator(gas_limit_addr_service)
         super().__init__(name="BlockchainStateLoop", main=self.run)
 
     async def run(self):
-        logger.info("BlockchainStateLoop loop start")
+        logger.debug("BlockchainStateLoop loop start")
         await self.gas_calc.update()
-        logger.info("BlockchainStateLoop loop done")
+        logger.debug("BlockchainStateLoop loop done")
         return self.conf.ORACLE_BLOCKCHAIN_STATE_DELAY 
 
 
 class GasCalculator:
-
-    def __init__(self):
-
+    def __init__(self, gas_limit_service):
+    #def __init__(self, gas_limit_service: GasLimitService):
         logger.info('Initializing GasCalculator ...')
-
         def get(var_name, show_fnc=repr):
             value = getattr(settings, var_name)
             logger.info(f"    Getting parameter {repr(var_name)} -> {show_fnc(value)}")
             return value
-
         self.node_url = str(get('NODE_URL', str))
         self.default_gas_price = get('DEFAULT_GAS_PRICE')
         self.gas_percentage_admitted = get('GAS_PERCENTAGE_ADMITTED')
         self.gas_price_hard_limit_min = get('GAS_PRICE_HARD_LIMIT_MIN')
         self.gas_price_hard_limit_max = get('GAS_PRICE_HARD_LIMIT_MAX')
         self.gas_price_hard_limit_multiplier = get('GAS_PRICE_HARD_LIMIT_MULTIPLIER')
-
-        self.last_price = None 
-
+        self.last_price = None
         self.W3 = Web3(HTTPProvider(self.node_url,
                                     request_kwargs={'timeout': settings.WEB3_TIMEOUT}))
+        self.gas_limit_service = gas_limit_service
 
     def set_last_price(self, gas_price):
         if self.last_price != gas_price:
             self.last_price = gas_price
-            logger.info(f"A new gas price was calculated: {gas_price}")           
+            logger.debug(f"A new gas price was calculated: {gas_price}")
 
     def get_gas_price_plus_x_perc(self, gas_price):
         return gas_price + gas_price * (self.gas_percentage_admitted / 100)
@@ -153,15 +175,22 @@ class GasCalculator:
         return int(self.get_gas_price_plus_x_perc(self.last_price))
 
     def is_gas_price_out_of_range(self, gas_price):
-        if gas_price > self.get_last_price():
-            return True
-        return False
+        return gas_price > self.get_last_price()
 
     @exec_with_catch_async
     async def get_current(self):
-
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
-        
+ 
+        if self.gas_limit_service is not None:
+            gas_limit_service_value = await self.gas_limit_service.value()
+        else:
+            gas_limit_service_value = None
+
+        if gas_limit_service_value is not None:
+            if not isinstance(gas_limit_service_value, int):
+                logger.error(f"Env GAS_LIMIT_ADDR error ({gas_limit_service_value})")
+                gas_limit_service_value = None
+
         if gas_price is None:
             gas_price = self.get_last_price() if self.get_last_price() is not None else self.default_gas_price
         
@@ -169,14 +198,21 @@ class GasCalculator:
             gas_price = self.get_last_price()
 
         gas_price = gas_price * self.gas_price_hard_limit_multiplier
-        
+
         if self.gas_price_hard_limit_min > gas_price:
             gas_price = self.gas_price_hard_limit_min
+
+        if gas_limit_service_value is not None:
+            if (gas_limit_service_value + 1) > gas_price:
+                gas_price = (gas_limit_service_value + 1)
         
         if self.gas_price_hard_limit_max and self.gas_price_hard_limit_max < gas_price:
             gas_price = self.gas_price_hard_limit_max
         
         self.set_last_price(gas_price)
+
+        logger.info(f"Current Gas Price: {gas_price}")
+
         return gas_price
     
     async def update(self):

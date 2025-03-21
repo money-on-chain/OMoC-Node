@@ -61,14 +61,14 @@ class OracleLoop(BgTaskExecutor):
             tasks.extend([pf_loop, bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
                                                  cp_loop, pf_loop, bl_loop,
-                                                 OracleTurn(self.conf, cp_service.coin_pair))
+                                                 cp_loop._oracle_turn)  # OracleTurn(self.conf, cp_service.coin_pair))
         if oracle_settings.SCHEDULER_RUN_ORACLE_SCHEDULER:
             tasks.append(SchedulerCoinPairLoop(self.conf, cp_service, self.bs_loop))
         for x in tasks:
             x.start_bg_task()
 
     async def run(self):
-        logger.info("Oracle loop start")
+        #logger.info("Oracle loop start")
         owner = await self.oracle_service.get_oracle_owner(self.oracle_addr)
         cp_serv1 = await self.oracle_service.get_subscribed_coin_pair_services(self.oracle_addr)
         cp_serv2 = await self.oracle_service.get_subscribed_coin_pair_services(owner)
@@ -80,7 +80,7 @@ class OracleLoop(BgTaskExecutor):
 
         cp_services = {str(x.coin_pair): x for x in cp_serv1+cp_serv2}
         coin_pair_keys = list(cp_services.keys())
-        logger.info("Oracle loop Got coin pair list %r" % (coin_pair_keys,))
+        # logger.info("Oracle loop Got coin pair list %r" % (coin_pair_keys,))
         deleted_coin_pairs = [x for x in self.cpMap if x not in coin_pair_keys]
         for cp_key in deleted_coin_pairs:
             self.delete_coin_pair(cp_key)
@@ -90,7 +90,7 @@ class OracleLoop(BgTaskExecutor):
         for cp_service in added_services:
             self.add_coin_pair(cp_service)
 
-        logger.info("Oracle loop done")
+        # logger.info("Oracle loop done")
         return self.conf.ORACLE_MAIN_LOOP_TASK_INTERVAL
 
     async def get_validation_data(self, params: PublishPriceParams) -> RequestValidation or None:

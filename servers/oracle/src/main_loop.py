@@ -12,11 +12,11 @@ from oracle.src.oracle_loop import OracleLoop
 from oracle.src.oracle_service import OracleService
 from oracle.src.scheduler_supporters_loop import SchedulerSupportersLoop
 
+
 logger = logging.getLogger(__name__)
 
 
 class MainLoop(BgTaskExecutor):
-
     def __init__(self):
         self.cf = ContractFactoryService.get_contract_factory_service()
         self.conf = OracleConfiguration(self.cf)
@@ -36,10 +36,10 @@ class MainLoop(BgTaskExecutor):
         await self.start_bg_task()
 
     async def run(self):
-        logger.info("MainExecutor loop start")
+        logger.debug("MainExecutor loop start")
         if not self.initialized:
             if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_ADDR is None:
-                logger.info("MainExecutor waiting to get configuration from blockchain")
+                logger.warning("MainExecutor waiting to get configuration from blockchain")
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
             self.initialized = True
             self._print_info()
@@ -47,12 +47,12 @@ class MainLoop(BgTaskExecutor):
 
         await self.conf.update()
         # TODO: react to a change in addresses.
-        logger.info("MainExecutor loop done")
+        logger.debug("MainExecutor loop done")
         return self.conf.ORACLE_CONFIGURATION_TASK_INTERVAL
 
     def _startup(self):
         oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
-        self.bs_loop = BlockchainStateLoop(self.conf)
+        self.bs_loop = BlockchainStateLoop(self.conf, self.cf, settings.GAS_LIMIT_ADDR)
         self.oracle_loop = OracleLoop(self.conf, oracle_service, self.bs_loop)
         self.tasks.append(self.oracle_loop)
         self.tasks.append(self.bs_loop)

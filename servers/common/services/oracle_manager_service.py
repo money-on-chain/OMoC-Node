@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class OracleManagerService:
-
     def __init__(self, contract: BlockChainContract):
         self._contract = contract
 
