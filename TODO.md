@@ -1,0 +1,12 @@
+# Release 1.3.7.1
+
+## To do
+
+*2025-04-11*
+
+- [ ] Support not just one address but a list of addresses for contracts linked with the conditional configuration by `coinpair`.
+- [ ] Update the `moneyonchain-prices-source` dependency to the latest version.
+- [ ] Improve the default configuration for conditional publishing by making it network-dependent (`chainId`). similar to `GAS_LIMIT_ADDR`.
+
+____
+
