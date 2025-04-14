@@ -6,7 +6,7 @@ from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from common.services.oracle_dao import OracleBlockchainInfo
-from common.settings import config
+from common.settings import config_per_chain_id
 from decimal import Decimal
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_configuration import OracleConfiguration
@@ -120,17 +120,19 @@ class ConditionalConfig:
         self._MULTICALL_ADDR = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
         valid = self.validate(valid, 'MULTICALL_ADDR', self._MULTICALL_ADDR)
 
-        self._ORACLE_OFFLINE_CFG = config('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
+        self._ORACLE_OFFLINE_CFG = config_per_chain_id('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
         valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
 
-        self._PRICE_DELTA_PCT_NEED = config('PRICE_DELTA_PCT_NEED_'+self.cp, cast=Decimal, default=DefaultDecimal)
+        self._PRICE_DELTA_PCT_NEED = config_per_chain_id('PRICE_DELTA_PCT_NEED_'+self.cp, cast=Decimal, default=DefaultDecimal)
         valid = self.validate(valid, 'PRICE_DELTA_PCT_NEED_', self._PRICE_DELTA_PCT_NEED)
-        self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED = config('ORACLE_PRICE_PUBLISH_BLOCKS_NEED_'+self.cp, cast=int, default=DefaultDecimal)
+
+        self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED = config_per_chain_id('ORACLE_PRICE_PUBLISH_BLOCKS_NEED_'+self.cp, cast=int, default=DefaultDecimal)
         valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_', self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED)
 
-        self._PRICE_DELTA_PCT_UNNEED = config('PRICE_DELTA_PCT_UNNEED_'+self.cp, cast=Decimal, default=-1)
+        self._PRICE_DELTA_PCT_UNNEED = config_per_chain_id('PRICE_DELTA_PCT_UNNEED_'+self.cp, cast=Decimal, default=-1)
         valid = self.validate(valid, 'PRICE_DELTA_PCT_UNNEED_', self._PRICE_DELTA_PCT_UNNEED)
-        self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED = config('ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_'+self.cp, cast=int, default='-1')
+
+        self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED = config_per_chain_id('ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_'+self.cp, cast=int, default='-1')
         valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_', self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED)
         self.valid = valid
 

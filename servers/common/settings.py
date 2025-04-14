@@ -5,6 +5,7 @@ import os
 import pathlib
 import sys
 from common.helpers import parseTimeDelta
+from decimal import Decimal
 
 try:
     config = Config(".env")
@@ -66,16 +67,42 @@ COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, 
 
 MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')
 
-gas_limit_addr_default = None
-multicall_addr_default = None
+PER_CHAIN_ID_DEFAULTS={
+    '30':{ # RSK Mainnet
+        'GAS_LIMIT_ADDR': '0xf773B590aF754D597770937Fa8ea7AbDf2668370',
+        'MULTICALL_ADDR': '0x8F344C3B2a02a801c24635F594C5652c8A2eB02a',
+    },
+    '31':{ # RSK Testnet
+        'GAS_LIMIT_ADDR': '0x2820f6d4D199B8D8838A4B26F9917754B86a0c1F',
+        'MULTICALL_ADDR': '0xca11bde05977b3631167028862be2a173976ca11',
+        
+        # USDARS
+        'ORACLE_OFFLINE_CFG_USDARS': True,
+        'MOC_QUEUE_USDARS': '0x7124A89A06E02A5f0623d38fd106880A8A4FBC0c',
+        'MOC_BASE_BUCKET_USDARS': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_EMA_USDARS': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_CORE_USDARS': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'PRICE_DELTA_PCT_UNNEED_USDARS': Decimal(1.0),
+        'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_USDARS': 90, #int
+        'PRICE_DELTA_PCT_NEED_USDARS': Decimal(0.1),
+        'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_USDARS': 10, #int
+        
+        # USDCOP
+        'ORACLE_OFFLINE_CFG_USDCOP': True,
+        'MOC_QUEUE_USDCOP': '0x7124A89A06E02A5f0623d38fd106880A8A4FBC0c',
+        'MOC_BASE_BUCKET_USDCOP': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_EMA_USDCOP': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_CORE_USDCOP': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'PRICE_DELTA_PCT_UNNEED_USDCOP': Decimal(2.0),
+        'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_USDCOP': 110, #int
+        'PRICE_DELTA_PCT_NEED_USDCOP': Decimal(0.2),
+        'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_USDCOP': 20, #int
+    }
+}
 
-if CHAIN_ID=='31': # RSK Testnet
-    gas_limit_addr_default = '0x2820f6d4D199B8D8838A4B26F9917754B86a0c1F'
-    multicall_addr_default = '0xca11bde05977b3631167028862be2a173976ca11'
+def config_per_chain_id(envvar, cast=str, default = None):
+    return config(envvar, cast=cast,
+        default=PER_CHAIN_ID_DEFAULTS.get(str(CHAIN_ID), {}).get(envvar, default))
 
-if CHAIN_ID=='30': # RSK Mainnet
-    gas_limit_addr_default = '0xf773B590aF754D597770937Fa8ea7AbDf2668370'
-    multicall_addr_default = '0x8F344C3B2a02a801c24635F594C5652c8A2eB02a'
-
-GAS_LIMIT_ADDR = config('GAS_LIMIT_ADDR', cast=str, default=gas_limit_addr_default)
-MULTICALL_ADDR = config('MULTICALL_ADDR', cast=str, default=multicall_addr_default)
+GAS_LIMIT_ADDR = config_per_chain_id('GAS_LIMIT_ADDR')
+MULTICALL_ADDR = config_per_chain_id('MULTICALL_ADDR')
