@@ -3,7 +3,7 @@ import typing
 from common.helpers import parseTimeDelta, MyCfgdLogger
 from common.services.blockchain import is_error
 from common.services.contract_factory_service import ContractFactoryService
-from common.settings import config
+from common.settings import config, MULTICALL_ADDR
 from decimal import Decimal
 from enum import Enum
 
@@ -212,7 +212,7 @@ class OracleConfiguration(MyCfgdLogger):
             },
             "MULTICALL_ADDR": {
                 "priority": self.Order.configuration_default,
-                "configuration": lambda: config('MULTICALL_ADDR', cast=str),
+                "configuration": lambda: config('MULTICALL_ADDR', cast=str, default=MULTICALL_ADDR),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Address of the multicall-contract (used for conditional publication)",
             },

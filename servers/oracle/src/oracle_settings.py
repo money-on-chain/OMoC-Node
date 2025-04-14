@@ -6,7 +6,22 @@ from starlette.datastructures import Secret
 
 from common import crypto
 from common.services.blockchain import BlockchainAccount
-from common.settings import config
+from common.settings import config, CHAIN_ID
+
+DEFAULTS={
+    30:{ # RSK Mainnet
+    },
+    31:{ # RSK Testnet
+        'MOC_QUEUE_USDARS': '0x7124A89A06E02A5f0623d38fd106880A8A4FBC0c',
+        'MOC_BASE_BUCKET_USDARS': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_EMA_USDARS': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_CORE_USDARS': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_QUEUE_USDCOP': '0x7124A89A06E02A5f0623d38fd106880A8A4FBC0c',
+        'MOC_BASE_BUCKET_USDCOP': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_EMA_USDCOP': '0x1D316199a07962A06ec59D8d10990403f0330485',
+        'MOC_CORE_USDCOP': '0x1D316199a07962A06ec59D8d10990403f0330485',
+    }
+}
 
 # Port in which the oracle listen for sign request
 ORACLE_PORT = config('ORACLE_PORT', cast=int, default=5556)
@@ -42,9 +57,14 @@ ORACLE_MONITOR_LOG_PUBLISHED_PRICE = config('ORACLE_MONITOR_LOG_PUBLISHED_PRICE'
 ORACLE_COIN_PAIR_FILTER = json.loads(config('ORACLE_COIN_PAIR_FILTER', cast=str,
                                             default="[]"))
 
-GET_VAR_COINPAIR = lambda var, coinpair: config(f'{var}_{coinpair.upper()}',
-                                                  cast=str, default="")
-
+def GET_VAR_COINPAIR(var, coinpair):
+    """
+    Get a variable for a coinpair. The variable is defined as:
+    {var}_{coinpair}
+    """
+    env_var_name = f'{var.upper()}_{coinpair.upper()}'
+    default = DEFAULTS.get(CHAIN_ID, {}).get(env_var_name, "")
+    return config(env_var_name, cast=str, default=default)
 
 def load_exchange_info():
     with open("exchanges.json", "r") as f:

@@ -67,10 +67,15 @@ COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, 
 MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')
 
 gas_limit_addr_default = None
+multicall_addr_default = None
 
-if CHAIN_ID=='31':
+if CHAIN_ID=='31': # RSK Testnet
     gas_limit_addr_default = '0x2820f6d4D199B8D8838A4B26F9917754B86a0c1F'
-if CHAIN_ID=='30':
+    multicall_addr_default = '0xca11bde05977b3631167028862be2a173976ca11'
+
+if CHAIN_ID=='30': # RSK Mainnet
     gas_limit_addr_default = '0xf773B590aF754D597770937Fa8ea7AbDf2668370'
+    multicall_addr_default = '0x8F344C3B2a02a801c24635F594C5652c8A2eB02a'
 
 GAS_LIMIT_ADDR = config('GAS_LIMIT_ADDR', cast=str, default=gas_limit_addr_default)
+MULTICALL_ADDR = config('MULTICALL_ADDR', cast=str, default=multicall_addr_default)
