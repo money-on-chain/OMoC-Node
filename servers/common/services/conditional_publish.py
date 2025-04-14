@@ -92,6 +92,7 @@ class ConditionalConfig:
     @classmethod
     def GetCP(cls, cp: str, name: str):
         return GET_VAR_COINPAIR(name, cp)
+    
     @classmethod
     def GetRegular(cls, ocfg: OracleConfiguration, name: str):
         return getattr(ocfg, name.upper(), None)
@@ -108,7 +109,12 @@ class ConditionalConfig:
         valid = True
         for var in ConditionalConfig._VARS:
             value = ConditionalConfig.GetCP(self.cp, var)
-            valid = self.validate(valid, var, value)
+            valid = self.validate(valid, var, value)  
+            for sep in "'" + '"' + "[](){}":
+                value = value.replace(sep, '')
+            for sep in " ;&":
+                value = value.replace(sep, ',')
+            value = [x for x in value.split(',') if x]
             setattr(self, f'_{var}', value)  # set "protected" variable..
 
         self._MULTICALL_ADDR = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
@@ -310,18 +316,25 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if blockchain_info is not None:
             self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
 
+    def _call_condition_base(self, addresses, signature):
+        return [W3Multicall.Call(self._fix(addr),
+                                 signature) for addr in addresses]
+
     def _call_condition1_queueIsEmpty(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_QUEUE), self.queueIsEmpty)
+        return self._call_condition_base(self.cfg.MOC_QUEUE,
+                                         self.queueIsEmpty)
 
     def _call_condition2_shouldCalculateEMA(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_EMA), self.shouldCalculateEma)
+        return self._call_condition_base(self.cfg.MOC_EMA,
+                                         self.shouldCalculateEma)
 
     def _call_condition3_getBts(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_CORE), self.getBts)
+        return self._call_condition_base(self.cfg.MOC_CORE,
+                                         self.getBts)
 
     def _call_condition4_nextTCInterestPayment(self):
-        # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self._fix(self.cfg.MOC_BASE_BUCKET), self.nextTCInterestPayment)
+        return self._call_condition_base(self.cfg.MOC_BASE_BUCKET,
+                                         self.nextTCInterestPayment)
 
     @property
     def _w3(self):
@@ -338,12 +351,24 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return w3_multicall.callWBlock()
 
     def _sync_fetch(self):
-        results = self._sync_fetch_multiple(
+        calls = [
             self._call_condition1_queueIsEmpty(),
             self._call_condition2_shouldCalculateEMA(),
             self._call_condition3_getBts(),
             self._call_condition4_nextTCInterestPayment(),
-        )
+        ]
+        args = []
+        for call in calls:
+            for c in call:
+                args.append(c)
+        results_base = self._sync_fetch_multiple(*args)
+        results = [[],[]]
+        for i in [0, 1]:
+            for call in calls:
+                r = []
+                for c in call:
+                    r.append(results_base[i].pop(0))
+                results[i].append(r)
         self._last_value, self._last_block = results[0], results[1]
 
     @property
@@ -351,7 +376,9 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return (self._last_value, self._last_block) if self.is_running else None
 
     def __str__(self):
-        values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')
+        values = ','.join(','.join([str(y) for y in x]
+            ) for x in self._last_value).replace('True', 'T').replace(
+                'False', 'F')
         return '[%s|%s]' % (values, 'P.' if self.offline_cfg() else 'ok')
 
     @property
@@ -359,8 +386,26 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return self._last_block is not None
 
     def getConditionActive(self, value, currentBlockNr):
-        isEmpty, calcEMA, Bts, nextTC = value
-        return (not isEmpty) or calcEMA or (Bts == 0) or (nextTC < currentBlockNr)
+
+        is_empty_lst, calc_ema_lst, bts_lst, next_tc_lst = value
+
+        for is_empty in is_empty_lst:
+            if not is_empty:
+                return True
+        
+        for calc_ema in calc_ema_lst:
+            if calc_ema:
+                return True
+            
+        for bts in bts_lst:
+            if bts == 0:
+                return True
+            
+        for next_tc in next_tc_lst:
+            if next_tc < currentBlockNr:
+                return True
+        
+        return False
 
     async def update(self):
         await run_in_executor(self._sync_fetch)
