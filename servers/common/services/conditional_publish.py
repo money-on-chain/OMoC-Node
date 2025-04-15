@@ -105,23 +105,30 @@ class ConditionalConfig:
 
     def __init__(self, cp: str, ocfg: OracleConfiguration):
         self.cp = cp.upper()
+        self.logger = MyCfgdLogger(': ', str(self.cp))
         self._MOC_QUEUE = self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
         valid = True
+
+        self._ORACLE_OFFLINE_CFG = config_per_chain_id('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
+        valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
+
         for var in ConditionalConfig._VARS:
             value = ConditionalConfig.GetCP(self.cp, var)
-            valid = self.validate(valid, var, value)  
-            for sep in "'" + '"' + "[](){}":
-                value = value.replace(sep, '')
-            for sep in " ;&":
-                value = value.replace(sep, ',')
-            value = [x for x in value.split(',') if x]
+            #valid = self.validate(valid, var, value)
+            if not value or value in _NULL_OPTS:
+                value = []
+            else:
+                for sep in "'" + '"' + "[](){}":
+                    value = value.replace(sep, '')
+                for sep in " ;&":
+                    value = value.replace(sep, ',')
+                value = [x for x in value.split(',') if x]
+            if not value and self._ORACLE_OFFLINE_CFG:
+                self.logger.warning(f"{var}_{self.cp} is not set or is empty.")
             setattr(self, f'_{var}', value)  # set "protected" variable..
 
         self._MULTICALL_ADDR = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
         valid = self.validate(valid, 'MULTICALL_ADDR', self._MULTICALL_ADDR)
-
-        self._ORACLE_OFFLINE_CFG = config_per_chain_id('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
-        valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
 
         self._PRICE_DELTA_PCT_NEED = config_per_chain_id('PRICE_DELTA_PCT_NEED_'+self.cp, cast=Decimal, default=DefaultDecimal)
         valid = self.validate(valid, 'PRICE_DELTA_PCT_NEED_', self._PRICE_DELTA_PCT_NEED)
@@ -208,8 +215,11 @@ class ConditionalPublishServiceBase:
             if not ccfg.check_valid():
                 raise InvalidCfg(f" * ConditionalPublishService disabled for {ccfg.cp} not valid cfg!.")
             return ConditionalPublishService(blockchain, ccfg, loop)
-        except NoConditionalPublication as err:
+        except InvalidCfg as err:
             logger.error(err)
+            return DisabledConditionalPublishService(ccfg)
+        except NoConditionalPublication as err:
+            logger.warning(err)           
             return DisabledConditionalPublishService(ccfg)
 
     def __init__(self, ccfg: ConditionalConfig):
@@ -319,8 +329,20 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
 
     def _call_condition_base(self, addresses, signature):
-        return [W3Multicall.Call(self._fix(addr),
-                                 signature) for addr in addresses]
+        out = []
+        for addr in addresses:
+            try:
+                addr = self._fix(addr)
+            except ValueError as e:
+                self.logger.error(
+                    f"{repr(addr)} is an invalid addr, it is discarded for " +
+                    f"{signature.split('()')[0]}() condition"
+                )
+                addr = None
+            obj = None if addr is None else W3Multicall.Call(addr, signature)
+            if obj is not None:
+                out.append(obj)
+        return out
 
     def _call_condition1_queueIsEmpty(self):
         return self._call_condition_base(self.cfg.MOC_QUEUE,
@@ -363,15 +385,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         for call in calls:
             for c in call:
                 args.append(c)
-        results_base = self._sync_fetch_multiple(*args)
-        results = [[],[]]
-        for i in [0, 1]:
-            for call in calls:
-                r = []
-                for c in call:
-                    r.append(results_base[i].pop(0))
-                results[i].append(r)
-        self._last_value, self._last_block = results[0], results[1]
+        results_base, self._last_block = self._sync_fetch_multiple(*args)
+        results = []
+        for call in calls:
+            r = []
+            for c in call:
+                r.append(results_base.pop(0))
+            results.append(r)
+        self._last_value = results
 
     @property
     def _tuple_value(self):
