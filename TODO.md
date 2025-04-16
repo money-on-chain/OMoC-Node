@@ -6,8 +6,7 @@
 
 - [x] Support not just one address but a list of addresses for contracts linked with the conditional configuration by `coinpair`.
 - [x] Improve the default configuration for conditional publishing by making it network-dependent (`chainId`). similar to `GAS_LIMIT_ADDR`.
-- [ ] Implement `supervisord` within Docker for process management (it's cleaner).
-- [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version.(_It will probably be necessary a new release of this dependency first_).
+- [x] Implement `supervisord` within Docker for process management (it's cleaner).
+- [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version (_It will probably be necessary a new release of this dependency first_).
 
 ____
-

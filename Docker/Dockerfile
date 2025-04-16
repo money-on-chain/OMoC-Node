@@ -15,7 +15,7 @@ RUN pip install -r requirements.txt
 
 FROM base
 
-RUN apk add redis
+RUN apk add --no-cache bash supervisor redis
 
 COPY --from=builder /opt/venv /opt/venv
 
@@ -37,6 +37,8 @@ COPY ./Docker/files/env_file ./.env
 
 RUN mkdir /root/.moc_prices_source
 COPY ./Docker/files/redis.json /root/.moc_prices_source/
+
+RUN mkdir -p /etc/supervisor/conf.d
 
 RUN chmod +x run.sh 
 

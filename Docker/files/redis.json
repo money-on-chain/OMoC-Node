@@ -1,1 +1,5 @@
-{"enable": true}
+{
+    "enable": true,
+    "retry_count": 10,
+    "retry_delay": 3
+}
