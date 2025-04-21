@@ -3,7 +3,7 @@
 ## 1 - Build:
 
 ```bash
-docker build -t omoc_node -f Docker/Dockerfile .
+docker build -t moneyonchain/omoc_node -f Docker/Dockerfile .
 ```
 
 ## 2 - Run
@@ -33,7 +33,7 @@ $ sudo docker run -d \
 --name some_omoc_node \
 --publish 5004:5004 \
 --env-file=./env_file \
-omoc_node
+moneyonchain/omoc_node
 ```
 
 Or locally and interactively
@@ -43,5 +43,5 @@ $ sudo docker run --rm \
 --name some_omoc_node \
 --publish 5004:5004 \
 --env-file=./env_file \
--it omoc_node
+-it moneyonchain/omoc_node
 ```
