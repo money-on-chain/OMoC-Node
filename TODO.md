@@ -8,7 +8,7 @@
 - [x] Improve the default configuration for conditional publishing by making it network-dependent (`chainId`). similar to `GAS_LIMIT_ADDR`.
 - [x] Implement `supervisord` within Docker for process management (it's cleaner).
 - [x] Add some script to build the docker image.
-- [ ] Add support for MOC V3 in conditional parameter thresholds.
+- [x] Add support for MOC V3 in conditional parameter thresholds.
 - [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version (_It will probably be necessary a new release of this dependency first_).
 
 ____
