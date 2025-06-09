@@ -73,7 +73,10 @@ PER_CHAIN_ID_DEFAULTS={
         'MULTICALL_ADDR': '0x8F344C3B2a02a801c24635F594C5652c8A2eB02a',
     },
     '31':{ # RSK Testnet
-        'GAS_LIMIT_ADDR': '0x2820f6d4D199B8D8838A4B26F9917754B86a0c1F',
+        
+        # No gas limit address for RSK Testnet as default
+        'GAS_LIMIT_ADDR': None,
+        
         'MULTICALL_ADDR': '0xca11bde05977b3631167028862be2a173976ca11',
         
         #
