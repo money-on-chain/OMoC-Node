@@ -9,7 +9,7 @@
 - [x] Implement `supervisord` within Docker for process management (it's cleaner).
 - [x] Add some script to build the docker image.
 - [x] Add support for MOC V3 in conditional parameter thresholds.
-- [ ] Remove default params for testnet MOC V3 in conditional parameter thresholds.
+- [x] Remove default params for testnet MOC V3 in conditional parameter thresholds.
 - [ ] Add support for MocMultiCollateralGuard in conditional parameter thresholds.
 - [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version (_It will probably be necessary a new release of this dependency first_).
 
