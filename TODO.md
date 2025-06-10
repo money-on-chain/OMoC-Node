@@ -11,7 +11,7 @@
 - [x] Add support for MOC V3 in conditional parameter thresholds.
 - [x] Remove default params for testnet MOC V3 in conditional parameter thresholds.
 - [x] No gas limit address for testnet as default.
-- [ ] Add support for MocMultiCollateralGuard in conditional parameter thresholds.
+- [x] Add support for MocMultiCollateralGuard in conditional parameter thresholds.
 - [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version (_It will probably be necessary a new release of this dependency first_).
 
 ____
