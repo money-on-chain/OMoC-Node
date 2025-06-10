@@ -95,8 +95,10 @@ class ConditionalConfig:
         'MOC_V3_SETTLEMENT_TIME',
         'MOC_QUEUE',
         'MOC_BASE_BUCKET',
+        'MOC_V3_BUCKET',
         'MOC_EMA',
         'MOC_CORE',
+        'MOC_MULTICOLLATERAL_GUARD',
     )
 
     @classmethod
@@ -191,8 +193,10 @@ class ConditionalConfig:
             'MOC_V3_SETTLEMENT_TIME': self.MOC_V3_SETTLEMENT_TIME,            
             'MOC_QUEUE': self.MOC_QUEUE,
             'MOC_BASE_BUCKET': self.MOC_BASE_BUCKET,
+            'MOC_V3_BUCKET': self.MOC_V3_BUCKET,
             'MOC_EMA': self.MOC_EMA,
             'MOC_CORE': self.MOC_CORE,
+            'MOC_MULTICOLLATERAL_GUARD': self.MOC_MULTICOLLATERAL_GUARD,
             'MULTICALL_ADDR': self.MULTICALL_ADDR,
         }
 
@@ -241,12 +245,20 @@ class ConditionalConfig:
         return self._MOC_BASE_BUCKET
 
     @property
+    def MOC_V3_BUCKET(self):
+        return self._MOC_V3_BUCKET
+
+    @property
     def MOC_EMA(self):
         return self._MOC_EMA
 
     @property
     def MOC_CORE(self):
         return self._MOC_CORE
+
+    @property
+    def MOC_MULTICOLLATERAL_GUARD(self):
+        return self._MOC_MULTICOLLATERAL_GUARD
 
     @property
     def MULTICALL_ADDR(self):
@@ -350,6 +362,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     getBts = 'getBts()(uint256)' # V1
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)' # both
     nextSettlementTime = "nextSettlementTime()(uint256)" # V3
+    isMicroLiquidationAvailable = 'isMicroLiquidationAvailable(address)(bool)' # V3
+    isLiquidationAvailable = 'isLiquidationAvailable(address)(bool)' # V3
 
     _last_value = None
     _last_block = None
@@ -399,6 +413,31 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
                 out.append(obj)
         return out
 
+    def _call_condition_guard(self, guards, buckets, signature):
+        out = []
+        fixed_guards = []
+        for g in guards:
+            try:
+                fixed_guards.append(self._fix(g))
+            except ValueError as e:
+                self.logger.error(
+                    f"{repr(g)} is an invalid addr, it is discarded for " +
+                    f"{signature.split('(')[0]} condition"
+                )
+        fixed_buckets = []
+        for b in buckets:
+            try:
+                fixed_buckets.append(self._fix(b))
+            except ValueError as e:
+                self.logger.error(
+                    f"{repr(b)} is an invalid bucket addr, it is discarded for " +
+                    f"{signature.split('(')[0]} condition"
+                )
+        for g in fixed_guards:
+            for b in fixed_buckets:
+                out.append(W3Multicall.Call(g, signature, [b]))
+        return out
+
     def _call_v3_condition1_queueIsEmpty(self):
         return self._call_condition_base(self.cfg.MOC_V3_QUEUE_IS_EMPTY,
                                          self.queueIsEmpty)
@@ -414,6 +453,16 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     def _call_v3_condition4_nextSettlementTime(self):
         return self._call_condition_base(self.cfg.MOC_V3_SETTLEMENT_TIME,
                                          self.nextSettlementTime)
+
+    def _call_v3_condition5_isMicroLiquidationAvailable(self):
+        return self._call_condition_guard(self.cfg.MOC_MULTICOLLATERAL_GUARD,
+                                          self.cfg.MOC_V3_BUCKET,
+                                          self.isMicroLiquidationAvailable)
+
+    def _call_v3_condition6_isLiquidationAvailable(self):
+        return self._call_condition_guard(self.cfg.MOC_MULTICOLLATERAL_GUARD,
+                                          self.cfg.MOC_V3_BUCKET,
+                                          self.isLiquidationAvailable)
 
     def _call_condition1_queueIsEmpty(self):
         return self._call_condition_base(self.cfg.MOC_QUEUE,
@@ -450,7 +499,9 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             self._call_v3_condition1_queueIsEmpty(),
             self._call_v3_condition2_shouldCalculateEMA(),
             self._call_v3_condition3_nextTCInterestPayment(),
-            self._call_v3_condition4_nextSettlementTime(),        
+            self._call_v3_condition4_nextSettlementTime(),
+            self._call_v3_condition5_isMicroLiquidationAvailable(),
+            self._call_v3_condition6_isLiquidationAvailable(),
             self._call_condition1_queueIsEmpty(),
             self._call_condition2_shouldCalculateEMA(),
             self._call_condition3_getBts(),
@@ -486,6 +537,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     def getConditionActive(self, value, currentBlockNr):
 
         (v3_is_empty_lst, v3_calc_ema_lst, v3_next_tc_lst, v3_next_st_lst,
+         v3_micro_liq_lst, v3_liq_lst,
          is_empty_lst, calc_ema_lst, bts_lst, next_tc_lst) = value
 
         for is_empty in v3_is_empty_lst:
@@ -494,6 +546,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         
         for calc_ema in v3_calc_ema_lst:
             if calc_ema:
+                return True
+
+        for micro in v3_micro_liq_lst:
+            if micro:
+                return True
+
+        for liq in v3_liq_lst:
+            if liq:
                 return True
 
         for is_empty in is_empty_lst:
@@ -512,7 +572,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             if next_tc < currentBlockNr:
                 return True
 
-        if not v3_next_tc_lst and not v3_next_st_lst:
+        if (not v3_next_tc_lst and not v3_next_st_lst and
+                not v3_micro_liq_lst and not v3_liq_lst):
             return False
 
         block_timestamp = self._w3.eth.getBlock(currentBlockNr)["timestamp"]
