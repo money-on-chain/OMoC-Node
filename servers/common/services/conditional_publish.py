@@ -2,6 +2,7 @@ from eth_typing import BlockIdentifier
 
 import asyncio
 import logging
+import traceback
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
@@ -590,7 +591,13 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return False
 
     async def update(self):
-        await run_in_executor(self._sync_fetch)
+        try:
+            await run_in_executor(self._sync_fetch)
+        except Exception as err:
+            self.error(f"ConditionalPublishService update failed: {err!r}")
+            self.warning(traceback.format_exc())
+            self._last_block = None
+            self._last_value = None
 
     async def update__offline_cfg(self):
         await self.update()
