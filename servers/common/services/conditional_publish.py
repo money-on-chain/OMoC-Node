@@ -1,18 +1,16 @@
-from eth_typing import BlockIdentifier
-
 import asyncio
 import logging
-import traceback
+from typing import Optional
+from decimal import Decimal
+from eth_typing import BlockIdentifier
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from common.services.oracle_dao import OracleBlockchainInfo
 from common.settings import config_per_chain_id
-from decimal import Decimal
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_settings import GET_VAR_COINPAIR
-from typing import Optional
 from w3multicall.multicall import W3Multicall
 from w3multicall.multicall import _decode_output, _unpack_aggregate_outputs, _encode_data
 
@@ -512,24 +510,36 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         for call in calls:
             for c in call:
                 args.append(c)
-        results_base, self._last_block = self._sync_fetch_multiple(*args)
-        results = []
-        for call in calls:
-            r = []
-            for c in call:
-                r.append(results_base.pop(0))
-            results.append(r)
-        self._last_value = results
+        try:
+            results_base, self._last_block = self._sync_fetch_multiple(*args)
+        except Exception as err:
+            self.logger.error(f"conditional publish multicall failed: {err!r}")
+            self._last_block = None
+            self._last_value = None
+        if self._last_block is not None:
+            results = []
+            for call in calls:
+                r = []
+                for c in call:
+                    r.append(results_base.pop(0))
+                results.append(r)
+            self._last_value = results
 
     @property
     def _tuple_value(self):
-        return (self._last_value, self._last_block) if self.is_running else None
+        return (self._last_value,
+                self._last_block) if self.is_running else None
 
     def __str__(self):
-        values = ','.join(','.join([str(y) for y in x]
-            ) for x in self._last_value).replace('True', 'T').replace(
-                'False', 'F')
-        return '[%s|%s]' % (values, 'P.' if self.offline_cfg() else 'ok')
+        values = repr(self._last_value).lower()
+        for c in [' ', '[', ']', '(', ')', '"', "'", 'decimal', 'none']:
+            values = values.replace(c, '')
+        for w in ['true', 'false', 'none']:
+            values = values.replace(w, w[0].upper())
+        if not values:
+            values = 'N/A'
+        state = 'unneed' if self.offline_cfg() else 'need'
+        return '[%s|%s]' % (state, values)
 
     @property
     def is_running(self):
@@ -537,9 +547,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     def getConditionActive(self, value, currentBlockNr):
 
+        if value is None or currentBlockNr is None:
+            return True       
+
         (v3_is_empty_lst, v3_calc_ema_lst, v3_next_tc_lst, v3_next_st_lst,
-         v3_micro_liq_lst, v3_liq_lst,
-         is_empty_lst, calc_ema_lst, bts_lst, next_tc_lst) = value
+         v3_micro_liq_lst, v3_liq_lst, is_empty_lst, calc_ema_lst, bts_lst,
+         next_tc_lst) = value
 
         for is_empty in v3_is_empty_lst:
             if not is_empty:
@@ -578,7 +591,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             return False
 
         block_timestamp = self._w3.eth.getBlock(currentBlockNr)["timestamp"]
-        #logger.info(f"Block timestamp: {block_timestamp}")
+        #self.logger.info(f"Block timestamp: {block_timestamp}")
         
         for next_payment_time in v3_next_tc_lst:
             if next_payment_time < block_timestamp:
@@ -591,13 +604,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return False
 
     async def update(self):
-        try:
-            await run_in_executor(self._sync_fetch)
-        except Exception as err:
-            self.error(f"ConditionalPublishService update failed: {err!r}")
-            self.warning(traceback.format_exc())
-            self._last_block = None
-            self._last_value = None
+        await run_in_executor(self._sync_fetch)
 
     async def update__offline_cfg(self):
         await self.update()
