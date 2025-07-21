@@ -440,3 +440,9 @@ def test_is_oracle_turn_oracles_publish_before_price_expiration():
         assert is_oracle_turn_aux(oracleTurn,
                                   selected_oracles[i].addr,
                                   block_num_list_for_exp_period[8]) is False
+
+
+def test_parse_bytes_env(monkeypatch):
+    monkeypatch.setenv('ORACLE_ENTERING_FALLBACKS_AMOUNTS', '020406080A')
+    from oracle.src.oracle_configuration import parse_bytes_env
+    assert parse_bytes_env('ORACLE_ENTERING_FALLBACKS_AMOUNTS') == b'\x02\x04\x06\x08\n'
