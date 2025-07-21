@@ -179,6 +179,7 @@ The rest of the parameters are optional. If they are missing they are taken from
 
 - ORACLE_ENTERING_FALLBACKS_AMOUNTS = b'\x02\x04\x06\x08\n'
 
+    Environment value must be provided as a hex string (e.g. `020406080A`).
     See ORACLE_PRICE_DELTA_PCT explanation bellow.
 
 - ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
@@ -357,7 +358,7 @@ ORACLE_PRICE_DELTA_PCT = 0.05
 ORACLE_PRICE_PUBLISH_BLOCKS = 1
 
 #
-ORACLE_ENTERING_FALLBACKS_AMOUNTS=
+ORACLE_ENTERING_FALLBACKS_AMOUNTS=020406080A
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"

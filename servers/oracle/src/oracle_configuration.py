@@ -9,6 +9,11 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+
+def parse_bytes_env(key):
+    raw = config(key, cast=str, default='')
+    return bytes.fromhex(raw) if raw else None
+
 OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
                                             [("price_delta_pct", int),
                                              ("price_publish_blocks", int),
@@ -166,7 +171,7 @@ class OracleConfiguration(MyCfgdLogger):
             },
             "ORACLE_ENTERING_FALLBACKS_AMOUNTS": {
                 "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_ENTERING_FALLBACKS_AMOUNTS', cast=bytes),
+                "configuration": lambda: parse_bytes_env('ORACLE_ENTERING_FALLBACKS_AMOUNTS'),
                 "blockchain": lambda p: self._eternal_storage_service.get_bytes(p),
                 "description": "Each int in the ORACLE_ENTERING_FALLBACKS_AMOUNTS sequence is the number of fallbacks that will be allowed to publish next.",
                 "default": b'\x02\x04\x06\x08\n',
