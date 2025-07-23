@@ -3,9 +3,10 @@ import typing
 
 from common import helpers
 from common.helpers import MyCfgdLogger
-from common.services.blockchain import to_med, to_short
+from common.services.blockchain import to_short
 from common.services.conditional_publish import ConditionalPublishServiceBase
 from common.services.oracle_dao import CoinPair, PriceWithTimestamp, FullOracleRoundInfo
+from common import settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
 from oracle.src.oracle_configuration import OracleConfiguration, OracleTurnConfiguration
 from oracle.src.oracle_settings import get_oracle_account
@@ -70,17 +71,24 @@ class OracleTurn(MyCfgdLogger):
         return self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)
 
     # Called byt coin_pair_price_loop
-    def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
-        oracle_addresses = select_next_addresses(vi.last_pub_block_hash, vi.selected_oracles)
-        self.debug(f" -fallbacks: {[to_med(str(x)) for x in oracle_addresses]} / {[to_med(x.addr) for x in vi.selected_oracles]}")
-        (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)
+    def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr,
+                       exchange_price: PriceWithTimestamp):
+        
+        oracle_addresses = select_next_addresses(vi.last_pub_block_hash,
+                                                 vi.selected_oracles)
+
+        (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr,
+            exchange_price, oracle_addresses,
+            only_chosen=settings.DISABLE_FALLBACKS)
+
         return is_my_turn, [str(x) for x in oracle_addresses]
 
     def _is_oracle_turn_with_msg(self,
                                  vi: OracleBlockchainInfo,
                                  oracle_addr,
                                  exchange_price: PriceWithTimestamp,
-                                 oracle_addresses):
+                                 oracle_addresses,
+                                 only_chosen=False):
         if not self.is_oracle_selected_in_round(vi.selected_oracles, oracle_addr):
             return False, self.info(f"is not {oracle_addr} turn we are not in the current round selected oracles")
 
@@ -118,7 +126,8 @@ class OracleTurn(MyCfgdLogger):
                    f"f={self._signal.get_valid_price_period(vi.valid_price_period_in_blocks)}")
         if vi.block_num >= start_block_pub_period_before_price_expires:
            can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
-                                                   oracle_addr, oracle_addresses, entering_fallback_sequence)
+                                                   oracle_addr, oracle_addresses, entering_fallback_sequence,
+                                                   only_chosen=only_chosen)
            if can_I_publish:
                return True, self.debug(f"I'm selected to publish before prices expires")
 
@@ -130,7 +139,8 @@ class OracleTurn(MyCfgdLogger):
                         (oracle_addr, conf.price_publish_blocks, blocks_since_price_change, conf.price_publish_blocks))
 
         can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
-                                                oracle_addr, oracle_addresses, entering_fallback_sequence)
+                                                oracle_addr, oracle_addresses, entering_fallback_sequence,
+                                                only_chosen=only_chosen)
         if can_I_publish:
             return True, self.info(f"{oracle_addr} selected to pub after $ change. "
                                    f"Blocks since change: {blocks_since_price_change}  ({conf.price_publish_blocks})")
@@ -153,13 +163,18 @@ class OracleTurn(MyCfgdLogger):
             entering_fallback_sequence.append(selected_oracles_len)
         return entering_fallback_sequence
 
-    def can_oracle_publish(self, blocks_since_pub_is_allowed, oracle_addr, oracle_addresses, entering_fallback_sequence):
+    def can_oracle_publish(self, blocks_since_pub_is_allowed, oracle_addr,
+                           oracle_addresses, entering_fallback_sequence,
+                           only_chosen=False):
+
         if OracleTurn.is_selected_oracle(oracle_addresses, oracle_addr):
+            self.info(f">>> {oracle_addr} is the chosen one !!!")
             return True
-        # Gets blocks since publication is allowed from blocks_since_pub_is_allowed and uses it as index in the amount
+
+        # Gets blocks since publication is allowed from
+        # blocks_since_pub_is_allowed and uses it as index in the amount
         # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
-        # XXX /// here TENUKI
         condition = ((blocks_since_pub_is_allowed is not None) and
                      (blocks_since_pub_is_allowed < len(entering_fallback_sequence)))
         entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
@@ -167,7 +182,18 @@ class OracleTurn(MyCfgdLogger):
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
         self.info(f"FB: bck#:{blocks_since_pub_is_allowed} cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
                   f" seq: {[to_short(str(x)) for x in selected_fallbacks]}  total: {len(oracle_addresses)}")
-        return oracle_addr in selected_fallbacks
+        
+        is_fallback = oracle_addr in selected_fallbacks
+
+        if not is_fallback:
+            return False
+        
+        if only_chosen:
+            self.info(f">>> {oracle_addr} is the fallback, but a fallbacks are DISABLED !!!")
+            return False
+        
+        self.info(f">>> {oracle_addr} is the fallback !!!")
+        return True
 
     @staticmethod
     def is_oracle_selected_in_round(selected_oracles: typing.List[FullOracleRoundInfo], oracle_addr):
