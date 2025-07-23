@@ -80,8 +80,6 @@ class OracleTurn(MyCfgdLogger):
         (is_my_turn, msg) = self._is_oracle_turn_with_msg(vi, oracle_addr,
             exchange_price, oracle_addresses,
             only_chosen=settings.DISABLE_FALLBACKS)
-        self.info(f"{settings.DISABLE_FALLBACKS=}")
-        exit(1)
 
         return is_my_turn, [str(x) for x in oracle_addresses]
 
