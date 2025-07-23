@@ -28,6 +28,15 @@ class PriceFollower(MyCfgdLogger):
         if block_chain_info.last_pub_block < 0 or block_chain_info.block_num < 0:
             raise Exception("%r : Invalid block number" % self._coin_pair)
 
+        # When the conditional publish service reports that publishing is not
+        # needed (``offline_cfg``) we should not accumulate blocks for a price
+        # change.  Reset counters so when the service becomes active again the
+        # chosen oracle starts the publication process.
+        if signal.offline_cfg():
+            self.price_change_block = -1
+            self.price_change_pub_block = block_chain_info.last_pub_block
+            return
+
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
             diff = block_chain_info.block_num - self.price_change_block
