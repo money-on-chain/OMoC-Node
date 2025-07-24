@@ -20,6 +20,11 @@ class PriceFollower(MyCfgdLogger):
         self._coin_pair = coin_pair
         self.price_change_block = -1
         self.price_change_pub_block = -1
+        self._was_offline = False
+        # When set, the next oracle publication after coming back online
+        # should not wait for ``price_publish_blocks``. It will be cleared
+        # once consumed by ``OracleTurn``.
+        self.skip_wait_once = False
         super().__init__(" : ", coin_pair)
 
     def price_changed_blocks(self, conf: OracleTurnConfiguration, block_chain_info: OracleBlockchainInfo,
@@ -31,11 +36,20 @@ class PriceFollower(MyCfgdLogger):
         # When the conditional publish service reports that publishing is not
         # needed (``offline_cfg``) we should not accumulate blocks for a price
         # change.  Reset counters so when the service becomes active again the
-        # chosen oracle starts the publication process.
+        # chosen oracle starts the publication process and mark the transition
+        # so the next price change does not wait for ``price_publish_blocks``.
         if signal.offline_cfg():
+            self._was_offline = True
+            self.skip_wait_once = False
             self.price_change_block = -1
             self.price_change_pub_block = block_chain_info.last_pub_block
             return
+
+        if self._was_offline:
+            # State changed from offline to online, allow skipping publication
+            # wait once a price change is detected.
+            self._was_offline = False
+            self.skip_wait_once = True
 
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
@@ -143,18 +157,25 @@ class OracleTurn(MyCfgdLogger):
         if blocks_since_price_change is None:
             return False, self.debug(f"{oracle_addr} Price didn't change enough.")
 
-        if blocks_since_price_change < conf.price_publish_blocks:
-            return False, self.warning("%s Price changed but still waiting to reach %r blocks to be allowed. %r < %r" %
-                        (oracle_addr, conf.price_publish_blocks, blocks_since_price_change, conf.price_publish_blocks))
+        wait_blocks = conf.price_publish_blocks
+        if self.price_follower.skip_wait_once:
+            self.debug("Skipping price_publish_blocks waiting after offline state")
+            self.price_follower.skip_wait_once = False
+            wait_blocks = 0
 
-        can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
+        if blocks_since_price_change < wait_blocks:
+            return False, self.warning("%s Price changed but still waiting to reach %r blocks to be allowed. %r < %r" %
+                        (oracle_addr, wait_blocks, blocks_since_price_change, wait_blocks))
+        
+        can_I_publish = self.can_oracle_publish(blocks_since_price_change - wait_blocks,
                                                 oracle_addr, oracle_addresses, entering_fallback_sequence,
                                                 only_chosen=only_chosen)
+
         if can_I_publish:
             return True, self.info(f"{oracle_addr} selected to pub after $ change. "
-                                   f"Blocks since change: {blocks_since_price_change}  ({conf.price_publish_blocks})")
+                                   f"Blocks since change: {blocks_since_price_change}  ({wait_blocks})")
         return False, self.info(f" {oracle_addr} is NOT the chosen fallback {blocks_since_price_change} "
-                                f" ({conf.price_publish_blocks})")
+                                f" ({wait_blocks})")
 
     @staticmethod
     def is_selected_oracle(oracle_addresses, oracle_addr):
