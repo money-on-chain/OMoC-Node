@@ -214,6 +214,7 @@ class OracleTurn(MyCfgdLogger):
         self.info(' '.join[
             "FB:",
             f"stat:{'off' if self._signal.offline_cfg() else 'on'}",
+            f"first:{'T' if self.price_follower.skip_wait_once else 'F'}",
             f"bck#:{blocks_since_pub_is_allowed}",
             f"cur-idx: {entering_fallback_sequence_index}"
             f"take:{entering_fallback_sequence[entering_fallback_sequence_index]}",
