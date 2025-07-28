@@ -211,7 +211,7 @@ class OracleTurn(MyCfgdLogger):
                                             len(entering_fallback_sequence) - 1)
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
 
-        self.info(' '.join[
+        self.info(' '.join([
             "FB:",
             f"stat:{'off' if self._signal.offline_cfg() else 'on'}",
             f"first:{'T' if self.price_follower.skip_wait_once else 'F'}",
@@ -220,7 +220,7 @@ class OracleTurn(MyCfgdLogger):
             f"take:{entering_fallback_sequence[entering_fallback_sequence_index]}",
             f"seq: {[to_short(str(x)) for x in selected_fallbacks]}",
             f"total: {len(oracle_addresses)}"
-        ])
+        ]))
 
         is_fallback = oracle_addr in selected_fallbacks
 
