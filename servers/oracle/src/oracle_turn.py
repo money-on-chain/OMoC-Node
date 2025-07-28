@@ -210,9 +210,17 @@ class OracleTurn(MyCfgdLogger):
         entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
                                             len(entering_fallback_sequence) - 1)
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
-        self.info(f"FB: bck#:{blocks_since_pub_is_allowed} cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
-                  f" seq: {[to_short(str(x)) for x in selected_fallbacks]}  total: {len(oracle_addresses)}")
-        
+
+        self.info(' '.join[
+            "FB:",
+            f"stat:{'off' if self._signal.offline_cfg() else 'on'}",
+            f"bck#:{blocks_since_pub_is_allowed}",
+            f"cur-idx: {entering_fallback_sequence_index}"
+            f"take:{entering_fallback_sequence[entering_fallback_sequence_index]}",
+            f"seq: {[to_short(str(x)) for x in selected_fallbacks]}",
+            f"total: {len(oracle_addresses)}"
+        ])
+
         is_fallback = oracle_addr in selected_fallbacks
 
         if not is_fallback:
