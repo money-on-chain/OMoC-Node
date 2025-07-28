@@ -6,7 +6,7 @@ IMG_BASE="moneyonchain/omoc_node"
 NAME="omoc-node"
 ENVFILE="env_oracle"
 LOGPARAMS="--log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true"
-PARAMS="--restart always -p 5556:5556 $LOGPARAMS"
+PARAMS="--restart always -p 5556:5556 ${LOGPARAMS}"
 
 # Allow overriding only the tag via the first command line argument
 if [ -n "$1" ]; then
@@ -48,7 +48,7 @@ fi
 
 docker_run "Stop $CID docker instance" stop "$CID"
 docker_run "Remove $CID docker instance" rm "$CID"
-docker_run "Run/Create/Start $NAME docker instance" run -d "$PARAMS" --name "$NAME" --env-file="$ENVFILE" "$IMG"
+docker_run "Run/Create/Start $NAME docker instance" run -d $PARAMS --name "$NAME" --env-file="$ENVFILE" "$IMG"
 
 sleep 3
 
