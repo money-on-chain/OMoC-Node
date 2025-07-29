@@ -84,6 +84,9 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self.signal.from_blockchain(blockchain_info)
 
         my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
+        is_chosen = None
+        if my_turn and oracle_order:
+            is_chosen = oracle_order[0]==self._oracle_addr
         oracle_order = ' '.join(to_short(addr) for addr in oracle_order)
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
@@ -100,13 +103,17 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                                     self._coin_pair,
                                                                     exchange_price,
                                                                     self._oracle_addr,
-                                                                    blockchain_info.last_pub_block))
+                                                                    blockchain_info.last_pub_block),
+                                                                    is_chosen=is_chosen)
             if not publish_success:
                 # retry immediately.
                 return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-    async def publish(self, oracles, params: PublishPriceParams):
+    async def publish(self, oracles, params: PublishPriceParams, is_chosen=None):
+        str_as = ""
+        if is_chosen is not None:
+            str_as = " AS CHOSEN" if is_chosen else " AS FALLBACK"
         message = params.prepare_price_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
@@ -126,8 +133,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
         monitor.publish_log("%r : %r publishing price: %r" % (self._coin_pair, self._oracle_addr, params.price))
         try:
-            self.info(f"publishing price: {params.price} SENDING TRANSACTION, "
-                      f"last pub block {params.last_pub_block}, price {params.price}")
+            self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}")
             tx = await self._cps.publish_price(params.version,
                                                params.coin_pair,
                                                params.price,
@@ -138,8 +144,9 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                wait=True,
                                                last_gas_price=await self.bs_loop.gas_calc.get_current())
             if is_error(tx):
-                self.error(f"ERROR PUBLISHING {repr(tx)}")
+                self.error(f"ERROR PUBLISHING{str_as}, txid={repr(tx)}")
                 return False
+            self.info(f"PRICE PUBLISHED{str_as}, txid={repr(tx)}")
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
             self.info(f"we {self._oracle_addr_med} --------------------> PRICE PUBLISHED {repr(tx)}")
