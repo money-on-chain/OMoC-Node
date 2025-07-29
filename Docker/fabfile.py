@@ -49,7 +49,7 @@ def fetch_logs(c, minutes=60, sudo_user="ubuntu"):
             return
 
         for container in container_names:
-            log_prefix = f"{timestamp_str}_{hostname}_{container}"
+            log_prefix = f"{timestamp_str}_{hostname.split()[0]}_{container}"
             stdout_path = os.path.join(LOCAL_LOG_DIR, log_prefix + ".out.log")
             stderr_path = os.path.join(LOCAL_LOG_DIR, log_prefix + ".err.log")
 
