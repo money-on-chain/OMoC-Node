@@ -70,7 +70,7 @@ class OracleTurn(MyCfgdLogger):
             return True, self.info("selected chosen " + oracle_addr)
         return self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)
 
-    # Called byt coin_pair_price_loop
+    # Called by coin_pair_price_loop
     def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr,
                        exchange_price: PriceWithTimestamp):
         
