@@ -60,10 +60,12 @@ class PriceFollower(MyCfgdLogger):
         delta = helpers.price_delta(block_chain_info.blockchain_price, exchange_price.price)
         threshold_delta = signal.get_price_delta(conf.price_delta_pct)
         if delta < threshold_delta:
-            self.debug("We are not fall backs and/or the price didn't change enough %r < %r,"
-                       " blockchain price %r exchange price %r" %
-                       (delta, threshold_delta,
-                        block_chain_info.blockchain_price, exchange_price.price))
+            self.debug(' '.join([
+                "We are not fall backs and/or the price didn't change",
+                f"enough {delta} < {threshold_delta}, blockchain price",
+                f"{block_chain_info.blockchain_price} exchange price",
+                f"{exchange_price.price}"
+            ]))
             return
 
         # The publication has changed
@@ -90,7 +92,7 @@ class OracleTurn(MyCfgdLogger):
     def validate_turn(self, vi: OracleBlockchainInfo, oracle_addr, exchange_price: PriceWithTimestamp):
         oracle_addresses = select_next_addresses(vi.last_pub_block_hash, vi.selected_oracles)
         if self.is_selected_oracle(oracle_addresses, oracle_addr):
-            return True, self.info("selected chosen " + oracle_addr)
+            return True, self.info(f"selected chosen {oracle_addr}")
         return self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)
 
     # Called byt coin_pair_price_loop
@@ -119,9 +121,9 @@ class OracleTurn(MyCfgdLogger):
         entering_fallback_sequence = self.get_fallback_sequence(conf.entering_fallbacks_amounts,
                                                                 len(vi.selected_oracles))
 
-        self.debug("1 ---> %r" % (vi,))
-        self.debug("1 ---> %r %r" % (oracle_addr, exchange_price))
-        self.debug("1 ---> %r %r" % (oracle_addresses, entering_fallback_sequence))
+        #self.debug("1 ---> %r" % (vi,))
+        #self.debug("1 ---> %r %r" % (oracle_addr, exchange_price))
+        #self.debug("1 ---> %r %r" % (oracle_addresses, entering_fallback_sequence))
 
         # WARN if oracles won't get to publish before price expires
         ####################################
@@ -133,49 +135,72 @@ class OracleTurn(MyCfgdLogger):
         # as it may allow many oracles to publish without a price change
         ####################################
         if vi.valid_price_period_in_blocks < conf.trigger_valid_publication_blocks:
-            return False, self.error("valid_price_period_in_blocks should be higher than trigger_valid_publication_blocks \
-                   %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
-                                                      conf.trigger_valid_publication_blocks))
+            return False, self.error(' '.join([
+                "valid_price_period_in_blocks should be higher than",
+                f"trigger_valid_publication_blocks {vi.valid_price_period_in_blocks}",
+                f"< {conf.trigger_valid_publication_blocks}. Fix in configuration."
+            ]))
 
         blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
 
         ####################################
         start_block_pub_period_before_price_expires = (vi.last_pub_block - conf.trigger_valid_publication_blocks +
                                                    self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
+        
         self.debug(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
                    f"trigger_valid_publication_blocks {conf.trigger_valid_publication_blocks}"
                    f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks} "
                    f"f={self._signal.get_valid_price_period(vi.valid_price_period_in_blocks)}")
+        
         if vi.block_num >= start_block_pub_period_before_price_expires:
-           can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
-                                                   oracle_addr, oracle_addresses, entering_fallback_sequence,
-                                                   only_chosen=only_chosen)
-           if can_I_publish:
-               return True, self.debug(f"I'm selected to publish before prices expires")
+            can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
+                                                    oracle_addr, oracle_addresses, entering_fallback_sequence,
+                                                    only_chosen=only_chosen)
+            if can_I_publish:
+                return True, self.debug("I'm selected to publish before prices expires")
 
         if blocks_since_price_change is None:
             return False, self.debug(f"{oracle_addr} Price didn't change enough.")
 
-        wait_blocks = conf.price_publish_blocks
-        if self.price_follower.skip_wait_once:
-            self.debug("Skipping price_publish_blocks waiting after offline state")
-            self.price_follower.skip_wait_once = False
-            wait_blocks = 0
-
-        if blocks_since_price_change < wait_blocks:
-            return False, self.warning("%s Price changed but still waiting to reach %r blocks to be allowed. %r < %r" %
-                        (oracle_addr, wait_blocks, blocks_since_price_change, wait_blocks))
+        if blocks_since_price_change < conf.price_publish_blocks:
+            return False, self.warning(' '.join([
+                f"{oracle_addr} Price changed but still waiting to reach",
+                f"{conf.price_publish_blocks} blocks to be allowed.",
+                f"{blocks_since_price_change} < {conf.price_publish_blocks}"
+            ]))
         
-        can_I_publish = self.can_oracle_publish(blocks_since_price_change - wait_blocks,
+        #wait_blocks = conf.price_publish_blocks
+        if self.price_follower.skip_wait_once:
+            #self.debug("Skipping price_publish_blocks waiting after offline state")
+            self.price_follower.skip_wait_once = False
+            #wait_blocks = 0
+
+        #if blocks_since_price_change < wait_blocks:
+        #    return False, self.warning("%s Price changed but still waiting to reach %r blocks to be allowed. %r < %r" %
+        #                (oracle_addr, wait_blocks, blocks_since_price_change, wait_blocks))
+        
+        can_I_publish = self.can_oracle_publish(blocks_since_price_change - conf.price_publish_blocks,
                                                 oracle_addr, oracle_addresses, entering_fallback_sequence,
                                                 only_chosen=only_chosen)
+        
+        #can_I_publish = self.can_oracle_publish(blocks_since_price_change - wait_blocks,
+        #                                        oracle_addr, oracle_addresses, entering_fallback_sequence,
+        #                                        only_chosen=only_chosen)
 
         if can_I_publish:
-            return True, self.info(f"{oracle_addr} selected to pub after $ change. "
-                                   f"Blocks since change: {blocks_since_price_change}  ({wait_blocks})")
-        return False, self.info(f" {oracle_addr} is NOT the chosen fallback {blocks_since_price_change} "
-                                f" ({wait_blocks})")
+            return True, self.info(' '.join([
+                f"{oracle_addr} selected to pub after $ change.",
+                f"Blocks since change: {blocks_since_price_change}",
+                f"({conf.price_publish_blocks})"
+                # f"({wait_blocks})"
+            ]))
+        
+        return False, self.info(' '.join([
+            f"{oracle_addr} is NOT the chosen fallback {blocks_since_price_change}",
+            f"({conf.price_publish_blocks})"
+            # f"({wait_blocks})"
+        ]))
 
     @staticmethod
     def is_selected_oracle(oracle_addresses, oracle_addr):
