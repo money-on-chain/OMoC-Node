@@ -56,7 +56,6 @@ for file in glob("*.log"):
                 node = {'charly': 'charlie'}.get(node, node) #FIXME later, special case for charl(y/ie)
                 
                 out.append(f"{timestamp}\t{node}\t{pair}\t{type_}\t{tx}\t{message}\t{code}\t{hash_}")
-                out.append(f"{data}")
 
 out.sort()
 print('\n'.join(out))
