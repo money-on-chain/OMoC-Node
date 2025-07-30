@@ -1,63 +1,163 @@
 #!/usr/bin/env python3
+import click
 from glob import glob
+from tabulate import tabulate
 
-out = []
-for file in glob("*.log"):
-    with open(file, 'r', encoding='utf-8', errors='replace') as f:
-        for line in f:
-            line = line.strip()
-            if ' AS ' in line:
-                data = ' '.join(line.split()[4:])
+
+
+def main(selected_pair=None):
+    """
+    This script reads all the log files in the current directory,
+    extracts relevant information, and prints it in a tabular format.
+    """
+
+    table = []
+    for file in glob("*.log"):
+        with open(file, 'r', encoding='utf-8', errors='replace') as f:
+            for line in f:
                 
-                type_ = 'unknown'
-                hint = " AS FALLBACK"
-                if hint in data:
-                    data = data.replace(hint, "")
-                    type_ = 'fallback'
-                hint = " AS CHOSEN"
-                if hint in data:
-                    data = data.replace(hint, "")
-                    type_ = 'chosen'
+                line = line.strip()
+                row = {}
 
-                tx = 'unknown'
-                hint = "ERROR PUBLISHING"
-                if hint in data:
-                    data = data.replace(hint, "")
-                    tx = 'error'
-                hint = "PRICE PUBLISHED"
-                if hint in data:
-                    data = data.replace(hint, "")
-                    tx = 'ok'
-                hint = "SENDING TRANSACTION"
-                if hint in data:
-                    data = data.replace(hint, "")
-                    tx = 'send'
+                if 'need' in line or ' AS ' in line:
+                    timestamp = line.split()[0]
+                    pair = line.split()[2]
+                    data = ' '.join(line.split()[4:])
+                    node = file.replace('-', ' ').replace('_', ' '
+                        ).replace('.', ' ').split()[6]
+                    
+                    #FIXME later, special case for charl(y/ie)
+                    node = {'charly': 'charlie'}.get(node, node)
+                    
+                    row = {
+                        'timestamp': timestamp,
+                        'node': node,
+                        'pair': pair
+                    }
 
-                message = ''
-                hint = "'message': '"
-                if hint in data:
-                    message = data.split(hint)[1].split("'")[0]
+                if 'need' in line:
 
-                code = ''
-                hint = "'code': "
-                if hint in data:
-                    code = data.split(hint)[1].split(",")[0]
+                    state = ''
+                    hint = "---["
+                    if hint in data:
+                        state = data.split(hint)[1].split("|")[0]
 
-                hash_ = ''
-                hint = "'0x"
-                if hint in data:
-                    code = '0x' + data.split(hint)[1].split("'")[0]
+                    row['state'] = state
 
-                timestamp = line.split()[0]
-                
-                pair = line.split()[2]
-                
-                node = file.replace('-', ' ').replace('_', ' ').replace('.', ' ').split()[6]
-                node = {'charly': 'charlie'}.get(node, node) #FIXME later, special case for charl(y/ie)
-                
-                out.append(f"{timestamp}\t{node}\t{pair}\t{type_}\t{tx}\t{message}\t{code}\t{hash_}")
+                if ' AS ' in line:
+                    
+                    type_ = 'unknown'
+                    hint = " AS FALLBACK"
+                    if hint in data:
+                        data = data.replace(hint, "")
+                        type_ = 'fallback'
+                    hint = " AS CHOSEN"
+                    if hint in data:
+                        data = data.replace(hint, "")
+                        type_ = 'chosen'
 
-out.sort()
-print('\n'.join(out))
+                    tx = 'unknown'
+                    hint = "ERROR PUBLISHING"
+                    if hint in data:
+                        data = data.replace(hint, "")
+                        tx = 'error'
+                    hint = "PRICE PUBLISHED"
+                    if hint in data:
+                        data = data.replace(hint, "")
+                        tx = 'ok'
+                    hint = "SENDING TRANSACTION"
+                    if hint in data:
+                        data = data.replace(hint, "")
+                        tx = 'send'
 
-            
+                    message = ''
+                    hint = "'message': '"
+                    if hint in data:
+                        message = data.split(hint)[1].split("'")[0]
+
+                    hash_ = ''
+                    hint = "'0x"
+                    if hint in data:
+                        hash_ = '0x' + data.split(hint)[1].split("'")[0]
+                    
+                    row['type'] = type_
+                    row['tx'] = tx
+                    row['message'] = message
+                    row['hash'] = hash_
+
+                if row:
+                    table.append(row)
+
+    table = sorted(table, key=lambda x: x["timestamp"], reverse=False)
+
+    states = {}
+    final_table = []
+    for d in table:
+        if 'state' in d:
+            if states.get((d['pair'], d['node']), '') != d['state']:
+                if selected_pair and d['pair'].lower() != selected_pair.lower():
+                    continue
+                row = []
+                row.append(f"{d['timestamp'].split('.')[0].replace('T', ' ')}")
+                row.append(f"{d['node']}")
+                if selected_pair is None:
+                    row.append(f"{d['pair']}")
+                row.append(f"state {d['state']}") # step
+                row.append("") # as
+                row.append("") # message
+                row.append("") # hash
+                final_table.append(row)
+            states[d['pair'], d['node']] = d['state']
+        else:
+            if selected_pair and d['pair'].lower() != selected_pair.lower():
+                continue
+            row = []
+            row.append(f"{d['timestamp'].split('.')[0].replace('T', ' ')}")
+            row.append(f"{d['node']}")
+            if selected_pair is None:
+                row.append(f"{d['pair']}")
+            row.append(f"tx {d['tx']}") # step
+            row.append(f"{d['type']}") # as
+            row.append(f"{d['message']}")
+            row.append(f"{d['hash']}")
+            final_table.append(row)
+
+
+    headers=[]
+    headers.append("Timestamp")
+    headers.append("Node")
+    if selected_pair is None:
+        headers.append("Pair")
+    headers.append("Step")
+    headers.append("As")
+    headers.append("Message")
+    headers.append("Hash")
+    
+    if selected_pair is not None:
+        print(f"Pair = {selected_pair}")
+    print(tabulate(final_table, tablefmt="plain", headers=headers))
+
+
+def get_pairs():
+    out = set()
+    for file in glob("*.log"):
+        with open(file, 'r', encoding='utf-8', errors='replace') as f:
+            for line in f:
+                line = line.strip()
+                if 'need' in line or ' AS ' in line:
+                    pair = line.split()[2]
+                    out.add(pair)
+    return sorted(out)
+
+
+
+@click.command()
+@click.argument('pair', required=False,
+                type=click.Choice(get_pairs(), case_sensitive=False))
+def cli(pair):
+    main(selected_pair=pair)
+
+
+
+if __name__ == '__main__':
+    cli()
