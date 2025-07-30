@@ -33,14 +33,20 @@ for file in glob("*.log"):
                     data = data.replace(hint, "")
                     tx = 'send'
 
-                message=''
-                if "'message': '" in data:
-                    message = data.split("'message': '")[1].split("'")[0]
+                message = ''
+                hint = "'message': '"
+                if hint in data:
+                    message = data.split(hint)[1].split("'")[0]
 
-                code=''
-                if "'code': " in data:
-                    code = data.split("'code': ")[1].split(",")[0]
+                code = ''
+                hint = "'code': "
+                if hint in data:
+                    code = data.split(hint)[1].split(",")[0]
 
+                hash_ = ''
+                hint = "'0x"
+                if hint in data:
+                    code = '0x' + data.split(hint)[1].split("'")[0]
 
                 timestamp = line.split()[0]
                 
@@ -49,7 +55,8 @@ for file in glob("*.log"):
                 node = file.replace('-', ' ').replace('_', ' ').replace('.', ' ').split()[6]
                 node = {'charly': 'charlie'}.get(node, node) #FIXME later, special case for charl(y/ie)
                 
-                out.append(f"{timestamp}\t{node}\t{pair}\t{type_}\t{tx}\t{message}\t{code}")
+                out.append(f"{timestamp}\t{node}\t{pair}\t{type_}\t{tx}\t{message}\t{code}\t{hash_}")
+                out.append(f"{data}")
 
 out.sort()
 print('\n'.join(out))
