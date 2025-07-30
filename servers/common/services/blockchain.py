@@ -230,7 +230,7 @@ class BlockChain:
     def get_contract(self, addr, abi):
         return self.W3.eth.contract(address=parse_addr(addr), abi=abi)
 
-    def sign_transaction(self, txn, private_key):
+    def sign_transaction(self, txn, private_key):      
         return self.W3.eth.account.sign_transaction(txn, private_key)
 
     async def send_raw_transaction(self, raw_transaction: HexStr):
@@ -255,8 +255,11 @@ class BlockChain:
         logger.debug(f"+++++++++ get tx ++++++++ {str(account_addr)} - {method}")
         from_addr = parse_addr(str(account_addr))
 
-        nonce = await run_in_executor(lambda: self.W3.eth.getTransactionCount(
-                                                                    from_addr))
+        # Here is the nonce calculation!
+        nonce = await run_in_executor(
+            lambda: self.W3.eth.getTransactionCount(from_addr, "pending")
+        )
+        
         logger.debug(f"Nonce: {nonce}  sender: {from_addr}")
         if gas is None:
             try:
@@ -369,6 +372,6 @@ class BlockChainContract:
         signed_txn = self._blockchain.sign_transaction(txn, private_key=Web3.toBytes(hexstr=str(account.key)))
         logger.debug("%s SENDING SIGNED TX %r", tx["txdata"]["chainId"], signed_txn)
         logger.debug(f"--+Blockchain ID {id(self._blockchain)}")
-        logger.debug("--+Nonce %s", tx["txdata"]["nonce"])
+        logger.debug("--+Nonce %s", tx["txdata"]["nonce"])       
         tx = await self._blockchain.send_raw_transaction(signed_txn.rawTransaction)
         return await self._blockchain.process_tx(tx, wait)
