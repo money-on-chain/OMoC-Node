@@ -50,7 +50,8 @@ def main(selected_pair=None):
                     hint = " AS FALLBACK"
                     if hint in data:
                         data = data.replace(hint, "")
-                        type_ = 'fallback'
+                        index_ = data.split('#')[1].split(',')[0]
+                        type_ = f"fallback #{index_}" if index_ else 'fallback'
                     hint = " AS CHOSEN"
                     if hint in data:
                         data = data.replace(hint, "")
@@ -64,7 +65,11 @@ def main(selected_pair=None):
                     hint = "PRICE PUBLISHED"
                     if hint in data:
                         data = data.replace(hint, "")
-                        tx = 'ok'
+                        tx = 'received'
+                        if "state='failed'" in data:
+                            tx='failed'
+                        if "state='success'" in data:
+                            tx='success'
                     hint = "SENDING TRANSACTION"
                     if hint in data:
                         data = data.replace(hint, "")
@@ -79,9 +84,15 @@ def main(selected_pair=None):
                     hint = "'0x"
                     if hint in data:
                         hash_ = '0x' + data.split(hint)[1].split("'")[0]
-                    
+
+                    lpb = ''
+                    hint = ", last pub block"
+                    if hint in data:
+                        lpb = data.split(hint)[1].split(",")[0].strip()
+
                     row['type'] = type_
                     row['tx'] = tx
+                    row['lpb'] = lpb                
                     row['message'] = message
                     row['hash'] = hash_
 
@@ -104,6 +115,7 @@ def main(selected_pair=None):
                     row.append(f"{d['pair']}")
                 row.append(f"state {d['state']}") # step
                 row.append("") # as
+                row.append("") # lpb
                 row.append("") # message
                 row.append("") # hash
                 final_table.append(row)
@@ -118,6 +130,7 @@ def main(selected_pair=None):
                 row.append(f"{d['pair']}")
             row.append(f"tx {d['tx']}") # step
             row.append(f"{d['type']}") # as
+            row.append(f"{d['lpb']}") # lpb
             row.append(f"{d['message']}")
             row.append(f"{d['hash']}")
             final_table.append(row)
@@ -130,6 +143,7 @@ def main(selected_pair=None):
         headers.append("Pair")
     headers.append("Step")
     headers.append("As")
+    headers.append("LPB")
     headers.append("Message")
     headers.append("Hash")
     
