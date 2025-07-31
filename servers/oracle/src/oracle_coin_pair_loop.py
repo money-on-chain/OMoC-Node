@@ -85,8 +85,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self.signal.from_blockchain(blockchain_info)
 
         if prev_offline and not self.signal.offline_cfg():
-            self._oracle_turn.price_follower.reset(blockchain_info.block_num,
-                                                   blockchain_info.last_pub_block)
+            self._oracle_turn.price_follower.reset_internal_counters(
+                blockchain_info.block_num, blockchain_info.last_pub_block)
 
         my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
         fallback_index = None

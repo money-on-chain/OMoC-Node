@@ -22,7 +22,7 @@ class PriceFollower(MyCfgdLogger):
         self.price_change_pub_block = -1
         super().__init__(" : ", coin_pair)
 
-    def reset(self, block_num: int, last_pub_block: int):
+    def reset_internal_counters(self, block_num: int, last_pub_block: int):
         """Reset internal counters when the publication state changes."""
         self.price_change_block = block_num
         self.price_change_pub_block = last_pub_block
