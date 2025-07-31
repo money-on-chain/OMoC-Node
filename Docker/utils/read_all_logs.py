@@ -19,7 +19,7 @@ def main(selected_pair=None):
                 line = line.strip()
                 row = {}
 
-                if 'need' in line or ' AS ' in line:
+                if 'need' in line or ' AS ' in line or 'Price changed ' in line:
                     timestamp = line.split()[0]
                     pair = line.split()[2]
                     data = ' '.join(line.split()[4:])
@@ -34,6 +34,10 @@ def main(selected_pair=None):
                         'node': node,
                         'pair': pair
                     }
+
+                if 'Price changed ' in line:
+                    blocks_ago = [i for i in data.split() if i.isdigit()][0]
+                    row['blocks_ago'] = blocks_ago
 
                 if 'need' in line:
 
@@ -102,9 +106,24 @@ def main(selected_pair=None):
     table = sorted(table, key=lambda x: x["timestamp"], reverse=False)
 
     states = {}
+    blocks_ago = {}
     final_table = []
     for d in table:
-        if 'state' in d:
+        if 'tx' in d:
+            if selected_pair and d['pair'].lower() != selected_pair.lower():
+                continue
+            row = []
+            row.append(f"{d['timestamp'].split('.')[0].replace('T', ' ')}")
+            row.append(f"{d['node']}")
+            if selected_pair is None:
+                row.append(f"{d['pair']}")
+            row.append(f"tx {d['tx']}") # step
+            row.append(f"{d['type']}") # as
+            row.append(f"{d['lpb']}") # lpb
+            row.append(f"{d['message']}")
+            row.append(f"{d['hash']}")
+            final_table.append(row)
+        elif 'state' in d:
             if states.get((d['pair'], d['node']), '') != d['state']:
                 if selected_pair and d['pair'].lower() != selected_pair.lower():
                     continue
@@ -120,20 +139,22 @@ def main(selected_pair=None):
                 row.append("") # hash
                 final_table.append(row)
             states[d['pair'], d['node']] = d['state']
-        else:
-            if selected_pair and d['pair'].lower() != selected_pair.lower():
-                continue
-            row = []
-            row.append(f"{d['timestamp'].split('.')[0].replace('T', ' ')}")
-            row.append(f"{d['node']}")
-            if selected_pair is None:
-                row.append(f"{d['pair']}")
-            row.append(f"tx {d['tx']}") # step
-            row.append(f"{d['type']}") # as
-            row.append(f"{d['lpb']}") # lpb
-            row.append(f"{d['message']}")
-            row.append(f"{d['hash']}")
-            final_table.append(row)
+        elif 'blocks_ago' in d:
+            if blocks_ago.get((d['pair'], d['node']), '') != d['blocks_ago']:
+                if selected_pair and d['pair'].lower() != selected_pair.lower():
+                    continue
+                row = []
+                row.append(f"{d['timestamp'].split('.')[0].replace('T', ' ')}")
+                row.append(f"{d['node']}")
+                if selected_pair is None:
+                    row.append(f"{d['pair']}")
+                row.append(f"blk {d['blocks_ago']}") # step
+                row.append("") # as
+                row.append("") # lpb
+                row.append("") # message
+                row.append("") # hash
+                final_table.append(row)
+            blocks_ago[d['pair'], d['node']] = d['blocks_ago']
 
 
     headers=[]
