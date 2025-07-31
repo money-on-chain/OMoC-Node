@@ -61,6 +61,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
     async def run(self):
         self.debug("OracleCoinPairLoop start")
+        prev_offline = self.signal.offline_cfg()
         await self.signal.update()
 
         round_info = await self._cps.get_round_info()
@@ -82,6 +83,10 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             self.debug(f"waiting for blockchain info")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
         self.signal.from_blockchain(blockchain_info)
+
+        if prev_offline and not self.signal.offline_cfg():
+            self._oracle_turn.price_follower.reset(blockchain_info.block_num,
+                                                   blockchain_info.last_pub_block)
 
         my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
         fallback_index = None

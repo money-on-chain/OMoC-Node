@@ -22,6 +22,11 @@ class PriceFollower(MyCfgdLogger):
         self.price_change_pub_block = -1
         super().__init__(" : ", coin_pair)
 
+    def reset(self, block_num: int, last_pub_block: int):
+        """Reset internal counters when the publication state changes."""
+        self.price_change_block = block_num
+        self.price_change_pub_block = last_pub_block
+
     def price_changed_blocks(self, conf: OracleTurnConfiguration, block_chain_info: OracleBlockchainInfo,
                              exchange_price: PriceWithTimestamp, signal: ConditionalPublishServiceBase):
         """How many blocks since last publication in the blockchain and a price change"""
