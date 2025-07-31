@@ -84,9 +84,13 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         self.signal.from_blockchain(blockchain_info)
 
         my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
-        is_chosen = None
+        fallback_index = None
         if my_turn and oracle_order:
-            is_chosen = oracle_order[0]==self._oracle_addr
+            try:
+                fallback_index = oracle_order.index(self._oracle_addr)
+                # zero means is chosen, 1..x means fallback
+            except ValueError:
+                fallback_index = None
         oracle_order = ' '.join(to_short(addr) for addr in oracle_order)
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
@@ -104,16 +108,17 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                                     exchange_price,
                                                                     self._oracle_addr,
                                                                     blockchain_info.last_pub_block),
-                                                                    is_chosen=is_chosen)
+                                                 fallback_index=fallback_index)
             if not publish_success:
                 # retry immediately.
                 return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-    async def publish(self, oracles, params: PublishPriceParams, is_chosen=None):
+    async def publish(self, oracles, params: PublishPriceParams, fallback_index=None):
         str_as = ""
-        if is_chosen is not None:
-            str_as = " AS CHOSEN" if is_chosen else " AS FALLBACK"
+        if fallback_index is not None:
+            # fallback_index, zero means is chosen, 1..x means fallback
+            str_as = " AS CHOSEN" if fallback_index==0 else f" AS FALLBACK #{fallback_index}"
         message = params.prepare_price_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
