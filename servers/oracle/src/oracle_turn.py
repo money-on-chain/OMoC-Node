@@ -31,7 +31,7 @@ class PriceFollower(MyCfgdLogger):
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
             diff = block_chain_info.block_num - self.price_change_block
-            self.info(f"Price changed {diff} blocks ago ({block_chain_info.block_num}-{self.price_change_block}")
+            self.info(f"Price changed {diff} blocks ago ({block_chain_info.block_num}-{self.price_change_block})")
             return diff
 
         delta = helpers.price_delta(block_chain_info.blockchain_price, exchange_price.price)
