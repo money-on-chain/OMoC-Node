@@ -31,7 +31,7 @@ class PriceFollower(MyCfgdLogger):
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
             diff = block_chain_info.block_num - self.price_change_block
-            self.debug(f"Price changed {diff} blocks ago ({block_chain_info.block_num}-{self.price_change_block}")
+            self.info(f"Price changed {diff} blocks ago ({block_chain_info.block_num}-{self.price_change_block}")
             return diff
 
         delta = helpers.price_delta(block_chain_info.blockchain_price, exchange_price.price)
@@ -95,10 +95,6 @@ class OracleTurn(MyCfgdLogger):
         conf = self._conf.oracle_turn_conf
         entering_fallback_sequence = self.get_fallback_sequence(conf.entering_fallbacks_amounts,
                                                                 len(vi.selected_oracles))
-
-        self.debug("1 ---> %r" % (vi,))
-        self.debug("1 ---> %r %r" % (oracle_addr, exchange_price))
-        self.debug("1 ---> %r %r" % (oracle_addresses, entering_fallback_sequence))
 
         # WARN if oracles won't get to publish before price expires
         ####################################

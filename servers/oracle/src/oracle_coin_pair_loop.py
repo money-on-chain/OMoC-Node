@@ -151,10 +151,9 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             if is_error(tx):
                 self.error(f"ERROR PUBLISHING{str_as}, txid={repr(tx)}")
                 return False
+            self.info("//////////////////////////////////////////////////")
+            self.info("//////////////////////////////////////////////////")
             self.info(f"PRICE PUBLISHED{str_as}, txid={repr(tx)}")
-            self.info("//////////////////////////////////////////////////")
-            self.info("//////////////////////////////////////////////////")
-            self.info(f"we {self._oracle_addr_med} --------------------> PRICE PUBLISHED {repr(tx)}")
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
             # Last pub block has changed, force an update of the blockchain info.
