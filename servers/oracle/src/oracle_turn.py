@@ -175,29 +175,10 @@ class OracleTurn(MyCfgdLogger):
         # blocks_since_pub_is_allowed and uses it as index in the amount
         # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
-
-        ####################################
-        # The fallback selection algorithm now clamps negative indices so that when transitioning
-        # from “UNNEED” to “NEED”, the first price publication starts with the chosen oracle
-        # instead of a fallback
-        ####################################
-        #condition = ((blocks_since_pub_is_allowed is not None) and
-        #             (blocks_since_pub_is_allowed < len(entering_fallback_sequence)))
-        #entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
-        #                                    len(entering_fallback_sequence) - 1)
-        ####################################
-        if blocks_since_pub_is_allowed is None:
-            entering_fallback_sequence_index = 0
-        else:
-            if blocks_since_pub_is_allowed < 0:
-                entering_fallback_sequence_index = 0
-            elif blocks_since_pub_is_allowed >= len(entering_fallback_sequence):
-                entering_fallback_sequence_index = len(entering_fallback_sequence) - 1
-            else:
-                entering_fallback_sequence_index = blocks_since_pub_is_allowed
-        ####################################
-        ####################################
-        
+        condition = ((blocks_since_pub_is_allowed is not None) and
+                     (blocks_since_pub_is_allowed < len(entering_fallback_sequence)))
+        entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
+                                            len(entering_fallback_sequence) - 1)
 
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
         self.info(f"FB: bck#:{blocks_since_pub_is_allowed} cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
