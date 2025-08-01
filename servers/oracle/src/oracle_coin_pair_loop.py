@@ -114,13 +114,14 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                                     exchange_price,
                                                                     self._oracle_addr,
                                                                     blockchain_info.last_pub_block),
-                                                 fallback_index=fallback_index)
+                                                 fallback_index=fallback_index,
+                                                 blockchain_info = blockchain_info)
             if not publish_success:
                 # retry immediately.
                 return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-    async def publish(self, oracles, params: PublishPriceParams, fallback_index=None):
+    async def publish(self, oracles, params: PublishPriceParams, fallback_index=None, blockchain_info=None):
         str_as = ""
         if fallback_index is not None:
             # fallback_index, zero means is chosen, 1..x means fallback
@@ -136,6 +137,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         if len(sigs) < len(oracles) // 2 + 1:
             self.info(f"Publish: Not enough signatures")
             return False
+        else:
+            self.info(f"Publish: enough signatures")
 
         if settings.DEBUG:
             self.debug(f"GOT SIGS %r and params %r recover %r" %
@@ -144,7 +147,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
         monitor.publish_log("%r : %r publishing price: %r" % (self._coin_pair, self._oracle_addr, params.price))
         try:
-            self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}")
+            str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
+            self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}{str_block}")
             tx = await self._cps.publish_price(params.version,
                                                params.coin_pair,
                                                params.price,
