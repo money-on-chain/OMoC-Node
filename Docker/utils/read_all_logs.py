@@ -19,7 +19,16 @@ def main(selected_pair=None):
                 line = line.strip()
                 row = {}
 
-                if 'need' in line or ' AS ' in line or 'Price changed ' in line:
+                init={
+                    'sign_ask': 'GOT MESSAGE params',
+                    'sign_err': 'Publish: Not enough signatures',
+                    'sign_ok': 'Publish: enough signatures',
+                    'state': 'need',
+                    'tx': ' AS ',
+                    'blocks_ago': 'Price changed ',
+                }
+
+                if any([i in line for i in init.values()]):
                     timestamp = line.split()[0]
                     pair = line.split()[2]
                     data = ' '.join(line.split()[4:])
@@ -35,11 +44,20 @@ def main(selected_pair=None):
                         'pair': pair
                     }
 
-                if 'Price changed ' in line:
+                if init['blocks_ago'] in line:
                     blocks_ago = [i for i in data.split() if i.isdigit()][0]
                     row['blocks_ago'] = blocks_ago
 
-                if 'need' in line:
+                if init['sign_ask']  in line:
+                    row['step'] = 'signs ask'
+
+                if init['sign_err']  in line:
+                    row['step'] = 'signs error'
+
+                if init['sign_ok']  in line:
+                    row['step'] = 'signs ok'
+
+                if init['state']  in line:
 
                     state = ''
                     hint = "---["
@@ -48,7 +66,7 @@ def main(selected_pair=None):
 
                     row['state'] = state
 
-                if ' AS ' in line:
+                if init['tx']  in line:
                     
                     type_ = 'unknown'
                     hint = " AS FALLBACK"
@@ -122,6 +140,20 @@ def main(selected_pair=None):
             row.append(f"{d['lpb']}") # lpb
             row.append(f"{d['message']}")
             row.append(f"{d['hash']}")
+            final_table.append(row)
+        elif 'step' in d:
+            if selected_pair and d['pair'].lower() != selected_pair.lower():
+                continue
+            row = []
+            row.append(f"{d['timestamp'].split('.')[0].replace('T', ' ')}")
+            row.append(f"{d['node']}")
+            if selected_pair is None:
+                row.append(f"{d['pair']}")
+            row.append(f"{d['step']}") # step
+            row.append(f"") # as
+            row.append(f"") # lpb
+            row.append(f"")
+            row.append(f"")
             final_table.append(row)
         elif 'state' in d:
             if states.get((d['pair'], d['node']), '') != d['state']:
