@@ -5,7 +5,7 @@ from tabulate import tabulate
 
 
 
-def main(selected_pair=None):
+def main(selected_pair=None, show_hash=False):
     """
     This script reads all the log files in the current directory,
     extracts relevant information, and prints it in a tabular format.
@@ -62,6 +62,9 @@ def main(selected_pair=None):
                         row['type'] = 'chosen'
                     if "(fallback" in data:
                         row['type'] = 'fallback #' + data.split('fallback ')[1].split(')')[0]
+
+                if init['sign_err'] in line or init['sign_ok'] in line:
+                    row['step'] = row['step'] + data.split('signatures')[1].split(' (')[0]    
 
                 if init['state']  in line:
 
@@ -145,7 +148,8 @@ def main(selected_pair=None):
             row.append(f"{d['type']}") # as
             row.append(f"{d['lpb']}") # lpb
             row.append(f"{d['message']}")
-            row.append(f"{d['hash']}")
+            if show_hash:
+                row.append(f"{d['hash']}")
             final_table.append(row)
         elif 'step' in d:
             if selected_pair and d['pair'].lower() != selected_pair.lower():
@@ -159,7 +163,8 @@ def main(selected_pair=None):
             row.append(f"{d.get('type', '')}") # as
             row.append(f"") # lpb
             row.append(f"")
-            row.append(f"")
+            if show_hash:
+                row.append(f"")
             final_table.append(row)
         elif 'state' in d:
             if states.get((d['pair'], d['node']), '') != d['state']:
@@ -174,7 +179,8 @@ def main(selected_pair=None):
                 row.append("") # as
                 row.append("") # lpb
                 row.append("") # message
-                row.append("") # hash
+                if show_hash:
+                    row.append("") # hash
                 final_table.append(row)
             states[d['pair'], d['node']] = d['state']
         elif 'blocks_ago' in d:
@@ -190,13 +196,27 @@ def main(selected_pair=None):
                 row.append("") # as
                 row.append("") # lpb
                 row.append("") # message
-                row.append("") # hash
+                if show_hash:
+                    row.append("") # hash
                 final_table.append(row)
             blocks_ago[d['pair'], d['node']] = d['blocks_ago']
 
+    
+    same_date = final_table[0][0].split()[0]==final_table[-1][0].split()[0]
+    for i in range(len(final_table)-1, -1, -1):
+        if final_table[i][0] == final_table[i-1][0]:
+            final_table[i][0] = ''
+        else:
+            if same_date:
+                final_table[i][0] = final_table[i][0].split()[1]
 
+    if selected_pair is not None:
+        print(f"Pair = {selected_pair}")
+    if same_date:
+        print(f"Date = {final_table[0][0].split()[0]}")
+    
     headers=[]
-    headers.append("Timestamp")
+    headers.append("Time" if same_date else "Date/time")
     headers.append("Node")
     if selected_pair is None:
         headers.append("Pair")
@@ -204,11 +224,12 @@ def main(selected_pair=None):
     headers.append("As")
     headers.append("LPB")
     headers.append("Message")
-    headers.append("Hash")
+    if show_hash:
+        headers.append("Hash")
     
-    if selected_pair is not None:
-        print(f"Pair = {selected_pair}")
-    print(tabulate(final_table, tablefmt="plain", headers=headers))
+    print()
+    print(tabulate(final_table, tablefmt="simple", headers=headers))
+    print()
 
 
 def get_pairs():
