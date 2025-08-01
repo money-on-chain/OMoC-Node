@@ -118,19 +118,21 @@ class OracleTurn(MyCfgdLogger):
         blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
 
         ####################################
-        start_block_pub_period_before_price_expires = (vi.last_pub_block - conf.trigger_valid_publication_blocks +
+        start_block_pub_period_before_price_expires = ((vi.last_pub_block if blocks_since_price_change is None else (vi.block_num - blocks_since_price_change)) - conf.trigger_valid_publication_blocks + # Maybe here is the problem
+        #start_block_pub_period_before_price_expires = (vi.last_pub_block - conf.trigger_valid_publication_blocks +
                                                    self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
         self.debug(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
                    f"trigger_valid_publication_blocks {conf.trigger_valid_publication_blocks}"
                    f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks} "
                    f"f={self._signal.get_valid_price_period(vi.valid_price_period_in_blocks)}")
+        
         if vi.block_num >= start_block_pub_period_before_price_expires:
-           can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
-                                                   oracle_addr, oracle_addresses, entering_fallback_sequence,
-                                                   only_chosen=only_chosen)
-           if can_I_publish:
-               return True, self.debug(f"I'm selected to publish before prices expires")
+            can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
+                                                    oracle_addr, oracle_addresses, entering_fallback_sequence,
+                                                    only_chosen=only_chosen)
+            if can_I_publish:
+                return True, self.debug(f"I'm selected to publish before prices expires")
 
         if blocks_since_price_change is None:
             return False, self.debug(f"{oracle_addr} Price didn't change enough.")
@@ -176,16 +178,15 @@ class OracleTurn(MyCfgdLogger):
         # blocks_since_pub_is_allowed and uses it as index in the amount
         # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
+        
         condition = ((blocks_since_pub_is_allowed is not None) and
                      (blocks_since_pub_is_allowed < len(entering_fallback_sequence)))
+        
         entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
                                             len(entering_fallback_sequence) - 1)
 
         selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
-        self.info(f"FB: bck#:{blocks_since_pub_is_allowed} cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
-                  f" seq: {[to_short(str(x)) for x in selected_fallbacks]}  total: {len(oracle_addresses)}")
-        
-        is_fallback = oracle_addr in selected_fallbacks
+        is_fallback = oracle_addr in selected_fallbacks        
 
         if not is_fallback:
             return False
@@ -193,8 +194,18 @@ class OracleTurn(MyCfgdLogger):
         if only_chosen:
             self.info(f">>> {oracle_addr} is the fallback, but a fallbacks are DISABLED !!!")
             return False
-        
+
+        self.info(
+            f"FB: bck#: {blocks_since_pub_is_allowed} "
+            f"cur-idx: {entering_fallback_sequence_index} "
+            f"take: {entering_fallback_sequence[entering_fallback_sequence_index]} "
+            f"sel: {[to_short(str(x)) for x in selected_fallbacks]} "
+            f"total: {len(oracle_addresses)} "
+            f"seq: {entering_fallback_sequence} "
+            f"con: {condition} "
+        )   
         self.info(f">>> {oracle_addr} is the fallback !!!")
+        
         return True
 
     @staticmethod
