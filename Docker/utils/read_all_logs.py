@@ -5,7 +5,7 @@ from tabulate import tabulate
 
 
 
-def main(selected_pair=None):
+def main(selected_pair=None, show_hash=False):
     """
     This script reads all the log files in the current directory,
     extracts relevant information, and prints it in a tabular format.
@@ -145,7 +145,8 @@ def main(selected_pair=None):
             row.append(f"{d['type']}") # as
             row.append(f"{d['lpb']}") # lpb
             row.append(f"{d['message']}")
-            row.append(f"{d['hash']}")
+            if show_hash:
+                row.append(f"{d['hash']}")
             final_table.append(row)
         elif 'step' in d:
             if selected_pair and d['pair'].lower() != selected_pair.lower():
@@ -174,7 +175,8 @@ def main(selected_pair=None):
                 row.append("") # as
                 row.append("") # lpb
                 row.append("") # message
-                row.append("") # hash
+                if show_hash:
+                    row.append("") # hash
                 final_table.append(row)
             states[d['pair'], d['node']] = d['state']
         elif 'blocks_ago' in d:
@@ -190,7 +192,8 @@ def main(selected_pair=None):
                 row.append("") # as
                 row.append("") # lpb
                 row.append("") # message
-                row.append("") # hash
+                if show_hash:
+                    row.append("") # hash
                 final_table.append(row)
             blocks_ago[d['pair'], d['node']] = d['blocks_ago']
 
@@ -204,7 +207,8 @@ def main(selected_pair=None):
     headers.append("As")
     headers.append("LPB")
     headers.append("Message")
-    headers.append("Hash")
+    if show_hash:
+        headers.append("Hash")
     
     if selected_pair is not None:
         print(f"Pair = {selected_pair}")
