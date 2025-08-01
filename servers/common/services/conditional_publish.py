@@ -308,6 +308,9 @@ class ConditionalPublishServiceBase:
 
     def offline_cfg(self):
         raise NotImplementedError
+    
+    def last_online_block(self):
+        raise NotImplementedError
 
     def max_pub_block(self, blockchain_last_pub_block: int):
         raise NotImplementedError
@@ -343,6 +346,9 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
 
     def offline_cfg(self):
         return False
+    
+    def last_online_block(self):
+        return 0
 
     def max_pub_block(self, blockchain_last_pub_block: int):
         return blockchain_last_pub_block
@@ -610,7 +616,20 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         await self.update()
         return self.offline_cfg()
 
+
+    _last_online_block = 0
+    _last_offline_cfg = False
+
     def offline_cfg(self):
+        out = False
         if self.is_running:
-            return not self.getConditionActive(self._last_value, self._last_block)
-        return False
+            out = not self.getConditionActive(self._last_value, self._last_block)
+            if self._last_offline_cfg != out:
+                if not out:
+                    self._last_online_block = self._last_block
+                    self.logger.info(f"State change to online again (block: {self._last_online_block}).")
+        self._last_offline_cfg = out
+        return out
+
+    def last_online_block(self):
+        return self._last_online_block
