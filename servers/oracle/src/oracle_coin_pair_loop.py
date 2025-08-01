@@ -126,19 +126,20 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         if fallback_index is not None:
             # fallback_index, zero means is chosen, 1..x means fallback
             str_as = " AS CHOSEN" if fallback_index==0 else f" AS FALLBACK #{fallback_index}"
+            str_as_low = " (chosen)" if fallback_index==0 else f" (fallback {fallback_index})"
         message = params.prepare_price_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
         # send message to all oracles to sign
-        self.debug(f"GATHERING SIGNATURES:"
-                  f"last pub blk {params.last_pub_block}, price: {params.price}")
+        self.info(f"GATHERING SIGNATURES:"
+                  f"last pub blk {params.last_pub_block}, price: {params.price}{str_as_low}")
         sigs = await gather_signatures(oracles, params, message, signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
         if len(sigs) < len(oracles) // 2 + 1:
-            self.info(f"Publish: Not enough signatures")
+            self.info(f"Publish: Not enough signatures{str_as_low}")
             return False
         else:
-            self.info(f"Publish: enough signatures")
+            self.info(f"Publish: enough signatures{str_as_low}")
 
         if settings.DEBUG:
             self.debug(f"GOT SIGS %r and params %r recover %r" %
