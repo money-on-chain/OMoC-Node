@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import click
+import click, sys
 from glob import glob
 from tabulate import tabulate
 
@@ -214,6 +214,8 @@ def get_pairs():
                 if 'need' in line or ' AS ' in line:
                     pair = line.split()[2]
                     out.add(pair)
+    if not out:
+        sys.exit("No *.log files found or no pairs in the logs.")
     return sorted(out)
 
 
