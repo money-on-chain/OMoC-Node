@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import click
+import click, sys
 from glob import glob
 from tabulate import tabulate
 
@@ -20,7 +20,7 @@ def main(selected_pair=None):
                 row = {}
 
                 init={
-                    'sign_ask': 'GOT MESSAGE params',
+                    'sign_ask': 'GATHERING SIGNATURES:',
                     'sign_err': 'Publish: Not enough signatures',
                     'sign_ok': 'Publish: enough signatures',
                     'state': 'need',
@@ -48,14 +48,20 @@ def main(selected_pair=None):
                     blocks_ago = [i for i in data.split() if i.isdigit()][0]
                     row['blocks_ago'] = blocks_ago
 
-                if init['sign_ask']  in line:
+                if init['sign_ask'] in line:
                     row['step'] = 'signs ask'
 
-                if init['sign_err']  in line:
+                if init['sign_err'] in line:
                     row['step'] = 'signs error'
 
-                if init['sign_ok']  in line:
+                if init['sign_ok'] in line:
                     row['step'] = 'signs ok'
+
+                if init['sign_ask'] in line or init['sign_err'] in line or init['sign_ok'] in line:
+                    if "(chosen)" in data:
+                        row['type'] = 'chosen'
+                    if "(fallback" in data:
+                        row['type'] = 'fallback #' + data.split('fallback ')[1].split(')')[0]
 
                 if init['state']  in line:
 
@@ -150,7 +156,7 @@ def main(selected_pair=None):
             if selected_pair is None:
                 row.append(f"{d['pair']}")
             row.append(f"{d['step']}") # step
-            row.append(f"") # as
+            row.append(f"{d.get('type', '')}") # as
             row.append(f"") # lpb
             row.append(f"")
             row.append(f"")
@@ -214,6 +220,8 @@ def get_pairs():
                 if 'need' in line or ' AS ' in line:
                     pair = line.split()[2]
                     out.add(pair)
+    if not out:
+        sys.exit("No *.log files found or no pairs in the logs.")
     return sorted(out)
 
 
