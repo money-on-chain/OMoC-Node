@@ -200,21 +200,19 @@ def main(selected_pair=None, show_hash=False):
                     row.append("") # hash
                 final_table.append(row)
             blocks_ago[d['pair'], d['node']] = d['blocks_ago']
-
-    
+        
     same_date = final_table[0][0].split()[0]==final_table[-1][0].split()[0]
+    if selected_pair is not None:
+        print(f"Pair = {selected_pair}")
+    if same_date:
+        print(f"Date = {final_table[0][0].split()[0]}")
+
     for i in range(len(final_table)-1, -1, -1):
         if final_table[i][0] == final_table[i-1][0]:
             final_table[i][0] = ''
         else:
             if same_date:
-                final_table[i][0] = final_table[i][0].split()[1]
-
-    if selected_pair is not None:
-        print(f"Pair = {selected_pair}")
-    if same_date:
-        print(f"Date = {final_table[0][0].split()[0]}")
-    
+                final_table[i][0] = final_table[i][0].split()[1]    
     headers=[]
     headers.append("Time" if same_date else "Date/time")
     headers.append("Node")
