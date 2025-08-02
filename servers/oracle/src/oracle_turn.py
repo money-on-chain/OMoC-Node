@@ -31,7 +31,7 @@ class PriceFollower(MyCfgdLogger):
         # We already detected a price change before.
         if self.price_change_pub_block == block_chain_info.last_pub_block and self.price_change_block >= 0:
             diff = block_chain_info.block_num - self.price_change_block
-            self.debug(f"Price changed {diff} blocks ago ({block_chain_info.block_num}-{self.price_change_block}")
+            self.debug(f"Price changed {diff} blocks ago ({block_chain_info.block_num}-{self.price_change_block})")
             return diff
 
         delta = helpers.price_delta(block_chain_info.blockchain_price, exchange_price.price)
@@ -70,7 +70,7 @@ class OracleTurn(MyCfgdLogger):
             return True, self.info("selected chosen " + oracle_addr)
         return self._is_oracle_turn_with_msg(vi, oracle_addr, exchange_price, oracle_addresses)
 
-    # Called byt coin_pair_price_loop
+    # Called by coin_pair_price_loop
     def is_oracle_turn(self, vi: OracleBlockchainInfo, oracle_addr,
                        exchange_price: PriceWithTimestamp):
         
@@ -96,10 +96,6 @@ class OracleTurn(MyCfgdLogger):
         entering_fallback_sequence = self.get_fallback_sequence(conf.entering_fallbacks_amounts,
                                                                 len(vi.selected_oracles))
 
-        self.debug("1 ---> %r" % (vi,))
-        self.debug("1 ---> %r %r" % (oracle_addr, exchange_price))
-        self.debug("1 ---> %r %r" % (oracle_addresses, entering_fallback_sequence))
-
         # WARN if oracles won't get to publish before price expires
         ####################################
         if conf.trigger_valid_publication_blocks < len(entering_fallback_sequence) + 1:
@@ -114,22 +110,36 @@ class OracleTurn(MyCfgdLogger):
                    %r < %r. Fix in configuration." % (vi.valid_price_period_in_blocks,
                                                       conf.trigger_valid_publication_blocks))
 
-        blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
+        blocks_since_price_change = self.price_follower.price_changed_blocks(
+            conf, vi, exchange_price, self._signal)
 
-        ####################################
-        start_block_pub_period_before_price_expires = (vi.last_pub_block - conf.trigger_valid_publication_blocks +
-                                                   self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
+        start_block_pub_period_before_price_expires = (
+            vi.last_pub_block
+            - conf.trigger_valid_publication_blocks
+            + self._signal.get_valid_price_period(
+                vi.valid_price_period_in_blocks)
+        )
+
         self.debug(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
                    f"trigger_valid_publication_blocks {conf.trigger_valid_publication_blocks}"
                    f"vi.valid_price_period_in_blocks {vi.valid_price_period_in_blocks} "
                    f"f={self._signal.get_valid_price_period(vi.valid_price_period_in_blocks)}")
+        
         if vi.block_num >= start_block_pub_period_before_price_expires:
-           can_I_publish = self.can_oracle_publish(vi.block_num - start_block_pub_period_before_price_expires,
-                                                   oracle_addr, oracle_addresses, entering_fallback_sequence,
-                                                   only_chosen=only_chosen)
-           if can_I_publish:
-               return True, self.debug(f"I'm selected to publish before prices expires")
+            
+            can_I_publish = self.can_oracle_publish(
+                vi.block_num - start_block_pub_period_before_price_expires,
+                oracle_addr,
+                oracle_addresses,
+                entering_fallback_sequence,
+                only_chosen=only_chosen
+            )
+            
+            if can_I_publish:
+                return True, self.debug(
+                    f"I'm selected to publish before prices expires"
+                )
 
         if blocks_since_price_change is None:
             return False, self.debug(f"{oracle_addr} Price didn't change enough.")
@@ -175,15 +185,19 @@ class OracleTurn(MyCfgdLogger):
         # blocks_since_pub_is_allowed and uses it as index in the amount
         # of entering fall backs sequence.
         # Also makes sure the index is within range of the list.
-        condition = ((blocks_since_pub_is_allowed is not None) and
-                     (blocks_since_pub_is_allowed < len(entering_fallback_sequence)))
-        entering_fallback_sequence_index = (blocks_since_pub_is_allowed if condition else
-                                            len(entering_fallback_sequence) - 1)
-        selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
-        self.info(f"FB: bck#:{blocks_since_pub_is_allowed} cur-idx: {entering_fallback_sequence_index} take:{entering_fallback_sequence[entering_fallback_sequence_index]}"
-                  f" seq: {[to_short(str(x)) for x in selected_fallbacks]}  total: {len(oracle_addresses)}")
         
-        is_fallback = oracle_addr in selected_fallbacks
+        condition = (
+            (blocks_since_pub_is_allowed is not None) and
+            (blocks_since_pub_is_allowed < len(entering_fallback_sequence))
+        )
+
+        if condition:
+            entering_fallback_sequence_index = blocks_since_pub_is_allowed
+        else:
+            entering_fallback_sequence_index = len(entering_fallback_sequence) - 1
+
+        selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
+        is_fallback = oracle_addr in selected_fallbacks        
 
         if not is_fallback:
             return False
@@ -191,8 +205,18 @@ class OracleTurn(MyCfgdLogger):
         if only_chosen:
             self.info(f">>> {oracle_addr} is the fallback, but a fallbacks are DISABLED !!!")
             return False
-        
+
+        self.info(
+            f"FB: bck#: {blocks_since_pub_is_allowed} "
+            f"cur-idx: {entering_fallback_sequence_index} "
+            f"take: {entering_fallback_sequence[entering_fallback_sequence_index]} "
+            f"sel: {[to_short(str(x)) for x in selected_fallbacks]} "
+            f"total: {len(oracle_addresses)} "
+            f"seq: {entering_fallback_sequence} "
+            f"con: {condition} "
+        )   
         self.info(f">>> {oracle_addr} is the fallback !!!")
+        
         return True
 
     @staticmethod
