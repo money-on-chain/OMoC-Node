@@ -120,6 +120,21 @@ class OracleTurn(MyCfgdLogger):
                 vi.valid_price_period_in_blocks)
         )
 
+        # If the last online or offline block is higher than the start block
+        # of the publication period before the price expires, we set it to that
+        # block number so that we can check if the oracle can publish before
+        # the price expires.
+        # This is to ensure that we are not trying to publish before the price
+        # expires, which could lead to multiple oracles publishing without a price change.
+        last_online_block = self._signal.last_online_block()
+        last_offline_block = self._signal.last_offline_block()
+        
+        if last_online_block > start_block_pub_period_before_price_expires:
+            start_block_pub_period_before_price_expires = last_online_block
+
+        if last_offline_block > start_block_pub_period_before_price_expires:
+            start_block_pub_period_before_price_expires = last_offline_block
+
         self.debug(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
                    f"trigger_valid_publication_blocks {conf.trigger_valid_publication_blocks}"
