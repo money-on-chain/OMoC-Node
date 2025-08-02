@@ -117,11 +117,22 @@ class OracleTurn(MyCfgdLogger):
 
         blocks_since_price_change = self.price_follower.price_changed_blocks(conf, vi, exchange_price, self._signal)
 
-        ####################################
-        #start_block_pub_period_before_price_expires = ((vi.last_pub_block if blocks_since_price_change is None else (vi.block_num - blocks_since_price_change)) - conf.trigger_valid_publication_blocks + # Maybe here is the problem
-        start_block_pub_period_before_price_expires = (max([self._signal.last_online_block(), vi.last_pub_block]) - conf.trigger_valid_publication_blocks +
+        start_block_pub_period_before_price_expires = (
+            vi.last_pub_block
+            - conf.trigger_valid_publication_blocks
+            + self._signal.get_valid_price_period(vi.valid_price_period_in_blocks)
+        )
+
+        last_online_block = self._signal.last_online_block()
+        
+        if last_online_block > start_block_pub_period_before_price_expires:
+            start_block_pub_period_before_price_expires = last_online_block
+
         #start_block_pub_period_before_price_expires = (vi.last_pub_block - conf.trigger_valid_publication_blocks +
-                                                   self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
+        #                                            self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
+        #start_block_pub_period_before_price_expires = ((vi.last_pub_block if blocks_since_price_change is None else (vi.block_num - blocks_since_price_change)) - conf.trigger_valid_publication_blocks + # Maybe here is the problem
+        #                                            self._signal.get_valid_price_period(vi.valid_price_period_in_blocks))
+
         self.info(f"block_num {vi.block_num}  "
                    f"start_block_pub_period_before_price_expires {start_block_pub_period_before_price_expires} "
                    f"trigger_valid_publication_blocks {conf.trigger_valid_publication_blocks}"
