@@ -13,8 +13,8 @@ from web3.exceptions import TransactionNotFound
 
 from common.bg_task_executor import BgTaskExecutor
 from common.helpers import dt_now_at_utc
-#from common.services.contract_factory_service import ContractFactoryService
-#from common.services.gas_limit_service import GasLimitService
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,6 @@ class BlockChainPK(AnyHttpUrl):
 
 class BlockchainStateLoop(BgTaskExecutor):
     def __init__(self, conf, contract_factory, gas_limit_addr: str):
-    #def __init__(self, conf, contract_factory: ContractFactoryService, gas_limit_addr: str):
         gas_limit_addr_service = None
         if gas_limit_addr:
             try:
@@ -144,7 +143,6 @@ class BlockchainStateLoop(BgTaskExecutor):
 
 class GasCalculator:
     def __init__(self, gas_limit_service):
-    #def __init__(self, gas_limit_service: GasLimitService):
         logger.info('Initializing GasCalculator ...')
         def get(var_name, show_fnc=repr):
             value = getattr(settings, var_name)
@@ -255,8 +253,10 @@ class BlockChain:
         logger.debug(f"+++++++++ get tx ++++++++ {str(account_addr)} - {method}")
         from_addr = parse_addr(str(account_addr))
 
-        nonce = await run_in_executor(lambda: self.W3.eth.getTransactionCount(
-                                                                    from_addr))
+        nonce = await run_in_executor(
+            lambda: self.W3.eth.getTransactionCount(from_addr, "pending")
+        )
+        
         logger.debug(f"Nonce: {nonce}  sender: {from_addr}")
         if gas is None:
             try:
@@ -331,8 +331,6 @@ class BlockChain:
                     await asyncio.sleep(1)  # poll_latency)
 
             receipt = await asyncio.wait_for(run_with_timeout(), timeout=timeout)
-            # receipt = await loop.run_in_executor(None, lambda: W3.eth.waitForTransactionReceipt(txhash, timeout=timeout,
-            #                                                                                    poll_latency=poll_latency))
         else:
             receipt = await run_in_executor(lambda: self.W3.eth.getTransactionReceipt(txhash))
         if not receipt:

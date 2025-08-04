@@ -83,7 +83,17 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
         self.signal.from_blockchain(blockchain_info)
 
-        my_turn, oracle_order = self._oracle_turn.is_oracle_turn(blockchain_info, self._oracle_addr, exchange_price)
+        my_turn, oracle_order = self._oracle_turn.is_oracle_turn(
+            blockchain_info, self._oracle_addr, exchange_price)
+
+        fallback_index = None
+        if my_turn and oracle_order:
+            try:
+                fallback_index = oracle_order.index(self._oracle_addr)
+                # zero means is chosen, 1..x means fallback
+            except ValueError:
+                fallback_index = None
+        
         oracle_order = ' '.join(to_short(addr) for addr in oracle_order)
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
@@ -100,24 +110,34 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                                     self._coin_pair,
                                                                     exchange_price,
                                                                     self._oracle_addr,
-                                                                    blockchain_info.last_pub_block))
+                                                                    blockchain_info.last_pub_block),
+                                                 fallback_index=fallback_index,
+                                                 blockchain_info = blockchain_info)
             if not publish_success:
                 # retry immediately.
                 return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-    async def publish(self, oracles, params: PublishPriceParams):
+    async def publish(self, oracles, params: PublishPriceParams,
+                      fallback_index=None, blockchain_info=None):
+        str_as = ""
+        if fallback_index is not None:
+            # fallback_index, zero means is chosen, 1..x means fallback
+            str_as = " AS CHOSEN" if fallback_index==0 else f" AS FALLBACK #{fallback_index}"
+            str_as_low = " (chosen)" if fallback_index==0 else f" (fallback {fallback_index})"
         message = params.prepare_price_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
         # send message to all oracles to sign
-        self.debug(f"GATHERING SIGNATURES:"
-                  f"last pub blk {params.last_pub_block}, price: {params.price}")
+        self.info(f"GATHERING SIGNATURES:"
+                  f"last pub blk {params.last_pub_block}, price: {params.price}{str_as_low}")
         sigs = await gather_signatures(oracles, params, message, signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
         if len(sigs) < len(oracles) // 2 + 1:
-            self.info(f"Publish: Not enough signatures")
+            self.info(f"Publish: Not enough signatures {len(sigs)}/{len(oracles)}{str_as_low}")
             return False
+        else:
+            self.info(f"Publish: enough signatures {len(sigs)}/{len(oracles)}{str_as_low}")
 
         if settings.DEBUG:
             self.debug(f"GOT SIGS %r and params %r recover %r" %
@@ -126,8 +146,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
         monitor.publish_log("%r : %r publishing price: %r" % (self._coin_pair, self._oracle_addr, params.price))
         try:
-            self.info(f"publishing price: {params.price} SENDING TRANSACTION, "
-                      f"last pub block {params.last_pub_block}, price {params.price}")
+            str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
+            self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}{str_block}")
             tx = await self._cps.publish_price(params.version,
                                                params.coin_pair,
                                                params.price,
@@ -138,11 +158,11 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                                                wait=True,
                                                last_gas_price=await self.bs_loop.gas_calc.get_current())
             if is_error(tx):
-                self.error(f"ERROR PUBLISHING {repr(tx)}")
+                self.error(f"ERROR PUBLISHING{str_as}, txid={repr(tx)}")
                 return False
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
-            self.info(f"we {self._oracle_addr_med} --------------------> PRICE PUBLISHED {repr(tx)}")
+            self.info(f"PRICE PUBLISHED{str_as}, txid={repr(tx)}")
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
             # Last pub block has changed, force an update of the blockchain info.
@@ -157,9 +177,11 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
 
 async def gather_signatures(oracles, params: PublishPriceParams, message, my_signature, timeout=10):
+    
     cors = [
         get_signature(oracle, params, message, my_signature, timeout=timeout)
         for oracle in oracles if oracle.addr != params.oracle_addr]
+    
     # sigs = await asyncio.gather(*cors, return_exceptions=True)
     needed = len(oracles) // 2
     sigs = []
@@ -170,12 +192,14 @@ async def gather_signatures(oracles, params: PublishPriceParams, message, my_sig
         if len(sigs) >= needed:
             break
     sigs.append(OracleSignature(params.oracle_addr, my_signature))
+    
     # Sort signatures by addr so the smart contract accept them.
     sorted_sigs = sorted([x for x in sigs if x is not None], key=lambda y: int(y.addr, 16))
     return [x.signature for x in sorted_sigs]
 
 
-async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams, message, my_signature, timeout=10):
+async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
+                        message, my_signature, timeout=10):
     x = urllib3.util.parse_url(oracle.internetName)
     target_uri = "%s://%s" % (x.scheme, x.host)
     if not x.port is None:
