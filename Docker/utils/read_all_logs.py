@@ -245,11 +245,14 @@ def get_pairs():
 
 
 
-@click.command()
+@click.command(cls=click.Command,
+               context_settings=dict(help_option_names=['-h', '--help']))
 @click.argument('pair', required=False,
                 type=click.Choice(get_pairs(), case_sensitive=False))
-def cli(pair):
-    main(selected_pair=pair)
+@click.option('-s', '--show-hash', 'show_hash', is_flag=True, default=False,
+              help='Shows TX hash in the output')
+def cli(pair, show_hash=False):
+    main(selected_pair=pair, show_hash=show_hash)
 
 
 
