@@ -320,7 +320,6 @@ class OracleConfiguration(MyCfgdLogger):
         return OracleTurnConfiguration(
             self.ORACLE_PRICE_DELTA_PCT,
             self.ORACLE_PRICE_PUBLISH_BLOCKS,
-            self.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
             self.get_entering_fallbacks_amounts(coin_pair),
             self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS
         )
