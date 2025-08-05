@@ -137,9 +137,6 @@ def main(selected_pair=None, show_hash=False, overview=False):
         def get_by_kv(table, key, *values):
             return [x for x in table if key in x and x[key] in values]
 
-        def get_by_keys(table, *keys):
-            return [x for x in table if all([(key in x) for key in keys])]
-
         def get_by_key(table, key):
             return [x[key] for x in table if key in x]
 
@@ -151,7 +148,13 @@ def main(selected_pair=None, show_hash=False, overview=False):
         
         if selected_pair:
             table = get_by_kv(table, 'pair', selected_pair)
-        
+
+        str_from = f"{table[0]['timestamp'].split('.')[0].replace('T', ' ')}"
+        str_to = f"{table[-1]['timestamp'].split('.')[0].replace('T', ' ')}"
+        str_from_to = f"{str_from} to {str_to}"
+        if str_from.split()[0] == str_to.split()[0]:
+            str_from_to = f"{str_from} to {str_to.split()[1]}"
+
         tx_error_message_count = get_count(
             get_by_key(get_by_kv(table, 'tx', 'error'), 'message'))
         
@@ -172,7 +175,7 @@ def main(selected_pair=None, show_hash=False, overview=False):
         len_tx_failed_chosen = len(get_by_kv(tx_failed, 'type', 'chosen'))
         len_tx_failed_fallback = len_tx_failed - len_tx_failed_chosen
 
-        title = "Overview of logs"
+        title = f"Overview of logs from {str_from_to}"
         if selected_pair:
             title += f" only for pair {selected_pair}"
         title = ' '.join(title.split())
