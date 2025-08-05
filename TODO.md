@@ -13,7 +13,7 @@
 - [x] No gas limit address for testnet as default.
 - [x] Add support for MocMultiCollateralGuard in conditional parameter thresholds.
 - [x] Fixing Fallback Oracle Priority Issue After **UNNEED→NEED** state cycles.
-- [ ] Add Per-Pair Fallback Overrides.
+- [x] Add Per-Pair Fallback Overrides.
 - [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version (_It will probably be necessary a new release of this dependency first_).
 
 ____
