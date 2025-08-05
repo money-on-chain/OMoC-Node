@@ -187,12 +187,12 @@ def main(selected_pair=None, show_hash=False, overview=False):
 Total transactions: {len_total}
 
 Failed: {len_tx_failed}
-    As chosen: {len_tx_failed_chosen/len_tx_failed*100:.2f}%
-    As fallback: {len_tx_failed_fallback/len_tx_failed*100:.2f}%
+    As chosen: {len_tx_failed_chosen/len_tx_failed*100:.2f}% ({len_tx_failed_chosen})
+    As fallback: {len_tx_failed_fallback/len_tx_failed*100:.2f}% ({len_tx_failed_fallback})
 
 Success: {len_tx_success}
-    As chosen: {len_tx_success_chosen/len_tx_success*100:.2f}%
-    As fallback: {len_tx_success_fallback/len_tx_success*100:.2f}%
+    As chosen: {len_tx_success_chosen/len_tx_success*100:.2f}% ({len_tx_success_chosen})
+    As fallback: {len_tx_success_fallback/len_tx_success*100:.2f}% ({len_tx_success_fallback})
 
 Errors: {errors_count}
 {errors}
