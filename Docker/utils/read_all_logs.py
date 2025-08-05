@@ -5,7 +5,7 @@ from tabulate import tabulate
 
 
 
-def main(selected_pair=None, show_hash=False):
+def main(selected_pair=None, show_hash=False, overview=False):
     """
     This script reads all the log files in the current directory,
     extracts relevant information, and prints it in a tabular format.
@@ -132,6 +132,73 @@ def main(selected_pair=None, show_hash=False):
 
     table = sorted(table, key=lambda x: x["timestamp"], reverse=False)
 
+    if overview:
+
+        def get_by_kv(table, key, *values):
+            return [x for x in table if key in x and x[key] in values]
+
+        def get_by_keys(table, *keys):
+            return [x for x in table if all([(key in x) for key in keys])]
+
+        def get_by_key(table, key):
+            return [x[key] for x in table if key in x]
+
+        def get_count(table):
+            out = {}
+            for key in table:
+                out[key] = out.get(key , 0) + 1
+            return out
+        
+        if selected_pair:
+            table = get_by_kv(table, 'pair', selected_pair)
+        
+        tx_error_message_count = get_count(
+            get_by_key(get_by_kv(table, 'tx', 'error'), 'message'))
+        
+        tx_total = get_by_kv(table, 'tx', 'success', 'failed')
+        tx_success = get_by_kv(tx_total, 'tx', 'success')
+        tx_failed = get_by_kv(tx_total, 'tx', 'failed')
+
+        errors_count = sum(tx_error_message_count.values())
+        len_total = len(tx_total) + errors_count
+        errors = '\n'.join([f"    {str(k).capitalize()}: {v}" for (k, v) in tx_error_message_count.items()])
+
+        len_tx_success = len(tx_success)
+        len_tx_failed = len(tx_failed)
+
+        len_tx_success_chosen = len(get_by_kv(tx_success, 'type', 'chosen'))
+        len_tx_success_fallback = len_tx_success - len_tx_success_chosen
+
+        len_tx_failed_chosen = len(get_by_kv(tx_failed, 'type', 'chosen'))
+        len_tx_failed_fallback = len_tx_failed - len_tx_failed_chosen
+
+        title = "Overview of logs"
+        if selected_pair:
+            title += f" only for pair {selected_pair}"
+        title = ' '.join(title.split())
+        title += '\n' + ' '.join([len(x)*'=' for x in title.split()])
+
+        print(f"""
+{title}
+                            
+Total transactions: {len_total}
+
+Failed: {len_tx_failed}
+    As chosen: {len_tx_failed_chosen/len_tx_failed*100:.2f}%
+    As fallback: {len_tx_failed_fallback/len_tx_failed*100:.2f}%
+
+Success: {len_tx_success}
+    As chosen: {len_tx_success_chosen/len_tx_success*100:.2f}%
+    As fallback: {len_tx_success_fallback/len_tx_success*100:.2f}%
+
+Errors: {errors_count}
+{errors}
+
+
+""")
+        return
+
+
     states = {}
     blocks_ago = {}
     final_table = []
@@ -251,8 +318,11 @@ def get_pairs():
                 type=click.Choice(get_pairs(), case_sensitive=False))
 @click.option('-s', '--show-hash', 'show_hash', is_flag=True, default=False,
               help='Shows TX hash in the output')
-def cli(pair, show_hash=False):
-    main(selected_pair=pair, show_hash=show_hash)
+
+@click.option('-o', '--overview', 'overview', is_flag=True, default=False,
+              help='Shows overview')
+def cli(pair, show_hash=False, overview=False):
+    main(selected_pair=pair, show_hash=show_hash, overview=overview)
 
 
 
