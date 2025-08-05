@@ -4,7 +4,7 @@ from common.helpers import parseTimeDelta, MyCfgdLogger
 from common.services.blockchain import is_error
 from common.services.contract_factory_service import ContractFactoryService
 from common.settings import config, MULTICALL_ADDR
-from oracle_settings import GET_VAR_COINPAIR
+from .oracle_settings import GET_VAR_COINPAIR
 from decimal import Decimal
 from enum import Enum
 
