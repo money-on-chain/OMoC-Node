@@ -49,7 +49,15 @@ def GET_VAR_COINPAIR(var, coinpair):
     Get a variable for a coinpair. The variable is defined as:
     {var}_{coinpair}
     """
-    env_var_name = f'{var.upper()}_{coinpair.upper()}'
+    
+    def frmt(s):
+        s = s.strip().upper()
+        s = '_'.join(s.split())
+        for r in "/\-":
+            s = s.replace(r, '_')
+        return s
+
+    env_var_name = f'{frmt(var)}_{frmt(coinpair)}'
     return config_per_chain_id(env_var_name, default="")
 
 def load_exchange_info():

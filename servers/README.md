@@ -180,6 +180,9 @@ The rest of the parameters are optional. If they are missing they are taken from
 - ORACLE_ENTERING_FALLBACKS_AMOUNTS = b'\x02\x04\x06\x08\n'
 
     Environment value must be provided as a hex string (e.g. `020406080A`).
+    A coin-pair specific override can be defined with
+    `ORACLE_ENTERING_FALLBACKS_AMOUNTS_<PAIR>` (for example
+    `ORACLE_ENTERING_FALLBACKS_AMOUNTS_BTCUSD`).
     See ORACLE_PRICE_DELTA_PCT explanation bellow.
 
 - ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"

@@ -92,9 +92,10 @@ class OracleTurn(MyCfgdLogger):
         if not self.is_oracle_selected_in_round(vi.selected_oracles, oracle_addr):
             return False, self.info(f"is not {oracle_addr} turn we are not in the current round selected oracles")
 
-        conf = self._conf.oracle_turn_conf
-        entering_fallback_sequence = self.get_fallback_sequence(conf.entering_fallbacks_amounts,
-                                                                len(vi.selected_oracles))
+        conf = self._conf.get_oracle_turn_conf(self._coin_pair)
+        
+        entering_fallback_sequence = self.get_fallback_sequence(
+            conf.entering_fallbacks_amounts, len(vi.selected_oracles))
 
         # WARN if oracles won't get to publish before price expires
         ####################################
