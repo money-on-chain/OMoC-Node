@@ -51,7 +51,7 @@ def GET_VAR_COINPAIR(var, coinpair):
     """
     
     def frmt(s):
-        s = s.strip().upper()
+        s = f"{s}".strip().upper()
         s = '_'.join(s.split())
         for r in "/\-":
             s = s.replace(r, '_')
