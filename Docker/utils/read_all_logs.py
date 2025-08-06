@@ -181,6 +181,13 @@ def main(selected_pair=None, show_hash=False, overview=False):
         title = ' '.join(title.split())
         title += '\n' + ' '.join([len(x)*'=' for x in title.split()])
 
+        signs_error = [x for x in table if 'step' in x and
+                       x['step'].startswith('signs error')]
+        
+        len_signs_error = len(signs_error)
+        len_signs_error_chosen = len(get_by_kv(signs_error, 'type', 'chosen'))
+        len_signs_error_fallback = len_signs_error - len_signs_error_chosen
+
         print(f"""
 {title}
                             
@@ -197,6 +204,9 @@ Success: {len_tx_success}
 Errors: {errors_count}
 {errors}
 
+Signs errors: {len_signs_error}
+    As chosen: {len_signs_error_chosen/len_signs_error*100:.2f}% ({len_signs_error_chosen})
+    As fallback: {len_signs_error_fallback/len_signs_error*100:.2f}% ({len_signs_error_fallback})
 
 """)
         return
