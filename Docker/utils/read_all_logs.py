@@ -191,23 +191,26 @@ def main(selected_pair=None, show_hash=False, overview=False):
         print(f"""
 {title}
                             
-Total transactions: {len_total}
+Total transactions: {len_total} (*)
 
-Failed: {len_tx_failed}
+TX Failed: {len_tx_failed}
     As chosen: {len_tx_failed_chosen/len_tx_failed*100:.2f}% ({len_tx_failed_chosen})
     As fallback: {len_tx_failed_fallback/len_tx_failed*100:.2f}% ({len_tx_failed_fallback})
 
-Success: {len_tx_success}
+TX Success: {len_tx_success}
     As chosen: {len_tx_success_chosen/len_tx_success*100:.2f}% ({len_tx_success_chosen})
     As fallback: {len_tx_success_fallback/len_tx_success*100:.2f}% ({len_tx_success_fallback})
 
-Errors: {errors_count}
+TX Errors: {errors_count} (**)
 {errors}
 
 Signs errors: {len_signs_error}
     As chosen: {len_signs_error_chosen/len_signs_error*100:.2f}% ({len_signs_error_chosen})
     As fallback: {len_signs_error_fallback/len_signs_error*100:.2f}% ({len_signs_error_fallback})
 
+{'_'*79}
+(*): Total = TX Failed + TX Success + TX Errors
+(**): Immediately rejected by the node and are not propagated to the mempool. 
 """)
         return
 
