@@ -188,6 +188,16 @@ def main(selected_pair=None, show_hash=False, overview=False):
         len_signs_error_chosen = len(get_by_kv(signs_error, 'type', 'chosen'))
         len_signs_error_fallback = len_signs_error - len_signs_error_chosen
 
+        states_flap_count = {}
+        states = {}
+        for d in get_by_kv(table, 'state', 'unneed', 'need'):
+            old = states.get((d['pair'], d['node']), '')
+            new = d['state']
+            if old != new:
+                if old and new:
+                    states_flap_count[(old, new)] = states_flap_count.get((old, new), 0) + 1
+            states[d['pair'], d['node']] = new
+
         print(f"""
 {title}
                             
@@ -207,6 +217,8 @@ TX Errors: {errors_count} (**)
 Signs errors: {len_signs_error}
     As chosen: {len_signs_error_chosen/len_signs_error*100:.2f}% ({len_signs_error_chosen})
     As fallback: {len_signs_error_fallback/len_signs_error*100:.2f}% ({len_signs_error_fallback})
+
+Protocol state flaping count: {states_flap_count.get(('unneed', 'need'), 0)} (unneed -> need)
 
 {'_'*79}
 (*): Total = TX Failed + TX Success + TX Errors
