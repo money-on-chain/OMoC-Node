@@ -8,12 +8,16 @@ from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop, Ora
 from oracle.src.oracle_coin_pair_loop import OracleCoinPairLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_publish_message import PublishPriceParams
+from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
 from oracle.src.oracle_service import OracleService
-from oracle.src.oracle_turn import OracleTurn
+from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 from oracle.src.price_feeder.price_feeder import PriceFeederLoop
-from oracle.src.request_validation import RequestValidation
+from oracle.src.request_validation import PriceRequestValidation, TaskRequestValidation
 from oracle.src.scheduler_oracle_loop import SchedulerCoinPairLoop
+from common.services.oracle_dao import CoinPair
+from oracle.src.coin_pair_runner import CoinPairRunner
+from oracle.src.tasks_runner import TasksRunner
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +25,9 @@ OracleLoopTasks = typing.NamedTuple("OracleLoopTasks",
                                     [("coin_pair_service", OracleCoinPairService),
                                      ("tasks", typing.List[BgTaskExecutor]),
                                      ("coin_pair_loop", OracleCoinPairLoop),
-                                     ("price_feeder_loop", PriceFeederLoop),
+                                     ("runner", Union[CoinPairRunner, TasksRunner]),
                                      ("blockchain_info_loop", OracleBlockchainInfoLoop),
-                                     ("oracle_turn", OracleTurn)
+                                     ("oracle_turn", Union[PriceOracleTurn, TasksOracleTurn])
                                      ])
 
 
@@ -56,12 +60,12 @@ class OracleLoop(BgTaskExecutor):
         if oracle_settings.ORACLE_RUN:
             pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
             bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service)
-            cp_loop = OracleCoinPairLoop(self.conf, cp_service, pf_loop, bl_loop,
-                                         self.bs_loop)
+            runner = CoinPairRunner(self.conf, pf_loop, cp_service, bl_loop)
+            cp_loop = OracleCoinPairLoop(self.conf, runner, self.bs_loop)
             tasks.extend([pf_loop, bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
-                                                 cp_loop, pf_loop, bl_loop,
-                                                 cp_loop._oracle_turn)  # OracleTurn(self.conf, cp_service.coin_pair))
+                                                 cp_loop, runner, bl_loop,
+                                                 runner.oracle_turn)
         if oracle_settings.SCHEDULER_RUN_ORACLE_SCHEDULER:
             tasks.append(SchedulerCoinPairLoop(self.conf, cp_service, self.bs_loop))
         for x in tasks:
@@ -93,17 +97,12 @@ class OracleLoop(BgTaskExecutor):
         # logger.info("Oracle loop done")
         return self.conf.ORACLE_MAIN_LOOP_TASK_INTERVAL
 
-    async def get_validation_data(self, params: PublishPriceParams) -> RequestValidation or None:
+    async def get_validation_data(self, params: Union[PublishPriceParams, PublishTaskParams]) -> Union[PriceRequestValidation, TaskRequestValidation, None]:
         tasks: OracleLoopTasks = self.cpMap.get(str(params.coin_pair))
-        if not tasks or not tasks.price_feeder_loop \
-                or not tasks.blockchain_info_loop or not tasks.oracle_turn:
+        if not tasks or not tasks.runner:
             return
 
-        exchange_price = await tasks.price_feeder_loop.get_last_price(params.price_ts_utc, False)
-        blockchain_info: OracleBlockchainInfo = tasks.blockchain_info_loop.get()
-        oracle_price_reject_delta_pct = self.conf.ORACLE_PRICE_REJECT_DELTA_PCT
-        return RequestValidation(oracle_price_reject_delta_pct, params, tasks.oracle_turn, exchange_price,
-                                 blockchain_info)
+        return await tasks.runner.create_validator(params)
 
     async def get_full_blockchain_info(self) -> typing.Dict[str, OracleBlockchainInfo]:
         return {cp_key: task.blockchain_info_loop.get()

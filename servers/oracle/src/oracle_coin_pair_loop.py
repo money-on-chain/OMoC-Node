@@ -1,5 +1,5 @@
-import time
-
+from oracle.src.coin_pair_runner import CoinPairRunner
+from oracle.src.tasks_runner import TasksRunner
 import urllib3
 from aiohttp import ClientConnectorError, InvalidURL, ClientResponseError
 from hexbytes import HexBytes
@@ -9,6 +9,9 @@ import json
 import logging
 import traceback
 import typing
+import time
+from typing import Union
+
 from common import crypto, settings, helpers
 from common.bg_task_executor import BgTaskExecutor
 from common.crypto import verify_signature
@@ -16,12 +19,9 @@ from common.helpers import MyCfgdLogger
 from common.services.blockchain import is_error, BlockchainStateLoop, to_short
 from common.services.conditional_publish import ConditionalPublishServiceBase
 from oracle.src import monitor, oracle_settings
-from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService, FullOracleRoundInfo
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_publish_message import PublishPriceParams
-from oracle.src.oracle_turn import OracleTurn
-from oracle.src.price_feeder.price_feeder import PriceFeederLoop
+from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
 
 logger = logging.getLogger(__name__)
 
@@ -34,36 +34,27 @@ ETHER = 10**18
 
 class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
     def __init__(self, conf: OracleConfiguration,
-                 cps: OracleCoinPairService,
-                 price_feeder_loop: PriceFeederLoop,
-                 vi_loop: OracleBlockchainInfoLoop,
+                 runner: Union[CoinPairRunner, TasksRunner],
                  bs_loop: BlockchainStateLoop,
                  ):
         self.bs_loop = bs_loop
         self._conf = conf
         _acc = oracle_settings.get_oracle_account()
         self._oracle_addr = _acc.addr
-        self._oracle_addr_med =_acc.med
-        self._oracle_addr_short = _acc.short
-        self._cps = cps
-        self._coin_pair = cps.coin_pair
-        self._price_feeder_loop = price_feeder_loop
-        self.vi_loop = vi_loop
-        self._signal_service = ConditionalPublishServiceBase.SyncCreate(
-            cps._blockchain, str(cps.coin_pair), vi_loop)
-        self._oracle_turn = OracleTurn(self._conf, cps.coin_pair, self._signal_service)
+        self._coin_pair = runner.cps.coin_pair
+        self._runner = runner
         super().__init__(name="OracleCoinPairLoop-%s" % self._coin_pair, main=self.run)
         self.reset(None, self._coin_pair, _acc.short)
 
     @property
     def signal(self) -> ConditionalPublishServiceBase:
-        return self._signal_service
+        return self._runner.signal_service
 
     async def run(self):
         self.debug("OracleCoinPairLoop start")
         await self.signal.update()
 
-        round_info = await self._cps.get_round_info()
+        round_info = await self._runner.cps.get_round_info()
         if is_error(round_info):
             self.error(f"ERROR getting round info {repr(round_info)}")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
@@ -72,19 +63,16 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             self.info(f"OCPL:Waiting for the initial round...")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-        exchange_price = await self._price_feeder_loop.get_last_price(time.time(), True)
-        if not exchange_price or exchange_price.ts_utc <= 0:
-            self.info(f"Still don't have a valid price {exchange_price}")
-            return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
-
-        blockchain_info = self.vi_loop.get()
+        blockchain_info = self._runner.vi_loop.get()
         if not blockchain_info:
             self.debug(f"waiting for blockchain info")
             return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
         self.signal.from_blockchain(blockchain_info)
 
-        my_turn, oracle_order = self._oracle_turn.is_oracle_turn(
-            blockchain_info, self._oracle_addr, exchange_price)
+        is_available, my_turn, oracle_order = await self._runner.is_oracle_turn(
+            blockchain_info, self._oracle_addr)
+        if not is_available:
+            return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
         fallback_index = None
         if my_turn and oracle_order:
@@ -98,27 +86,19 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
         msg = "Is  MY TURN" if my_turn else 'not my turn'
-        try:
-            cur = blockchain_info.blockchain_price/ETHER
-        except Exception as err:
-            cur = f'({err})'
-        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  X:{exchange_price.price/ETHER} C:{cur}" %
+        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  {self._runner.get_log(blockchain_info)}" %
                   (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
             publish_success = await self.publish(blockchain_info.selected_oracles,
-                                                 PublishPriceParams(self._conf.MESSAGE_VERSION,
-                                                                    self._coin_pair,
-                                                                    exchange_price,
-                                                                    self._oracle_addr,
-                                                                    blockchain_info.last_pub_block),
+                                                 self._runner.prepare_publish_params(blockchain_info, self._oracle_addr),
                                                  fallback_index=fallback_index,
-                                                 blockchain_info = blockchain_info)
+                                                 blockchain_info=blockchain_info)
             if not publish_success:
                 # retry immediately.
                 return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-    async def publish(self, oracles, params: PublishPriceParams,
+    async def publish(self, oracles, params: Union[PublishPriceParams, PublishTaskParams],
                       fallback_index=None, blockchain_info=None):
         str_as = ""
         if fallback_index is not None:
@@ -148,7 +128,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         try:
             str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
             self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}{str_block}")
-            tx = await self._cps.publish_price(params.version,
+            tx = await self._runner.cps.publish_price(params.version,
                                                params.coin_pair,
                                                params.price,
                                                params.oracle_addr,
@@ -166,7 +146,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             self.info("//////////////////////////////////////////////////")
             self.info("//////////////////////////////////////////////////")
             # Last pub block has changed, force an update of the blockchain info.
-            await self.vi_loop.force_update()
+            await self._runner.vi_loop.force_update()
             return True
         except asyncio.CancelledError as e:
             raise e
