@@ -58,11 +58,15 @@ class OracleLoop(BgTaskExecutor):
         logger.info("Oracle loop Adding New coin pair %r" % cp_key)
         tasks = []
         if oracle_settings.ORACLE_RUN:
-            pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
             bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service)
-            runner = CoinPairRunner(self.conf, pf_loop, cp_service, bl_loop)
+            if(cp_service.coin_pair_type == "CoinPair"):
+                pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
+                runner = CoinPairRunner(self.conf, pf_loop, cp_service, bl_loop)
+                tasks.extend([pf_loop])
+            if(cp_service.coin_pair_type == "TasksRunner"):
+                runner = TasksRunner(self.conf, cp_service, bl_loop)
             cp_loop = OracleCoinPairLoop(self.conf, runner, self.bs_loop)
-            tasks.extend([pf_loop, bl_loop, cp_loop])
+            tasks.extend([bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
                                                  cp_loop, runner, bl_loop,
                                                  runner.oracle_turn)

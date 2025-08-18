@@ -7,7 +7,7 @@ from moneyonchain.manager import ConnectionManager
 from common import settings, helpers
 from common.services.blockchain import BlockChain, BlockChainContract, \
     parse_addr
-from common.services.coin_pair_price_service import CoinPairService
+from common.services.coin_pair_price_service import CoinPairService, TasksRunnerService
 from common.services.eternal_storage_service import EternalStorageService
 from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
@@ -42,6 +42,9 @@ class ContractFactoryService:
         return BlockChainContract(self.blockchain, addr, abi)
 
     def get_coin_pair_price(self, addr) -> CoinPairService:
+        raise Exception("Unimplemented")
+    
+    def get_tasks_runner(self, addr) -> TasksRunnerService:
         raise Exception("Unimplemented")
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
@@ -100,6 +103,11 @@ class MocContractFactoryService(ContractFactoryService):
     def get_coin_pair_price(self, addr) -> CoinPairService:
         abi = self._read_abi('CoinPairPrice.abi')
         return CoinPairService(self._get_contract(addr, abi))
+
+    def get_tasks_runner(self, addr) -> TasksRunnerService:
+        abi = self._read_abi('TasksRunner.abi')
+        return TasksRunnerService(self._get_contract(addr, abi))
+
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
         abi = self._read_abi('IRegistry.abi')
@@ -160,6 +168,10 @@ class BuildDirContractFactoryService(ContractFactoryService):
     def get_coin_pair_price(self, addr) -> CoinPairService:
         data = self._read_data("COIN_PAIR_PRICE")
         return CoinPairService(self._get_contract(addr, data["abi"]))
+
+    def get_tasks_runner(self, addr) -> TasksRunnerService:
+        data = self._read_data("TASKS_RUNNER")
+        return TasksRunnerService(self._get_contract(addr, data["abi"]))
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
         data = self._read_data("ETERNAL_STORAGE")

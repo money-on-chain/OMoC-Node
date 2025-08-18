@@ -19,7 +19,7 @@ from common.helpers import MyCfgdLogger
 from common.services.blockchain import is_error, BlockchainStateLoop, to_short
 from common.services.conditional_publish import ConditionalPublishServiceBase
 from oracle.src import monitor, oracle_settings
-from oracle.src.oracle_coin_pair_service import OracleCoinPairService, FullOracleRoundInfo
+from oracle.src.oracle_coin_pair_service import FullOracleRoundInfo
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
 
@@ -128,11 +128,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         try:
             str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
             self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}{str_block}")
-            tx = await self._runner.cps.publish_price(params.version,
-                                               params.coin_pair,
-                                               params.price,
-                                               params.oracle_addr,
-                                               params.last_pub_block,
+            tx = await self._runner.cps.publish(params,
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
                                                wait=True,

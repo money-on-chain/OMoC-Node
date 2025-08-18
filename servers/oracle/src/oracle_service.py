@@ -42,11 +42,12 @@ class OracleService:
         coin_pair_info = await self.oracle_manager_service.get_coin_pair_info(coin_pair)
         if is_error(coin_pair_info):
             return coin_pair_info
+        coinPairService = self.contract_factory.get_tasks_runner(coin_pair_info.addr) if coin_pair.is_tasks_runner() else self.contract_factory.get_coin_pair_price(coin_pair_info.addr)
         return OracleCoinPairService(self.contract_factory.get_blockchain(),
-                                     self.contract_factory.get_coin_pair_price(coin_pair_info.addr),
-                                     self.info_service,
-                                     self.oracle_manager_service,
-                                     coin_pair_info)
+                                         coinPairService,
+                                         self.info_service,
+                                         self.oracle_manager_service,
+                                         coin_pair_info)
 
     async def get_all_coin_pair_services(self) -> List[OracleCoinPairService]:
         coin_pairs = await self.oracle_manager_service.get_all_coin_pair()
