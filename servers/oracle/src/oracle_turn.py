@@ -354,38 +354,38 @@ class TasksOracleTurn(OracleTurn):
         
         conf = self._conf.get_oracle_turn_conf(self._coin_pair)
 
-        entering_fallback_sequence = self.get_fallback_sequence(  
-            conf.entering_fallbacks_amounts, len(vi.selected_oracles)  
-        )  
-  
-        blocks_since_last_pub = vi.block_num - vi.last_pub_block  
-          
-        if blocks_since_last_pub < conf.price_publish_blocks:  
-            return False, self.warning(  
-                "%s Waiting for %r blocks since last publication. Current: %r < %r"  
-                % (  
-                    oracle_addr,  
-                    conf.price_publish_blocks,  
-                    blocks_since_last_pub,  
-                    conf.price_publish_blocks,  
-                )  
-            )  
-  
-        can_I_publish = self.can_oracle_publish(  
-            blocks_since_last_pub - conf.price_publish_blocks,  
-            oracle_addr,  
-            oracle_addresses,  
-            entering_fallback_sequence,  
-            only_chosen=only_chosen,  
-        )  
-          
-        if can_I_publish:  
-            return True, self.info(  
-                f"{oracle_addr} selected to execute task. "  
-                f"Blocks since last pub: {blocks_since_last_pub}  (waited: {conf.price_publish_blocks})"  
-            )  
-          
-        return False, self.info(  
-            f"{oracle_addr} is NOT the chosen fallback for task execution. "  
-            f"Blocks since last pub: {blocks_since_last_pub}"  
+        entering_fallback_sequence = self.get_fallback_sequence(
+            conf.entering_fallbacks_amounts, len(vi.selected_oracles)
+        )
+
+        blocks_since_last_pub = vi.block_num - vi.last_pub_block
+
+        if blocks_since_last_pub < conf.price_publish_blocks:
+            return False, self.warning(
+                "%s Waiting for %r blocks since last publication. Current: %r < %r"
+                % (
+                    oracle_addr,
+                    conf.price_publish_blocks,
+                    blocks_since_last_pub,
+                    conf.price_publish_blocks,
+                )
+            )
+
+        can_I_publish = self.can_oracle_publish(
+            blocks_since_last_pub - conf.price_publish_blocks,
+            oracle_addr,
+            oracle_addresses,
+            entering_fallback_sequence,
+            only_chosen=only_chosen,
+        )
+
+        if can_I_publish:
+            return True, self.info(
+                f"{oracle_addr} selected to execute task. "
+                f"Blocks since last pub: {blocks_since_last_pub}  (waited: {conf.price_publish_blocks})"
+            )
+
+        return False, self.info(
+            f"{oracle_addr} is NOT the chosen fallback for task execution. "
+            f"Blocks since last pub: {blocks_since_last_pub}"
         )
