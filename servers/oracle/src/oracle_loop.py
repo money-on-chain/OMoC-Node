@@ -14,7 +14,6 @@ from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 from oracle.src.price_feeder.price_feeder import PriceFeederLoop
 from oracle.src.request_validation import PriceRequestValidation, TaskRequestValidation
 from oracle.src.scheduler_oracle_loop import SchedulerCoinPairLoop
-from common.services.oracle_dao import CoinPair
 from oracle.src.coin_pair_runner import CoinPairRunner
 from oracle.src.tasks_runner import TasksRunner
 from typing import Union
@@ -59,11 +58,11 @@ class OracleLoop(BgTaskExecutor):
         tasks = []
         if oracle_settings.ORACLE_RUN:
             bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service)
-            if(cp_service.coin_pair_type == "CoinPair"):
+            if cp_service.coin_pair_type == cp_service.CoinPairServiceType.COIN_PAIR:
                 pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
                 runner = CoinPairRunner(self.conf, pf_loop, cp_service, bl_loop)
                 tasks.extend([pf_loop])
-            if(cp_service.coin_pair_type == "TasksRunner"):
+            if cp_service.coin_pair_type == cp_service.CoinPairServiceType.TASKS_RUNNER:
                 runner = TasksRunner(self.conf, cp_service, bl_loop)
             cp_loop = OracleCoinPairLoop(self.conf, runner, self.bs_loop)
             tasks.extend([bl_loop, cp_loop])

@@ -48,13 +48,13 @@ class CoinPairRunner(MyCfgdLogger):
         )
         return True, *result
 
-    def get_log(self, blockchain_info):
+    def get_pre_publish_log(self, blockchain_info):
         try:
             cur = blockchain_info.blockchain_price / ETHER
         except Exception as err:
             cur = f"({err})"
         return f"X:{self._exchange_price.price / ETHER} C:{cur}"
-
+    
     def prepare_publish_params(self, blockchain_info, oracle_addr):
         return PublishPriceParams(
             self._conf.MESSAGE_VERSION,

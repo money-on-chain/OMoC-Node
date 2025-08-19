@@ -98,6 +98,11 @@ class CoinPairService(BaseCoinPairService):
         return await self.coin_pair_call("getPrice",
                                                account="0x" + "0" * 39 + "1")
 
+    
+    async def log_data(self):
+        price = await self.get_price()
+        return "price: %r " % price
+
     async def _publish(self, params: PublishPriceParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
         return await self.coin_pair_execute("publishPrice", params.version,
                                                   params.coin_pair.longer(), params.price, params.oracle_addr,
@@ -110,6 +115,10 @@ class TasksRunnerService(BaseCoinPairService):
 
     async def get_are_tasks_available(self) -> bool:
         return await self.coin_pair_call("areTasksAvailable")
+
+    # NOT IMPLEMENTED
+    async def log_data(self):
+        return ""
     
     async def _publish(self, params: PublishTaskParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
         return await self.coin_pair_execute("runTasks", params.version,

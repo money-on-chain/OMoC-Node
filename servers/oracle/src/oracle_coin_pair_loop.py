@@ -86,7 +86,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
 
         self.debug(f'prev hash: {blockchain_info.last_pub_block_hash.hex()}')
         msg = "Is  MY TURN" if my_turn else 'not my turn'
-        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  {self._runner.get_log(blockchain_info)}" %
+        self.info(f"---{self.signal}----> {msg} blk %r/%r  [{oracle_order}]  {self._runner.get_pre_publish_log(blockchain_info)}" %
                   (blockchain_info.block_num, blockchain_info.last_pub_block))
         if my_turn:
             publish_success = await self.publish(blockchain_info.selected_oracles,
@@ -105,12 +105,12 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             # fallback_index, zero means is chosen, 1..x means fallback
             str_as = " AS CHOSEN" if fallback_index==0 else f" AS FALLBACK #{fallback_index}"
             str_as_low = " (chosen)" if fallback_index==0 else f" (fallback {fallback_index})"
-        message = params.prepare_price_msg()
+        message = params.prepare_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
         # send message to all oracles to sign
         self.info(f"GATHERING SIGNATURES:"
-                  f"last pub blk {params.last_pub_block}, price: {params.price}{str_as_low}")
+                  f"last pub blk {params.last_pub_block}, {params.log_data()}{str_as_low}")
         sigs = await gather_signatures(oracles, params, message, signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
         if len(sigs) < len(oracles) // 2 + 1:
@@ -124,10 +124,10 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                 ([to_short(x) for x in sigs], params,
                  [to_short(crypto.recover(hexstr=message, signature=x)) for x in sigs]))
 
-        monitor.publish_log("%r : %r publishing price: %r" % (self._coin_pair, self._oracle_addr, params.price))
+        monitor.publish_log("%r : %r publishing: %r" % (self._coin_pair, self._oracle_addr, params.log_data()))
         try:
             str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
-            self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, price {params.price}{str_block}")
+            self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, {params.log_data()}{str_block}")
             tx = await self._runner.cps.publish(params,
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
@@ -152,8 +152,8 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return False
 
 
-async def gather_signatures(oracles, params: PublishPriceParams, message, my_signature, timeout=10):
-    
+async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTaskParams], message, my_signature, timeout=10):
+
     cors = [
         get_signature(oracle, params, message, my_signature, timeout=timeout)
         for oracle in oracles if oracle.addr != params.oracle_addr]
@@ -174,23 +174,16 @@ async def gather_signatures(oracles, params: PublishPriceParams, message, my_sig
     return [x.signature for x in sorted_sigs]
 
 
-async def get_signature(oracle: FullOracleRoundInfo, params: PublishPriceParams,
+async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceParams, PublishTaskParams],
                         message, my_signature, timeout=10):
     x = urllib3.util.parse_url(oracle.internetName)
     target_uri = "%s://%s" % (x.scheme, x.host)
     if not x.port is None:
         target_uri+=':%d'%x.port
-    target_uri += "/sign/"
+    target_uri += params.get_post()
     logger.debug("%s : Trying to get signatures from: %s == %s" % (params.coin_pair, target_uri, oracle.addr))
     try:
-        post_data = {
-            "version": str(params.version),
-            "coin_pair": str(params.coin_pair),
-            "price": str(params.price),
-            "price_timestamp": str(params.price_ts_utc),
-            "oracle_addr": params.oracle_addr,
-            "last_pub_block": str(params.last_pub_block),
-            "signature": my_signature.hex()}
+        post_data = params.to_post_data(my_signature)
         logger.debug(f"sign DATA {post_data}")
         logger.debug(f"sign target uri {target_uri}")
 

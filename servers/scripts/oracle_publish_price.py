@@ -24,7 +24,7 @@ async def main():
 
         params = PublishPriceParams(conf.MESSAGE_VERSION, cp,
                                     PriceWithTimestamp(price, 0), oracle_account.addr, last_block)
-        message = params.prepare_price_msg()
+        message = params.prepare_msg()
         print("params", params)
         print("message", message)
         # sign myself locally, just testing
