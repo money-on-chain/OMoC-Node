@@ -155,7 +155,7 @@ class PriceOracleTurn(OracleTurn):
         self.price_change_pub_block = -1
         super().__init__(conf, coin_pair)
 
-    def _price_changed_blocks(
+    def price_changed_blocks(
         self,
         conf: OracleTurnConfiguration,
         block_chain_info: OracleBlockchainInfo,
@@ -252,7 +252,7 @@ class PriceOracleTurn(OracleTurn):
                 )
             )
 
-        blocks_since_price_change = self._price_changed_blocks(
+        blocks_since_price_change = self.price_changed_blocks(
             conf, vi, exchange_price, self._signal
         )
 
@@ -331,9 +331,8 @@ class PriceOracleTurn(OracleTurn):
         )
 
 class TasksOracleTurn(OracleTurn): 
-    def __init__(self, conf: OracleConfiguration, coin_pair, tasks_runner):
+    def __init__(self, conf: OracleConfiguration, coin_pair):
         self._coin_pair = coin_pair
-        self._tasks_runner = tasks_runner
         super().__init__(conf, coin_pair)
     
     def _is_oracle_turn_with_msg(   
@@ -341,16 +340,20 @@ class TasksOracleTurn(OracleTurn):
         vi: OracleBlockchainInfo,
         oracle_addr,
         oracle_addresses,
-        extra_args=None,
+        extra_args,
         only_chosen=False,
     ):
-        if not self.is_oracle_selected_in_round(vi.selected_oracles, oracle_addr):  
-            return False, self.info(  
-                f"is not {oracle_addr} turn we are not in the current round selected oracles"  
-            )  
-  
-        conf = self._conf.get_oracle_turn_conf(self._coin_pair)  
-  
+        are_tasks_available = extra_args.get("are_tasks_available")
+        if not are_tasks_available:
+            return False, self.info("There are no tasks available")
+
+        if not self.is_oracle_selected_in_round(vi.selected_oracles, oracle_addr):
+            return False, self.info(
+                f"is not {oracle_addr} turn we are not in the current round selected oracles"
+            )
+        
+        conf = self._conf.get_oracle_turn_conf(self._coin_pair)
+
         entering_fallback_sequence = self.get_fallback_sequence(  
             conf.entering_fallbacks_amounts, len(vi.selected_oracles)  
         )  

@@ -54,7 +54,7 @@ class PriceRequestValidation:
     def validate_and_sign(self, signature):
         self.validate_params()
         self.validate_turn()
-        message = self.params.prepare_price_msg()
+        message = self.params.prepare_msg()
         self.validate_signature(message, signature)
         our_acc = oracle_settings.get_oracle_account()
         s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
@@ -109,9 +109,11 @@ class TaskRequestValidation:
     def __init__(self,
                  params: PublishTaskParams,
                  oracle_turn: TasksOracleTurn,
+                 are_tasks_available: bool,
                  blockchain_info: OracleBlockchainInfo):
         self.params = params
         self.oracle_turn = oracle_turn
+        self.are_tasks_available = are_tasks_available
         self.blockchain_info = blockchain_info
 
     @property
@@ -121,7 +123,7 @@ class TaskRequestValidation:
     def validate_and_sign(self, signature):
         self.validate_params()
         self.validate_turn()
-        message = self.params.prepare_task_msg()
+        message = self.params.prepare_msg()
         self.validate_signature(message, signature)
         our_acc = oracle_settings.get_oracle_account()
         s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
@@ -144,7 +146,7 @@ class TaskRequestValidation:
 
     def validate_turn(self):
         is_turn, msg = self.oracle_turn.validate_turn(
-            self.blockchain_info, self.params.oracle_addr)
+            self.blockchain_info, self.params.oracle_addr, extra_args={"are_tasks_available": self.are_tasks_available})
         if not is_turn:
             raise InvalidTurn("is not oracle %s turn : %s" % (
                 self.params.oracle_addr, msg), self.cp)

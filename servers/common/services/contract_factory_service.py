@@ -153,6 +153,7 @@ class BuildDirContractFactoryService(ContractFactoryService):
         "SUPPORTERS": "ISupporters.json",
         "ORACLE_MANAGER": "IOracleManager.json",
         "COIN_PAIR_PRICE": "ICoinPairPrice.json",
+        "TASKS_RUNNER": "TasksRunner.json",
         "INFO_GETTER": "IOracleInfoGetter.json",
         "GAS_LIMIT": "IGasLimit.json",
     }
