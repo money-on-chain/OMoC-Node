@@ -11,8 +11,7 @@ from oracle.src.select_next import select_next
 
 class MonitorLoopByCoinPair:
 
-    def __init__(self, conf: OracleConfiguration, logger, cps: OracleCoinPairService):
-        self._conf = conf
+    def __init__(self, logger, cps: OracleCoinPairService):
         self._logger = logger
         self._cps = cps
         self._pre_pubblock_nr = None

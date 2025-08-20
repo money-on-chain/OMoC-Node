@@ -110,10 +110,12 @@ class TaskRequestValidation:
                  params: PublishTaskParams,
                  oracle_turn: TasksOracleTurn,
                  are_tasks_available: bool,
+                 last_block_when_available: int,
                  blockchain_info: OracleBlockchainInfo):
         self.params = params
         self.oracle_turn = oracle_turn
         self.are_tasks_available = are_tasks_available
+        self.last_block_when_available = last_block_when_available
         self.blockchain_info = blockchain_info
 
     @property
@@ -146,7 +148,11 @@ class TaskRequestValidation:
 
     def validate_turn(self):
         is_turn, msg = self.oracle_turn.validate_turn(
-            self.blockchain_info, self.params.oracle_addr, extra_args={"are_tasks_available": self.are_tasks_available})
+            self.blockchain_info, self.params.oracle_addr, 
+            extra_args={
+                "are_tasks_available": self.are_tasks_available,
+                "last_block_when_available": self.last_block_when_available
+            })
         if not is_turn:
             raise InvalidTurn("is not oracle %s turn : %s" % (
                 self.params.oracle_addr, msg), self.cp)

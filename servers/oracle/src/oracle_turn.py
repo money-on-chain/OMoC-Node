@@ -346,6 +346,7 @@ class TasksOracleTurn(OracleTurn):
         are_tasks_available = extra_args.get("are_tasks_available")
         if not are_tasks_available:
             return False, self.info("There are no tasks available")
+        last_block_when_available = extra_args.get("last_block_when_available")
 
         if not self.is_oracle_selected_in_round(vi.selected_oracles, oracle_addr):
             return False, self.info(
@@ -358,7 +359,7 @@ class TasksOracleTurn(OracleTurn):
             conf.entering_fallbacks_amounts, len(vi.selected_oracles)  
         )  
   
-        blocks_since_last_pub = vi.block_num - vi.last_pub_block  
+        blocks_since_last_pub = vi.block_num - last_block_when_available
           
         if blocks_since_last_pub < conf.price_publish_blocks:  
             return False, self.warning(  

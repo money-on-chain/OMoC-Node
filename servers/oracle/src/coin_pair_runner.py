@@ -21,6 +21,7 @@ class CoinPairRunner(MyCfgdLogger):
         cps: OracleCoinPairService,
         vi_loop: OracleBlockchainInfoLoop,
     ):
+        super().__init__(None, str(cps.coin_pair))
         self._conf = conf
         self.price_feeder_loop = price_feeder_loop
         self.cps = cps

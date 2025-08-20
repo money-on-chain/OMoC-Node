@@ -18,9 +18,11 @@ class TasksRunner(MyCfgdLogger):
         cps: OracleCoinPairService,
         vi_loop: OracleBlockchainInfoLoop,
     ):
+        super().__init__(None, str(cps.coin_pair))
         self._conf = conf
         self.cps = cps
         self.vi_loop = vi_loop
+        self._last_block_when_available = 0
 
         self.signal_service = DisabledConditionalPublishService.SyncCreate(
             self.cps._blockchain, str(self.cps.coin_pair), self.vi_loop
@@ -33,11 +35,19 @@ class TasksRunner(MyCfgdLogger):
     async def is_oracle_turn(self, blockchain_info, oracle_addr):
         self._are_tasks_available = await self.cps.get_are_tasks_available()
         if not self._are_tasks_available:
+            self._last_block_when_available = None
             return False, None, None
+        if not self._last_block_when_available:
+            self._last_block_when_available = blockchain_info.block_num
+
+        self.info(await self.cps.log_data())
         result = self.oracle_turn.is_oracle_turn(
             blockchain_info,
             oracle_addr,
-            extra_args={"are_tasks_available": self._are_tasks_available}
+            extra_args={
+                "are_tasks_available": self._are_tasks_available, 
+                "last_block_when_available": self._last_block_when_available
+            }
         )
         return True, *result
     
@@ -59,5 +69,6 @@ class TasksRunner(MyCfgdLogger):
             params,
             self.oracle_turn,
             are_tasks_available,
+            self._last_block_when_available,
             blockchain_info,
         )

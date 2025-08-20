@@ -115,11 +115,14 @@ class TasksRunnerService(BaseCoinPairService):
 
     async def get_are_tasks_available(self) -> bool:
         return await self.coin_pair_call("areTasksAvailable")
-
-    # NOT IMPLEMENTED
-    async def log_data(self):
-        return ""
     
+    async def get_tasks_available(self):
+        return await self.coin_pair_call("getTasksAvailable")
+    
+    async def log_data(self):
+        tasks_available = await self.get_tasks_available()
+        return "tasks available: %r " % tasks_available
+
     async def _publish(self, params: PublishTaskParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
         return await self.coin_pair_execute("runTasks", params.version,
                                                   params.coin_pair.longer(), params.oracle_addr,
