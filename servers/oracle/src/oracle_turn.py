@@ -94,8 +94,21 @@ class OracleTurn(MyCfgdLogger):
 
         conf = self._conf.get_oracle_turn_conf(self._coin_pair)
         
+        # Log oracle order calculation (L2) for synchronization validation
+        self.info(f"ORACLE_ORDER_L2: block_hash={vi.last_pub_block_hash[:10]}... "
+                  f"selected_count={len(vi.selected_oracles)} "
+                  f"calculated_order={[to_short(addr) for addr in oracle_addresses]} "
+                  f"primary_oracle={to_short(oracle_addresses[0]) if oracle_addresses else 'None'}")
+        
         entering_fallback_sequence = self.get_fallback_sequence(
             conf.entering_fallbacks_amounts, len(vi.selected_oracles))
+        
+        # Log configuration validation for cross-node comparison
+        self.info(f"CONFIG_VALIDATION: entering_fallbacks_amounts={list(conf.entering_fallbacks_amounts)} "
+                  f"price_publish_blocks={conf.price_publish_blocks} "
+                  f"price_delta_pct={conf.price_delta_pct} "
+                  f"trigger_valid_publication_blocks={conf.trigger_valid_publication_blocks} "
+                  f"fallback_sequence={entering_fallback_sequence}")
 
         # WARN if oracles won't get to publish before price expires
         ####################################
@@ -179,29 +192,174 @@ class OracleTurn(MyCfgdLogger):
 
     @staticmethod
     def get_fallback_sequence(entering_fallbacks_amounts, selected_oracles_len):
+        """
+        Calculate the fallback sequence that determines how many fallback oracles
+        are enabled at each block since publication is allowed.
+        
+        The sequence works as follows:
+        - Index 0 (0 blocks since allowed): Only 1 oracle enabled (primary)
+        - Index 1 (1 block since allowed): entering_fallbacks_amounts[0] + 1 oracles enabled  
+        - Index 2 (2 blocks since allowed): entering_fallbacks_amounts[1] + 1 oracles enabled
+        - And so on...
+        
+        Args:
+            entering_fallbacks_amounts: Configuration bytes defining fallback progression
+            selected_oracles_len: Total number of selected oracles in the round
+            
+        Returns:
+            list: Sequence where index=blocks_since_allowed, value=num_oracles_enabled
+        """
         # x + 1 so that when it's being used as index for the addresses' list,
         # it can get the x addresses after the first one (the chosen oracle)
         entering_fallback_sequence = [x + 1 for x in entering_fallbacks_amounts]
         # Insert amount 1 at the beginning that it will be fetched by index 0 of 0 blocks since price change
         # so that 0 fallbacks are chosen. See selected_fallbacks variable assignment.
         entering_fallback_sequence.insert(0, 1)
-        if len(entering_fallback_sequence) == 0 or entering_fallback_sequence[-1] < selected_oracles_len - 1:
+        if len(entering_fallback_sequence) == 0 or entering_fallback_sequence[-1] < selected_oracles_len:
             entering_fallback_sequence.append(selected_oracles_len)
         return entering_fallback_sequence
+    
+    def get_fallback_debug_info(self, vi: OracleBlockchainInfo, oracle_addresses):
+        """
+        Generate detailed debug information about the current fallback state.
+        This can be used for comparing fallback sequence state between oracles.
+        
+        Args:
+            vi: Oracle blockchain information
+            oracle_addresses: Ordered list of oracle addresses
+            
+        Returns:
+            dict: Debug information including sequence, enabled oracles, etc.
+        """
+        conf = self._conf.get_oracle_turn_conf(self._coin_pair)
+        entering_fallback_sequence = self.get_fallback_sequence(
+            conf.entering_fallbacks_amounts, len(vi.selected_oracles))
+        
+        debug_info = {
+            'block_hash': vi.last_pub_block_hash,
+            'oracle_order_L2': [to_short(addr) for addr in oracle_addresses],
+            'primary_oracle': to_short(oracle_addresses[0]) if oracle_addresses else None,
+            'fallback_sequence': entering_fallback_sequence,
+            'config': {
+                'entering_fallbacks_amounts': list(conf.entering_fallbacks_amounts),
+                'price_publish_blocks': conf.price_publish_blocks,
+                'price_delta_pct': conf.price_delta_pct,
+                'trigger_valid_publication_blocks': conf.trigger_valid_publication_blocks
+            },
+            'selected_oracles_count': len(vi.selected_oracles),
+            'fallback_scenarios': []
+        }
+        
+        # Calculate fallback states for different block scenarios
+        for blocks_since in range(min(10, len(entering_fallback_sequence))):
+            if blocks_since < len(entering_fallback_sequence):
+                num_enabled = entering_fallback_sequence[blocks_since]
+                enabled_oracles = oracle_addresses[:num_enabled]
+            else:
+                num_enabled = entering_fallback_sequence[-1]
+                enabled_oracles = oracle_addresses[:num_enabled]
+                
+            debug_info['fallback_scenarios'].append({
+                'blocks_since_allowed': blocks_since,
+                'num_oracles_enabled': num_enabled,
+                'enabled_oracles': [to_short(addr) for addr in enabled_oracles]
+            })
+        
+        return debug_info
+    
+    def validate_configuration_consistency(self, expected_config=None):
+        """
+        Validate that configuration parameters are properly set and optionally
+        compare against expected values for cross-node consistency checking.
+        
+        Args:
+            expected_config: Optional dict with expected configuration values
+            
+        Returns:
+            dict: Validation results with any inconsistencies or warnings
+        """
+        conf = self._conf.get_oracle_turn_conf(self._coin_pair)
+        validation_results = {
+            'valid': True,
+            'warnings': [],
+            'errors': [],
+            'config_values': {
+                'entering_fallbacks_amounts': list(conf.entering_fallbacks_amounts),
+                'price_publish_blocks': conf.price_publish_blocks,
+                'price_delta_pct': conf.price_delta_pct,
+                'trigger_valid_publication_blocks': conf.trigger_valid_publication_blocks
+            }
+        }
+        
+        # Basic validation
+        if not conf.entering_fallbacks_amounts:
+            validation_results['errors'].append("entering_fallbacks_amounts is empty")
+            validation_results['valid'] = False
+            
+        if conf.price_publish_blocks < 0:
+            validation_results['errors'].append("price_publish_blocks must be >= 0")
+            validation_results['valid'] = False
+            
+        if conf.price_delta_pct <= 0:
+            validation_results['errors'].append("price_delta_pct must be > 0")
+            validation_results['valid'] = False
+            
+        # Check for potential configuration issues
+        if conf.trigger_valid_publication_blocks <= len(conf.entering_fallbacks_amounts):
+            validation_results['warnings'].append(
+                f"trigger_valid_publication_blocks ({conf.trigger_valid_publication_blocks}) "
+                f"may be too low compared to fallback sequence length ({len(conf.entering_fallbacks_amounts)})")
+        
+        # Compare with expected config if provided
+        if expected_config:
+            for key, expected_value in expected_config.items():
+                actual_value = validation_results['config_values'].get(key)
+                if actual_value != expected_value:
+                    validation_results['errors'].append(
+                        f"Config mismatch for {key}: expected {expected_value}, got {actual_value}")
+                    validation_results['valid'] = False
+        
+        # Log validation results
+        if validation_results['valid']:
+            self.info(f"CONFIG_VALIDATION_PASSED: {validation_results['config_values']}")
+        else:
+            self.error(f"CONFIG_VALIDATION_FAILED: {validation_results}")
+            
+        for warning in validation_results['warnings']:
+            self.warning(f"CONFIG_WARNING: {warning}")
+            
+        return validation_results
 
     def can_oracle_publish(self, blocks_since_pub_is_allowed, oracle_addr,
                            oracle_addresses, entering_fallback_sequence,
                            only_chosen=False):
+        """
+        Determines if an oracle can publish based on fallback sequence logic.
+        
+        Args:
+            blocks_since_pub_is_allowed: Number of blocks since publication became allowed
+            oracle_addr: Address of the oracle being checked
+            oracle_addresses: Ordered list of oracle addresses (L2 order)
+            entering_fallback_sequence: Sequence defining how many fallbacks are enabled per block
+            only_chosen: If True, only allow the primary chosen oracle to publish
+            
+        Returns:
+            bool: True if oracle can publish, False otherwise
+        """
+        # Log detailed fallback sequence state for debugging and synchronization validation
+        self.info(f"FALLBACK_STATE_CHECK: oracle={to_short(oracle_addr)} "
+                  f"blocks_since_allowed={blocks_since_pub_is_allowed} "
+                  f"oracle_order={[to_short(addr) for addr in oracle_addresses]} "
+                  f"sequence={entering_fallback_sequence} "
+                  f"only_chosen={only_chosen}")
 
         if OracleTurn.is_selected_oracle(oracle_addresses, oracle_addr):
-            self.info(f">>> {oracle_addr} is the chosen one !!!")
+            self.info(f"PRIMARY_ORACLE_SELECTED: {to_short(oracle_addr)} is the chosen primary oracle")
             return True
 
-        # Gets blocks since publication is allowed from
-        # blocks_since_pub_is_allowed and uses it as index in the amount
-        # of entering fall backs sequence.
-        # Also makes sure the index is within range of the list.
-        
+        # Calculate fallback index based on blocks since publication is allowed
+        # This uses blocks_since_pub_is_allowed as index into the fallback sequence
+        # to determine how many fallback oracles are enabled
         condition = (
             (blocks_since_pub_is_allowed is not None) and
             (blocks_since_pub_is_allowed < len(entering_fallback_sequence))
@@ -212,27 +370,28 @@ class OracleTurn(MyCfgdLogger):
         else:
             entering_fallback_sequence_index = len(entering_fallback_sequence) - 1
 
-        selected_fallbacks = oracle_addresses[1:entering_fallback_sequence[entering_fallback_sequence_index]]
+        # Calculate which oracles are enabled as fallbacks at this point
+        num_fallbacks_enabled = entering_fallback_sequence[entering_fallback_sequence_index]
+        selected_fallbacks = oracle_addresses[1:num_fallbacks_enabled]
         is_fallback = oracle_addr in selected_fallbacks        
 
+        # Enhanced logging for fallback sequence validation
+        self.info(f"FALLBACK_CALCULATION: blocks_since_allowed={blocks_since_pub_is_allowed} "
+                  f"sequence_index={entering_fallback_sequence_index} "
+                  f"fallbacks_enabled_count={num_fallbacks_enabled} "
+                  f"enabled_fallbacks={[to_short(addr) for addr in selected_fallbacks]} "
+                  f"oracle_is_enabled_fallback={is_fallback} "
+                  f"index_condition_met={condition}")
+
         if not is_fallback:
+            self.info(f"ORACLE_NOT_FALLBACK: {to_short(oracle_addr)} is not in enabled fallbacks at this time")
             return False
         
         if only_chosen:
-            self.info(f">>> {oracle_addr} is the fallback, but a fallbacks are DISABLED !!!")
+            self.info(f"FALLBACKS_DISABLED: {to_short(oracle_addr)} is enabled fallback but fallbacks are disabled")
             return False
 
-        self.info(
-            f"FB: bck#: {blocks_since_pub_is_allowed} "
-            f"cur-idx: {entering_fallback_sequence_index} "
-            f"take: {entering_fallback_sequence[entering_fallback_sequence_index]} "
-            f"sel: {[to_short(str(x)) for x in selected_fallbacks]} "
-            f"total: {len(oracle_addresses)} "
-            f"seq: {entering_fallback_sequence} "
-            f"con: {condition} "
-        )   
-        self.info(f">>> {oracle_addr} is the fallback !!!")
-        
+        self.info(f"FALLBACK_ORACLE_ENABLED: {to_short(oracle_addr)} is enabled as fallback oracle")
         return True
 
     @staticmethod
