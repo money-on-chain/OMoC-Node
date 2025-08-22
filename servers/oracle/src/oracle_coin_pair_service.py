@@ -42,18 +42,14 @@ class OracleCoinPairService():
 
     @property
     def coin_pair_type(self) -> CoinPairServiceType:
-        if isinstance(self._coin_pair_service, CoinPairService):
-            return self.CoinPairServiceType.COIN_PAIR
-        if isinstance(self._coin_pair_service, TasksRunnerService):
-            return self.CoinPairServiceType.TASKS_RUNNER
-        return self.CoinPairServiceType.UNKNOWN
+        return self._coin_pair_service.get_service_type()
     
     async def get_price(self):
         return await self._coin_pair_service.get_price()
 
     # Tasks Runner getters
     async def get_are_tasks_available(self) -> bool:
-        if(self.coin_pair_type == self.CoinPairServiceType.TASKS_RUNNER):
+        if self.coin_pair_type == self.CoinPairServiceType.TASKS_RUNNER:
             return await self._coin_pair_service.get_are_tasks_available()
         raise Exception("Not a TasksRunnerService")
 

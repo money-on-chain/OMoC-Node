@@ -59,7 +59,7 @@ class TasksRunner(MyCfgdLogger):
             self._conf.MESSAGE_VERSION,
             self.cps.coin_pair,
             oracle_addr,
-                blockchain_info.last_pub_block,
+            blockchain_info.last_pub_block,
         )
 
     async def create_validator(self, params: PublishTaskParams):

@@ -144,8 +144,6 @@ class TaskRequestValidation:
                                                    self.blockchain_info.last_pub_block),
                                         self.cp)
 
-        #TODO: validate there is a task available to run
-
     def validate_turn(self):
         is_turn, msg = self.oracle_turn.validate_turn(
             self.blockchain_info, self.params.oracle_addr, 

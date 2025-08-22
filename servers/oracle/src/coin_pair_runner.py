@@ -62,7 +62,7 @@ class CoinPairRunner(MyCfgdLogger):
             self.cps.coin_pair,
             self._exchange_price,
             oracle_addr,
-                blockchain_info.last_pub_block,
+            blockchain_info.last_pub_block,
         )
 
     async def create_validator(self, params: PublishPriceParams):

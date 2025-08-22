@@ -9,6 +9,7 @@ from common.services.oracle_dao import OracleRoundInfo, RoundInfo
 
 from common import settings
 from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +94,12 @@ class CoinPairService(BaseCoinPairService):
     def __init__(self, contract: BlockChainContract):
         super().__init__(contract)
 
-
+    def get_service_type(self):
+        return OracleCoinPairService.CoinPairServiceType.COIN_PAIR
+    
     async def get_price(self):
         return await self.coin_pair_call("getPrice",
                                                account="0x" + "0" * 39 + "1")
-
     
     async def log_data(self):
         price = await self.get_price()
@@ -113,6 +115,9 @@ class TasksRunnerService(BaseCoinPairService):
     def __init__(self, contract: BlockChainContract):
         super().__init__(contract)
 
+    def get_service_type(self):
+        return OracleCoinPairService.CoinPairServiceType.TASKS_RUNNER
+    
     async def get_are_tasks_available(self) -> bool:
         return await self.coin_pair_call("areTasksAvailable")
     
