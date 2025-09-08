@@ -32,8 +32,10 @@ def main(selected_pair=None, show_hash=False, overview=False):
                     timestamp = line.split()[0]
                     pair = line.split()[2]
                     data = ' '.join(line.split()[4:])
-                    node = file.replace('-', ' ').replace('_', ' '
-                        ).replace('.', ' ').split()[6]
+                    if "local_" in file:
+                        node = file.split("local_", 1)[1].split(".", 1)[0]
+                    else:
+                        node = file.replace('-', ' ').replace('_', ' ').replace('.', ' ').split()[6]
                     
                     #FIXME later, special case for charl(y/ie)
                     node = {'charly': 'charlie'}.get(node, node)

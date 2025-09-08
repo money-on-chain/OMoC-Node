@@ -1,7 +1,7 @@
 FROM python:3.8-alpine as base
 FROM base as builder
 
-RUN apk add build-base openssl-dev libffi-dev python3-dev py3-setuptools
+RUN apk add build-base openssl-dev libffi-dev python3-dev py3-setuptools libxml2-dev libxslt-dev
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV

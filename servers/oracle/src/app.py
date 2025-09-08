@@ -12,6 +12,7 @@ from oracle.src import oracle_settings
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_publish_message import PublishPriceParams
+from oracle.src.oracle_publish_message import PublishTaskParams
 from oracle.src.oracle_settings import ORACLE_PRICE_ENGINES_SIG
 from oracle.src.request_validation import ValidationFailure
 
@@ -22,7 +23,7 @@ app = run_uvicorn.get_app("Oracle", "The moc reference oracle")
 not_authorized_msg = "The request was not made by a selected oracle."
 
 # endpoints which can be accessed by anyone
-OPEN_ENDPOINTS = {'/version', '/info'}
+OPEN_ENDPOINTS = {"/version", "/info"}
 
 
 def get_error_msg(msg=None):
@@ -42,8 +43,7 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
                 raise Exception("%s %r" % (not_authorized_msg, ip))
         return await call_next(request)
     except Exception as e:
-        error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(
-                                  e)
+        error_msg = get_error_msg(e.args[0]) if len(e.args) else get_error_msg(e)
         logger.error(error_msg)
         if settings.DEBUG:
             return JSONResponse(status_code=418, content=error_msg)
@@ -67,60 +67,66 @@ async def read_root():
 
 @app.get("/version")
 async def read_version():
-    return {'version': settings.VERSION}
+    return {"version": settings.VERSION}
 
 
 @app.get("/info")
 async def read_info():
     def fill_blockchain_info(bc: BlockChain):
         bkc_data = {}
-        if not(bc.latest_block is None):
+        if not (bc.latest_block is None):
             block = bc.latest_block
-            bkc_data['block_at'] = bc.latest_block_at
-            bkc_data['block_nr'] = block.number
-            bkc_data['block_hash'] = block['hash'].hex()
+            bkc_data["block_at"] = bc.latest_block_at
+            bkc_data["block_nr"] = block.number
+            bkc_data["block_hash"] = block["hash"].hex()
         return bkc_data
 
     def fill_cp_info(cps: CoinPairService):
-        return {'our_last_pub_at': cps.last_pub_at}
+        return {"our_last_pub_at": cps.last_pub_at}
 
     data = {
-        'version': settings.VERSION,
-        'ts': dt_now_at_utc(),
-        'config_hash': ORACLE_PRICE_ENGINES_SIG,
+        "version": settings.VERSION,
+        "ts": dt_now_at_utc(),
+        "config_hash": ORACLE_PRICE_ENGINES_SIG,
     }
     try:
         bkc = main_executor.cf.get_blockchain()
         data.update(fill_blockchain_info(bkc))
         cpm = main_executor.oracle_loop.cpMap
-        data['coinpairs'] = list(cpm.keys())
+        data["coinpairs"] = list(cpm.keys())
         for cp in cpm.keys():
             obl: OracleBlockchainInfoLoop = cpm[cp].blockchain_info_loop
-            data[cp] = { 'last_pub_block': obl._blockchain_info.last_pub_block }
+            data[cp] = {"last_pub_block": obl._blockchain_info.last_pub_block}
             if settings.DEBUG:
-                data[cp]['conditional-publication'] = cpm[cp].coin_pair_loop._signal_service.cfg_as_dict()
+                data[cp]["conditional-publication"] = cpm[
+                    cp
+                ].coin_pair_loop._signal_service.cfg_as_dict()
             data[cp].update(fill_cp_info(obl._cps._coin_pair_service))
 
     except Exception as err:
-        data['error'] = str(err)
+        data["error"] = str(err)
     return data
 
 
 @app.post("/sign/")
-async def sign(*, version: str = Form(...),
-               coin_pair: str = Form(...),
-               price: str = Form(...),
-               price_timestamp: str = Form(...),
-               oracle_addr: str = Form(...),
-               last_pub_block: str = Form(...),
-               signature: str = Form(...)):
+async def sign(
+    *,
+    version: str = Form(...),
+    coin_pair: str = Form(...),
+    price: str = Form(...),
+    price_timestamp: str = Form(...),
+    oracle_addr: str = Form(...),
+    last_pub_block: str = Form(...),
+    signature: str = Form(...),
+):
     try:
-        params = PublishPriceParams(int(version), CoinPair(coin_pair),
-                                    PriceWithTimestamp(int(price),
-                                                       float(price_timestamp)),
-                                    oracle_addr,
-                                    int(last_pub_block))
-
+        params = PublishPriceParams(
+            int(version),
+            CoinPair(coin_pair),
+            PriceWithTimestamp(int(price), float(price_timestamp)),
+            oracle_addr,
+            int(last_pub_block),
+        )
         validation_data = await main_executor.get_validation_data(params)
         if not validation_data:
             raise ValidationFailure("Missing coin pair", coin_pair)
@@ -129,10 +135,7 @@ async def sign(*, version: str = Form(...),
         logger.debug("Sign: %r" % (params,))
         message, my_signature = validation_data.validate_and_sign(signature)
         logger.debug(f"Sign After: {message} {my_signature}")
-        return {
-            "message": message,
-            "signature": my_signature.hex()
-        }
+        return {"message": message, "signature": my_signature.hex()}
 
     except ValidationFailure as e:
         logger.warning(e)
@@ -140,6 +143,42 @@ async def sign(*, version: str = Form(...),
     except Exception as e:
         logger.error(e)
         if settings.ON_ERROR_PRINT_STACK_TRACE:
-            logger.error("\n".join(
-                traceback.format_exception(type(e), e, e.__traceback__)))
+            logger.error(
+                "\n".join(traceback.format_exception(type(e), e, e.__traceback__))
+            )
+        raise HTTPException(status_code=422, detail=get_error_msg(e))
+
+
+@app.post("/sign-task/")
+async def sign_task(
+    *,
+    version: str = Form(...),
+    coin_pair: str = Form(...),
+    oracle_addr: str = Form(...),
+    last_pub_block: str = Form(...),
+    signature: str = Form(...),
+):
+    try:
+        params = PublishTaskParams(
+            int(version), CoinPair(coin_pair), oracle_addr, int(last_pub_block)
+        )
+        validation_data = await main_executor.get_validation_data(params)
+        if not validation_data:
+            raise ValidationFailure("Missing coin pair", coin_pair)
+
+        logger.debug("Before")
+        logger.debug("Sign: %r" % (params,))
+        message, my_signature = validation_data.validate_and_sign(signature)
+        logger.debug(f"Sign After: {message} {my_signature}")
+        return {"message": message, "signature": my_signature.hex()}
+
+    except ValidationFailure as e:
+        logger.warning(e)
+        raise HTTPException(status_code=424, detail=get_error_msg(e))
+    except Exception as e:
+        logger.error(e)
+        if settings.ON_ERROR_PRINT_STACK_TRACE:
+            logger.error(
+                "\n".join(traceback.format_exception(type(e), e, e.__traceback__))
+            )
         raise HTTPException(status_code=422, detail=get_error_msg(e))

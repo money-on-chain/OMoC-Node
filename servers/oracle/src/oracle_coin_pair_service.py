@@ -1,21 +1,23 @@
 import logging
-from typing import List
+from typing import List, Union
 
 from hexbytes import HexBytes
 
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
-from common.services.coin_pair_price_service import CoinPairService
+from common.services.coin_pair_price_service import CoinPairService, TasksRunnerService
 from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
+from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from enum import Enum, auto
 
 
 logger = logging.getLogger(__name__)
 
 
-class OracleCoinPairService:
+class OracleCoinPairService():
     def __init__(self, blockchain: BlockChain,
-                 coin_pair_service: CoinPairService,
+                 coin_pair_service: Union[CoinPairService, TasksRunnerService],
                  info_service: InfoGetterService,
                  oracle_manager_service: OracleManagerService,
                  coin_pair_info: CoinPairInfo):
@@ -32,6 +34,27 @@ class OracleCoinPairService:
     @property
     def addr(self) -> BlockChainAddress:
         return self._coin_pair_info.addr
+    
+    class CoinPairServiceType(Enum):
+        COIN_PAIR = auto()
+        TASKS_RUNNER = auto()
+        UNKNOWN = auto()
+
+    @property
+    def coin_pair_type(self) -> CoinPairServiceType:
+        return self._coin_pair_service.get_service_type()
+    
+    async def get_price(self):
+        return await self._coin_pair_service.get_price()
+
+    # Tasks Runner getters
+    async def get_are_tasks_available(self) -> bool:
+        if self.coin_pair_type == self.CoinPairServiceType.TASKS_RUNNER:
+            return await self._coin_pair_service.get_are_tasks_available()
+        raise Exception("Not a TasksRunnerService")
+
+    async def log_data(self):
+        return await self._coin_pair_service.log_data()
 
     async def get_selected_oracles_info(self) -> List[FullOracleRoundInfo]:
         oracles = []
@@ -60,9 +83,6 @@ class OracleCoinPairService:
         return (await self._blockchain.get_block_by_number(last_pub_block)).hash
         # return hashlib.sha3_256(str(last_pub_block).encode('ascii')).digest()
 
-    async def get_price(self):
-        return await self._coin_pair_service.get_price()
-
     async def get_lock_period_timestamp(self):
         round_info: RoundInfo = await self.get_round_info()
         return round_info.lockPeriodTimestamp
@@ -76,19 +96,14 @@ class OracleCoinPairService:
     async def get_available_reward_fees(self):
         return await self._coin_pair_service.get_available_reward_fees()
 
-    async def publish_price(self,
-                            version,
-                            coin_pair,
-                            price,
-                            oracle_addr,
-                            blocknumber,
-                            signatures,
-                            account: BlockchainAccount = None,
-                            wait=False,
-                            last_gas_price=None):
-        return await self._coin_pair_service.publish_price(version, coin_pair, price,
-                                                           oracle_addr, blocknumber, signatures,
-                                                           account=account, wait=wait, last_gas_price=last_gas_price)
+    async def publish(self,
+                      params: Union[PublishPriceParams, PublishTaskParams],
+                      signatures,
+                      account: BlockchainAccount = None,
+                      wait=False,
+                      last_gas_price=None):
+        return await self._coin_pair_service.publish(params, signatures,
+                                                      account=account, wait=wait, last_gas_price=last_gas_price)
 
     async def get_coin_pair(self) -> str:
         return await self._coin_pair_service.get_coin_pair()

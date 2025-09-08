@@ -11,8 +11,7 @@ from oracle.src.select_next import select_next
 
 class MonitorLoopByCoinPair:
 
-    def __init__(self, conf: OracleConfiguration, logger, cps: OracleCoinPairService):
-        self._conf = conf
+    def __init__(self, logger, cps: OracleCoinPairService):
         self._logger = logger
         self._cps = cps
         self._pre_pubblock_nr = None
@@ -24,13 +23,13 @@ class MonitorLoopByCoinPair:
             return 5
         self._pre_pubblock_nr = pubblock_nr
 
-        price = await self._cps.get_price()
         pubblock_hash = await self._cps.get_last_pub_block_hash(pubblock_nr)
         oracles = await self._cps.get_selected_oracles_info()
         if is_error(oracles):
             self._logger.error("Error getting oracles %r" % (oracles,))
             return 5
-        self._logger.info("block %r published price: %r " % (pubblock_nr, price))
+        data_to_log = await self._cps.log_data()
+        self._logger.info("block %r published %s", pubblock_nr, data_to_log)
         sorted_oracles = select_next(pubblock_hash, oracles)
         for idx, oracle_addr in enumerate(sorted_oracles):
             self._logger.debug(" turn: %d  oracle: %s " % (idx, oracle_addr))

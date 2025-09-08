@@ -22,6 +22,9 @@ class CoinPair:
             cp = cp[:-1]
         return cp
 
+    def is_tasks_runner(self):
+        return self.cp.lower().startswith("task")
+
     def __str__(self):
         return self.cp
 
