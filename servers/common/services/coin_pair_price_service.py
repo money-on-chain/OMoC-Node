@@ -5,11 +5,11 @@ from hexbytes import HexBytes
 
 from common.helpers import hb_to_bytes, dt_now_at_utc
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChainContract
+from common.services.coin_pair_service_types import CoinPairServiceType
 from common.services.oracle_dao import OracleRoundInfo, RoundInfo
 
 from common import settings
 from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
-from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class CoinPairService(BaseCoinPairService):
         super().__init__(contract)
 
     def get_service_type(self):
-        return OracleCoinPairService.CoinPairServiceType.COIN_PAIR
+        return CoinPairServiceType.COIN_PAIR
     
     async def get_price(self):
         return await self.coin_pair_call("getPrice",
@@ -116,7 +116,7 @@ class TasksRunnerService(BaseCoinPairService):
         super().__init__(contract)
 
     def get_service_type(self):
-        return OracleCoinPairService.CoinPairServiceType.TASKS_RUNNER
+        return CoinPairServiceType.TASKS_RUNNER
     
     async def get_are_tasks_available(self) -> bool:
         return await self.coin_pair_call("areTasksAvailable")

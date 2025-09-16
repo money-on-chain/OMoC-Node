@@ -3,6 +3,7 @@ import typing
 
 from common.bg_task_executor import BgTaskExecutor
 from common.services.blockchain import is_error, BlockchainStateLoop
+from common.services.coin_pair_service_types import CoinPairServiceType
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop, OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_loop import OracleCoinPairLoop
@@ -58,11 +59,11 @@ class OracleLoop(BgTaskExecutor):
         tasks = []
         if oracle_settings.ORACLE_RUN:
             bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service)
-            if cp_service.coin_pair_type == cp_service.CoinPairServiceType.COIN_PAIR:
+            if cp_service.coin_pair_type == CoinPairServiceType.COIN_PAIR:
                 pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
                 runner = CoinPairRunner(self.conf, pf_loop, cp_service, bl_loop)
                 tasks.extend([pf_loop])
-            if cp_service.coin_pair_type == cp_service.CoinPairServiceType.TASKS_RUNNER:
+            if cp_service.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
                 runner = TasksRunner(self.conf, cp_service, bl_loop)
             cp_loop = OracleCoinPairLoop(self.conf, runner, self.bs_loop)
             tasks.extend([bl_loop, cp_loop])

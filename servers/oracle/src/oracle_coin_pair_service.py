@@ -5,11 +5,11 @@ from hexbytes import HexBytes
 
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
 from common.services.coin_pair_price_service import CoinPairService, TasksRunnerService
+from common.services.coin_pair_service_types import CoinPairServiceType
 from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
 from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
-from enum import Enum, auto
 
 
 logger = logging.getLogger(__name__)
@@ -35,11 +35,6 @@ class OracleCoinPairService():
     def addr(self) -> BlockChainAddress:
         return self._coin_pair_info.addr
     
-    class CoinPairServiceType(Enum):
-        COIN_PAIR = auto()
-        TASKS_RUNNER = auto()
-        UNKNOWN = auto()
-
     @property
     def coin_pair_type(self) -> CoinPairServiceType:
         return self._coin_pair_service.get_service_type()
@@ -49,7 +44,7 @@ class OracleCoinPairService():
 
     # Tasks Runner getters
     async def get_are_tasks_available(self) -> bool:
-        if self.coin_pair_type == self.CoinPairServiceType.TASKS_RUNNER:
+        if self.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
             return await self._coin_pair_service.get_are_tasks_available()
         raise Exception("Not a TasksRunnerService")
 
