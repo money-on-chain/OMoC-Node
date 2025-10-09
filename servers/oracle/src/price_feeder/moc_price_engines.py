@@ -411,7 +411,7 @@ class ApiUSDCOP(ApiBase):
 class ApiRIFUSD(ApiBase):
     name = "api_rif"
     description = "Api RIFUSD"
-    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=RIF%2FUSDT"
+    uri = settings.MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value?coinpair=RIF%2FUSD(TMA)"
     convert = "RIF_USD"
 
 
