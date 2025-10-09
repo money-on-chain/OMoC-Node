@@ -108,6 +108,22 @@ def show_env_oracle(c, sudo_user="ubuntu", grep_opts=""):
 
 
 @task(help={
+    'sudo_user': "Username to use with sudo commands on the remote host (default: ubuntu)"
+})
+def container_stop(c, sudo_user="ubuntu"):
+    """Stop all Docker containers on the remote host."""
+    hostname = get_hostname(c)
+    try:
+        print(f"\n📦 Stop Docker containers on {hostname}\n")
+        result = c.run(
+            f"sudo -u {sudo_user} docker stop omoc-node",
+            hide=False
+        )
+    except Exception as e:
+        print(f"❌ Error stoping container on {hostname}: {e}")
+
+
+@task(help={
     'sudo_user': "Username to use with sudo commands on the remote host (default: ubuntu)",
     'tag': "Docker image tag to pass to the rebuild script (default: latest)"
 })
