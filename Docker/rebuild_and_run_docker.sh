@@ -5,6 +5,7 @@ IMG_TAG="latest"
 IMG_BASE="moneyonchain/omoc_node"
 NAME="omoc-node"
 ENVFILE="env_oracle"
+ALLOW_MULTIPLE_INSTANCES=0
 LOGPARAMS="--log-driver json-file --log-opt max-size=50M --log-opt max-file=15 --log-opt compress=true"
 DEFAULT_PORT=5556
 
@@ -51,8 +52,12 @@ docker_run () {
 docker_run "Pull the docker image" pull "$IMG"
 docker_run "Show docker instances" ps
 
-IMG_NO_TAG=$(echo "$IMG" | awk -F ':' '{print $1}')
-CID=$(docker ps | grep "$IMG_NO_TAG" | awk '{print $1}')
+if [[ $ALLOW_MULTIPLE_INSTANCES -eq 1 ]]; then
+  CID="$NAME"
+else
+  IMG_NO_TAG=$(echo "$IMG" | awk -F ':' '{print $1}')
+  CID=$(docker ps | grep "$IMG_NO_TAG" | awk '{print $1}')
+fi
 
 if [ -z "$CID" ] ; then
   CID="$NAME"
