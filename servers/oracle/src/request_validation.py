@@ -63,11 +63,23 @@ class PriceRequestValidation:
 
     def validate_params(self):
         if not self.params or not self.blockchain_info:
+            logger.warning(
+                "%r : ValidationFailure NoBlockchainData params=%r blockchain_info=%r",
+                self.cp,
+                self.params,
+                self.blockchain_info,
+            )
             raise NoBlockchainData("Still don't have a valid block chain info "
                                    "params %r block chain info %r" % (
                                        self.params, self.blockchain_info), self.cp)
 
         if self.params.last_pub_block != self.blockchain_info.last_pub_block:
+            logger.warning(
+                "%r : ValidationFailure DifferentLastPubBlock params=%r blockchain_last=%r",
+                self.cp,
+                self.params.last_pub_block,
+                self.blockchain_info.last_pub_block,
+            )
             raise DifferentLastPubBlock("Different last publication blocks %r "
                                         "!= %r" % (self.params.last_pub_block,
                                                    self.blockchain_info.last_pub_block),
@@ -75,16 +87,35 @@ class PriceRequestValidation:
 
         if (not self.exchange_price or not self.exchange_price.price or
                 self.exchange_price.ts_utc <= 0):
+            logger.warning(
+                "%r : ValidationFailure NoBlockchainData exchange_price=%r",
+                self.cp,
+                self.exchange_price,
+            )
             raise NoBlockchainData("Still don't have a valid price %r" % (
                 self.exchange_price,), self.cp)
 
         if not self.params.price or self.params.price_ts_utc <= 0:
+            logger.warning(
+                "%r : ValidationFailure InvalidPrice price=%r ts=%r",
+                self.cp,
+                self.params.price,
+                self.params.price_ts_utc,
+            )
             raise ValidationFailure("Invalid publish price %r" %
                                     self.params.price, self.cp)
 
         price_delta = helpers.price_delta(self.params.price,
                                           self.exchange_price.price)
         if price_delta > self.oracle_price_reject_delta_pct:
+            logger.warning(
+                "%r : ValidationFailure PriceDeltaOutOfRange delta=%r threshold=%r price=%r exchange=%r",
+                self.cp,
+                price_delta,
+                self.oracle_price_reject_delta_pct,
+                self.params.price,
+                self.exchange_price.price,
+            )
             raise ValidationFailure("price out of range delta %r > %r and "
                                     "price %r exchange price %r" % (price_delta,
                                                                     self.oracle_price_reject_delta_pct,
@@ -95,12 +126,23 @@ class PriceRequestValidation:
         is_turn, msg = self.oracle_turn.validate_turn(
             self.blockchain_info, self.params.oracle_addr, extra_args={"exchange_price": self.exchange_price})
         if not is_turn:
+            logger.warning(
+                "%r : ValidationFailure InvalidTurn oracle=%s msg=%s",
+                self.cp,
+                self.params.oracle_addr,
+                msg,
+            )
             raise InvalidTurn("is not oracle %s turn : %s" % (
                 self.params.oracle_addr, msg), self.cp)
 
     def validate_signature(self, message, signature):
         if not verify_signature(self.params.oracle_addr, message,
                                 HexBytes(signature)):
+            logger.warning(
+                "%r : ValidationFailure InvalidSignature oracle=%s",
+                self.cp,
+                self.params.oracle_addr,
+            )
             raise InvalidSignature("oracle %s invalid signature" %
                                    self.params.oracle_addr, self.cp)
 
@@ -134,11 +176,23 @@ class TaskRequestValidation:
 
     def validate_params(self):
         if not self.params or not self.blockchain_info:
+            logger.warning(
+                "%r : ValidationFailure NoBlockchainData params=%r blockchain_info=%r",
+                self.cp,
+                self.params,
+                self.blockchain_info,
+            )
             raise NoBlockchainData("Still don't have a valid block chain info "
                                    "params %r block chain info %r" % (
                                        self.params, self.blockchain_info), self.cp)
 
         if self.params.last_pub_block != self.blockchain_info.last_pub_block:
+            logger.warning(
+                "%r : ValidationFailure DifferentLastPubBlock params=%r blockchain_last=%r",
+                self.cp,
+                self.params.last_pub_block,
+                self.blockchain_info.last_pub_block,
+            )
             raise DifferentLastPubBlock("Different last publication blocks %r "
                                         "!= %r" % (self.params.last_pub_block,
                                                    self.blockchain_info.last_pub_block),
@@ -152,11 +206,22 @@ class TaskRequestValidation:
                 "last_block_when_available": self.last_block_when_available
             })
         if not is_turn:
+            logger.warning(
+                "%r : ValidationFailure InvalidTurn oracle=%s msg=%s",
+                self.cp,
+                self.params.oracle_addr,
+                msg,
+            )
             raise InvalidTurn("is not oracle %s turn : %s" % (
                 self.params.oracle_addr, msg), self.cp)
 
     def validate_signature(self, message, signature):
         if not verify_signature(self.params.oracle_addr, message,
                                 HexBytes(signature)):
+            logger.warning(
+                "%r : ValidationFailure InvalidSignature oracle=%s",
+                self.cp,
+                self.params.oracle_addr,
+            )
             raise InvalidSignature("oracle %s invalid signature" %
                                    self.params.oracle_addr, self.cp)

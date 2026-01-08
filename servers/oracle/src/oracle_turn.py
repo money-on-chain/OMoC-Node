@@ -182,7 +182,7 @@ class PriceOracleTurn(OracleTurn):
         )
         threshold_delta = signal.get_price_delta(conf.price_delta_pct)
         if delta < threshold_delta:
-            self.debug(
+            self.info(
                 "We are not fall backs and/or the price didn't change enough %r < %r,"
                 " blockchain price %r exchange price %r"
                 % (

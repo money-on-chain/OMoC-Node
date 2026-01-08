@@ -126,7 +126,7 @@ class TasksRunnerService(BaseCoinPairService):
     
     async def log_data(self):
         tasks_available = await self.get_tasks_available()
-        return "tasks available: %r " % tasks_available
+        return f"tasks available: {tasks_available!r} "
 
     async def _publish(self, params: PublishTaskParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
         return await self.coin_pair_execute("runTasks", params.version,

@@ -138,8 +138,13 @@ async def sign(
         return {"message": message, "signature": my_signature.hex()}
 
     except ValidationFailure as e:
-        logger.warning(e)
-        raise HTTPException(status_code=424, detail=get_error_msg(e))
+        reason = get_error_msg(e)
+        logger.warning(
+            "Giving a Failed Dependency to node %s, reason: %s",
+            oracle_addr,
+            reason,
+        )
+        raise HTTPException(status_code=424, detail=reason)
     except Exception as e:
         logger.error(e)
         if settings.ON_ERROR_PRINT_STACK_TRACE:
@@ -173,8 +178,13 @@ async def sign_task(
         return {"message": message, "signature": my_signature.hex()}
 
     except ValidationFailure as e:
-        logger.warning(e)
-        raise HTTPException(status_code=424, detail=get_error_msg(e))
+        reason = get_error_msg(e)
+        logger.warning(
+            "Giving a Failed Dependency to node %s, reason: %s",
+            oracle_addr,
+            reason,
+        )
+        raise HTTPException(status_code=424, detail=reason)
     except Exception as e:
         logger.error(e)
         if settings.ON_ERROR_PRINT_STACK_TRACE:

@@ -36,7 +36,7 @@ except KeyError as e:
     exit(1)
 
 # Timeout used when connection to the blockchain node
-WEB3_TIMEOUT = parseTimeDelta(config('WEB3_TIMEOUT ', cast=str, default="30 secs"))
+WEB3_TIMEOUT = parseTimeDelta(config('WEB3_TIMEOUT', cast=str, default="30 secs"))
 
 # Turn on debug?
 DEBUG = config('DEBUG', cast=bool, default=False)

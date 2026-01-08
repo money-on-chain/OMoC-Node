@@ -224,6 +224,11 @@ class BlockChain:
         self.latest_block_at = None
         self.W3 = Web3(HTTPProvider(str(node_url),
                                     request_kwargs={'timeout': timeout}))
+        self._nonce_manager = NonceManager(self.W3)
+
+    @property
+    def nonce_manager(self):
+        return self._nonce_manager
 
     def get_contract(self, addr, abi):
         return self.W3.eth.contract(address=parse_addr(addr), abi=abi)
@@ -249,13 +254,14 @@ class BlockChain:
     async def get_block_by_number(self, block_number, full=False):
         return await run_in_executor(lambda: self.W3.eth.getBlock(block_number, full))
     
-    async def get_tx(self, method, account_addr: str, gas_price, gas: int = None):
+    async def get_tx(self, method, account_addr: str, gas_price, gas: int = None, nonce: int = None):
         logger.debug(f"+++++++++ get tx ++++++++ {str(account_addr)} - {method}")
         from_addr = parse_addr(str(account_addr))
 
-        nonce = await run_in_executor(
-            lambda: self.W3.eth.getTransactionCount(from_addr, "pending")
-        )
+        if nonce is None:
+            nonce = await run_in_executor(
+                lambda: self.W3.eth.getTransactionCount(from_addr, "pending")
+            )
         
         logger.debug(f"Nonce: {nonce}  sender: {from_addr}")
         if gas is None:
@@ -362,11 +368,73 @@ class BlockChainContract:
         if not account:
             raise Exception("Missing key, cant execute")
         method_func = self._contract.functions[method](*args, **kw)
-        tx = await self._blockchain.get_tx(method_func, str(account.addr), gas_price=last_gas_price, gas=gas)
-        txn = tx["tx"]
-        signed_txn = self._blockchain.sign_transaction(txn, private_key=Web3.toBytes(hexstr=str(account.key)))
-        logger.debug("%s SENDING SIGNED TX %r", tx["txdata"]["chainId"], signed_txn)
-        logger.debug(f"--+Blockchain ID {id(self._blockchain)}")
-        logger.debug("--+Nonce %s", tx["txdata"]["nonce"])
-        tx = await self._blockchain.send_raw_transaction(signed_txn.rawTransaction)
-        return await self._blockchain.process_tx(tx, wait)
+        nonce = None
+        try:
+            nonce = await self._blockchain.nonce_manager.acquire(str(account.addr))
+            tx = await self._blockchain.get_tx(
+                method_func,
+                str(account.addr),
+                gas_price=last_gas_price,
+                gas=gas,
+                nonce=nonce,
+            )
+            txn = tx["tx"]
+            signed_txn = self._blockchain.sign_transaction(txn, private_key=Web3.toBytes(hexstr=str(account.key)))
+            logger.debug("%s SENDING SIGNED TX %r", tx["txdata"]["chainId"], signed_txn)
+            logger.debug(f"--+Blockchain ID {id(self._blockchain)}")
+            logger.debug("--+Nonce %s", tx["txdata"]["nonce"])
+            tx = await self._blockchain.send_raw_transaction(signed_txn.rawTransaction)
+            result = await self._blockchain.process_tx(tx, wait)
+            await self._blockchain.nonce_manager.wait_for_commit_and_release(str(account.addr), nonce)
+            return result
+        finally:
+            await self._blockchain.nonce_manager.release(str(account.addr))
+
+
+class NonceManager:
+    def __init__(self, w3: Web3):
+        # A per-address mutex that serializes nonce fetching from the node.
+        # We never cache nonces or increment locally; every nonce used is the
+        # one returned by the RPC node at the time of sending.
+        #
+        # Lock lifecycle:
+        # - acquire(): locks and fetches pending nonce.
+        # - wait_for_commit_and_release(): polls pending nonce up to N attempts,
+        #   releases early if it advances, otherwise releases after timeout.
+        # - release(): idempotent unlock (safe to call unconditionally).
+        self._w3 = w3
+        self._locks: typing.Dict[str, asyncio.Lock] = {}
+
+    def _get_lock(self, addr: str) -> asyncio.Lock:
+        lock = self._locks.get(addr)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[addr] = lock
+        return lock
+
+    async def acquire(self, addr: str) -> int:
+        lock = self._get_lock(addr)
+        await lock.acquire()
+        return await self.get_on_chain_nonce(addr)
+
+    async def wait_for_commit_and_release(self, addr: str, last_used_nonce: int) -> None:
+        attempts = 20
+        for _ in range(attempts):
+            try:
+                on_chain_nonce = await self.get_on_chain_nonce(addr)
+                if on_chain_nonce > last_used_nonce:
+                    break
+            except Exception:
+                pass
+            await asyncio.sleep(0.5)
+        self._get_lock(addr).release()
+
+    async def release(self, addr: str) -> None:
+        lock = self._locks.get(addr)
+        if lock and lock.locked():
+            lock.release()
+
+    async def get_on_chain_nonce(self, addr: str) -> int:
+        return await run_in_executor(
+            lambda: self._w3.eth.getTransactionCount(parse_addr(addr), "pending")
+        )
