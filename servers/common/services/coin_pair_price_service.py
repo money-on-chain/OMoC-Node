@@ -119,10 +119,18 @@ class TasksRunnerService(BaseCoinPairService):
         return CoinPairServiceType.TASKS_RUNNER
     
     async def get_are_tasks_available(self) -> bool:
-        return await self.coin_pair_call("areTasksAvailable")
+        ret = await self.coin_pair_call("areTasksAvailable")
+        if is_error(ret):
+            logger.warning("areTasksAvailable reverted, assuming false")
+            return False
+        return ret
     
     async def get_tasks_available(self):
-        return await self.coin_pair_call("getTasksAvailable")
+        ret = await self.coin_pair_call("getTasksAvailable")
+        if is_error(ret):
+            logger.warning("getTasksAvailable reverted, assuming empty list")
+            return []
+        return ret
     
     async def log_data(self):
         tasks_available = await self.get_tasks_available()
