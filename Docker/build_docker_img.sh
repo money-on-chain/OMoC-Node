@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 TAG=""
-NAME="moneyonchain/omoc_node"
+LOCAL_NAME="omoc_node"
+PUSH_NAME="omoc_node"
 IS_BETA=0
+NAMESPACES=(moneyonchain ghcr.io/money-on-chain)
 
 # Exit immediately if a command exits with a non-zero status
 set -e 
@@ -22,7 +24,8 @@ VERSION=$(python -c "$PCODE")
 : "${TAG:=$VERSION}"
 
 # Default NAME if NAME is empty or unset
-: "${NAME:=omoc_node}"
+: "${LOCAL_NAME:=omoc_node}"
+: "${PUSH_NAME:=omoc_node}"
 
 # Verify is beta
 if [ "$IS_BETA" -eq 1 ]; then
@@ -36,21 +39,43 @@ else
 fi
 
 # Build
-docker build -t $NAME:$TAG -f Docker/Dockerfile .
+docker build -t $LOCAL_NAME:$TAG -f Docker/Dockerfile .
 if [ "$IS_BETA" -ne 1 ]; then
-    docker tag $NAME:$TAG $NAME:latest
+    docker tag $LOCAL_NAME:$TAG $LOCAL_NAME:latest
 fi
+IMG_ID=$(docker images --format '{{.ID}}' $LOCAL_NAME:$TAG)
+IMG_SIZE=$(docker images --format '{{.Size}}' $LOCAL_NAME:$TAG)
+
+# Tags
+docker tag $LOCAL_NAME:$TAG $PUSH_NAME:$TAG
+if [ "$IS_BETA" -ne 1 ]; then
+    docker tag $LOCAL_NAME:$TAG $PUSH_NAME:latest
+fi
+for NAMESPACE in "${NAMESPACES[@]}"; do
+    docker tag $LOCAL_NAME:$TAG $NAMESPACE/$PUSH_NAME:$TAG
+    if [ "$IS_BETA" -ne 1 ]; then
+        docker tag $LOCAL_NAME:$TAG $NAMESPACE/$PUSH_NAME:latest
+    else
+        docker tag $LOCAL_NAME:$TAG $NAMESPACE/$PUSH_NAME:beta
+    fi
+done
+
+# Show local images
+echo ""
+echo "Local images ($IMG_ID: $IMG_SIZE):"
+docker images --format '---> {{.Repository}}:{{.Tag}}|{{.ID}}' | grep $IMG_ID  | cut -d'|' -f1
 
 # Push
 echo ""
 echo "To upload the image you must run:"
-echo "docker push $NAME:$TAG"
-if [ "$IS_BETA" -ne 1 ]; then
-    echo "docker push $NAME:latest"
-fi
+for NAMESPACE in "${NAMESPACES[@]}"; do
+    echo "~$ docker push $NAMESPACE/$PUSH_NAME:$TAG"
+    if [ "$IS_BETA" -ne 1 ]; then
+        echo "~$ docker push $NAMESPACE/$PUSH_NAME:latest"
+    else
+        echo "~$ docker push $NAMESPACE/$PUSH_NAME:beta"
+    fi
+done
+
+# END.
 echo ""
-
-
-
-
-
