@@ -153,11 +153,13 @@ class TaskRequestValidation:
                  oracle_turn: TasksOracleTurn,
                  are_tasks_available: bool,
                  last_block_when_available: int,
+                 tasks_flags: int,
                  blockchain_info: OracleBlockchainInfo):
         self.params = params
         self.oracle_turn = oracle_turn
         self.are_tasks_available = are_tasks_available
         self.last_block_when_available = last_block_when_available
+        self.tasks_flags = tasks_flags
         self.blockchain_info = blockchain_info
 
     @property
@@ -197,6 +199,15 @@ class TaskRequestValidation:
                                         "!= %r" % (self.params.last_pub_block,
                                                    self.blockchain_info.last_pub_block),
                                         self.cp)
+        if self.params.tasks_flags != self.tasks_flags:
+            logger.warning(
+                "%r : ValidationFailure TasksFlagsMismatch params=%r onchain=%r",
+                self.cp,
+                self.params.tasks_flags,
+                self.tasks_flags,
+            )
+            raise ValidationFailure("Tasks flags mismatch %r != %r" % (
+                self.params.tasks_flags, self.tasks_flags), self.cp)
 
     def validate_turn(self):
         is_turn, msg = self.oracle_turn.validate_turn(

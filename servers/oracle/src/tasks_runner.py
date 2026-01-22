@@ -23,6 +23,7 @@ class TasksRunner(MyCfgdLogger):
         self.cps = cps
         self.vi_loop = vi_loop
         self._last_block_when_available = 0
+        self._tasks_flags = 0
 
         self.signal_service = DisabledConditionalPublishService.SyncCreate(
             self.cps._blockchain, str(self.cps.coin_pair), self.vi_loop
@@ -34,6 +35,7 @@ class TasksRunner(MyCfgdLogger):
 
     async def is_oracle_turn(self, blockchain_info, oracle_addr):
         self._are_tasks_available = await self.cps.get_are_tasks_available()
+        self._tasks_flags = await self.cps.get_tasks_available_as_flags()
         if not self._are_tasks_available:
             self._last_block_when_available = None
             return False, None, None
@@ -58,17 +60,20 @@ class TasksRunner(MyCfgdLogger):
         return PublishTaskParams(
             self._conf.MESSAGE_VERSION,
             self.cps.coin_pair,
+            self._tasks_flags,
             oracle_addr,
             blockchain_info.last_pub_block,
         )
 
     async def create_validator(self, params: PublishTaskParams):
         are_tasks_available = await self.cps.get_are_tasks_available()
+        tasks_flags = await self.cps.get_tasks_available_as_flags()
         blockchain_info: OracleBlockchainInfo = self.vi_loop.get()
         return TaskRequestValidation(
             params,
             self.oracle_turn,
             are_tasks_available,
             self._last_block_when_available,
+            tasks_flags,
             blockchain_info,
         )
