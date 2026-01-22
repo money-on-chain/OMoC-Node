@@ -29,3 +29,12 @@ async def test_get_tasks_available_revert_logs_warning(caplog):
         ret = await service.get_tasks_available()
     assert ret == []
     assert "getTasksAvailable reverted, assuming empty list" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_available_as_flags_revert_logs_warning(caplog):
+    service = TasksRunnerService(_FailingContract())
+    with caplog.at_level(logging.WARNING):
+        ret = await service.get_tasks_available_as_flags()
+    assert ret == 0
+    assert "getTasksAvailableAsFlags reverted, assuming 0" in caplog.text

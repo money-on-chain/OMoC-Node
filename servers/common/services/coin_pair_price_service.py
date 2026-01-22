@@ -131,13 +131,21 @@ class TasksRunnerService(BaseCoinPairService):
             logger.warning("getTasksAvailable reverted, assuming empty list")
             return []
         return ret
+
+    async def get_tasks_available_as_flags(self):
+        ret = await self.coin_pair_call("getTasksAvailableAsFlags")
+        if is_error(ret):
+            logger.warning("getTasksAvailableAsFlags reverted, assuming 0")
+            return 0
+        return ret
     
     async def log_data(self):
         tasks_available = await self.get_tasks_available()
-        return f"tasks available: {tasks_available!r}"
+        tasks_flags = await self.get_tasks_available_as_flags()
+        return f"tasks available: {tasks_available!r} flags: {tasks_flags!r}"
 
     async def _publish(self, params: PublishTaskParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
         return await self.coin_pair_execute("runTasks", params.version,
-                                                  params.coin_pair.longer(), params.oracle_addr,
+                                                  params.coin_pair.longer(), params.tasks_flags, params.oracle_addr,
                                                   params.last_pub_block, v, r, s, account=account, wait=wait,
                                                  last_gas_price=last_gas_price)

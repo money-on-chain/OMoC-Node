@@ -159,13 +159,14 @@ async def sign_task(
     *,
     version: str = Form(...),
     coin_pair: str = Form(...),
+    tasks_flags: str = Form(...),
     oracle_addr: str = Form(...),
     last_pub_block: str = Form(...),
     signature: str = Form(...),
 ):
     try:
         params = PublishTaskParams(
-            int(version), CoinPair(coin_pair), oracle_addr, int(last_pub_block)
+            int(version), CoinPair(coin_pair), int(tasks_flags), oracle_addr, int(last_pub_block)
         )
         validation_data = await main_executor.get_validation_data(params)
         if not validation_data:
