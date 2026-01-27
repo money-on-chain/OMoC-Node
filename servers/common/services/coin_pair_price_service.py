@@ -148,4 +148,5 @@ class TasksRunnerService(BaseCoinPairService):
         return await self.coin_pair_execute("runTasks", params.version,
                                                   params.coin_pair.longer(), params.tasks_flags, params.oracle_addr,
                                                   params.last_pub_block, v, r, s, account=account, wait=wait,
-                                                 last_gas_price=last_gas_price)
+                                                 last_gas_price=last_gas_price,
+                                                 gas=settings.TASKS_RUNNER_MIN_GAS)

@@ -270,11 +270,13 @@ class BlockChain:
                 gas = await run_in_executor(lambda: method.estimateGas({'from': from_addr,
                                                                         'gasPrice': gas_price,
                                                                         'nonce': nonce}))
+                logger.debug("GAS ESTIMATE: %r" % gas)
             except asyncio.CancelledError as e:
                 raise e
             except Exception as err:
                 logger.debug("USING DEFAULT VALUE FOR GAS LIMIT")
                 gas = 4200000  # adji: Must be enough, can't be to close to gas lim.
+        logger.debug("GAS LIMIT: %r" % gas)
 
         chain_id = await run_in_executor(lambda: self.W3.eth.chainId)
         if not chain_id:
