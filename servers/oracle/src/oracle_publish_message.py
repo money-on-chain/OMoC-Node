@@ -87,6 +87,7 @@ class PublishTaskParams(
         [
             ("version", int),
             ("coin_pair", CoinPair),
+            ("tasks_flags", int),
             ("oracle_addr", str),
             ("last_pub_block", int),
         ],
@@ -95,22 +96,24 @@ class PublishTaskParams(
     
 ):
     def __new__(
-        cls, version: int, coin_pair: CoinPair, oracle_addr: str, last_pub_block: int
+        cls, version: int, coin_pair: CoinPair, tasks_flags: int, oracle_addr: str, last_pub_block: int
     ):
         return super(PublishTaskParams, cls).__new__(
-            cls, version, coin_pair, oracle_addr, last_pub_block
+            cls, version, coin_pair, tasks_flags, oracle_addr, last_pub_block
         )
 
     def prepare_msg(self):
         parameters = [
             self.version,
             self.coin_pair.longer(),
+            self.tasks_flags,
             helpers.addr_to_number(self.oracle_addr),
             self.last_pub_block,
         ]
         fs = [
             helpers.enc_uint256,
             helpers.enc_byte32,
+            helpers.enc_uint256,
             helpers.enc_packed_address,
             helpers.enc_uint256,
         ]
@@ -129,6 +132,7 @@ class PublishTaskParams(
         post_data = {
             "version": str(self.version),
             "coin_pair": str(self.coin_pair),
+            "tasks_flags": str(self.tasks_flags),
             "oracle_addr": self.oracle_addr,
             "last_pub_block": str(self.last_pub_block),
             "signature": my_signature.hex()
