@@ -145,8 +145,9 @@ class TasksRunnerService(BaseCoinPairService):
         return f"tasks available: {tasks_available!r} flags: {tasks_flags!r}"
 
     async def _publish(self, params: PublishTaskParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
+        gas = settings.TASKS_RUNNER_MIN_GAS or None
         return await self.coin_pair_execute("runTasks", params.version,
                                                   params.coin_pair.longer(), params.tasks_flags, params.oracle_addr,
                                                   params.last_pub_block, v, r, s, account=account, wait=wait,
                                                  last_gas_price=last_gas_price,
-                                                 gas=settings.TASKS_RUNNER_MIN_GAS)
+                                                 gas=gas)
