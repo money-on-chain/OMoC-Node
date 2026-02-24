@@ -15,7 +15,7 @@
 - [x] Fixing Fallback Oracle Priority Issue After **UNNEED→NEED** state cycles.
 - [x] Add Per-Pair Fallback Overrides.
 - [x] Fixing circular import issue.
-- [x] Use `WDAP` coinpair option for `RIF/USD`.  
+- [x] Use `DWAP` coinpair option for `RIF/USD`.  
 - [ ] Update the `moneyonchain-prices-source` dependency to the latest "no beta" version (_It will probably be necessary a new release of this dependency first_).
 
 ____
