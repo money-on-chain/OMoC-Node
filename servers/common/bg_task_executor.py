@@ -31,6 +31,14 @@ class BgTaskExecutor:
                     logger.error(traceback.format_exc())
                 logger.info("Retrying...")
                 await asyncio.sleep(1)
+            except BaseException as exc:
+                logger.warning(
+                    "!!!!!!! unhandled exception in coinpair loop %r: %r",
+                    self.name,
+                    exc,
+                )
+                logger.warning(traceback.format_exc())
+                raise
         logger.info("Bg task stop %r" % self.name)
 
     def start_bg_task(self):

@@ -6,7 +6,9 @@ from starlette.datastructures import Secret
 
 from common import crypto
 from common.services.blockchain import BlockchainAccount
-from common.settings import config
+from common.settings import config, config_per_chain_id
+
+
 
 # Port in which the oracle listen for sign request
 ORACLE_PORT = config('ORACLE_PORT', cast=int, default=5556)
@@ -42,9 +44,21 @@ ORACLE_MONITOR_LOG_PUBLISHED_PRICE = config('ORACLE_MONITOR_LOG_PUBLISHED_PRICE'
 ORACLE_COIN_PAIR_FILTER = json.loads(config('ORACLE_COIN_PAIR_FILTER', cast=str,
                                             default="[]"))
 
-GET_VAR_COINPAIR = lambda var, coinpair: config(f'{var}_{coinpair.upper()}',
-                                                  cast=str, default="")
+def GET_VAR_COINPAIR(var, coinpair):
+    """
+    Get a variable for a coinpair. The variable is defined as:
+    {var}_{coinpair}
+    """
+    
+    def frmt(s):
+        s = f"{s}".strip().upper()
+        s = '_'.join(s.split())
+        for r in "/\-":
+            s = s.replace(r, '_')
+        return s
 
+    env_var_name = f'{frmt(var)}_{frmt(coinpair)}'
+    return config_per_chain_id(env_var_name, default="")
 
 def load_exchange_info():
     with open("exchanges.json", "r") as f:

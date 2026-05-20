@@ -1,17 +1,18 @@
-from eth_typing import BlockIdentifier
-
 import asyncio
+import json
 import logging
+from typing import Optional
+from decimal import Decimal
+from urllib.request import urlopen
+from eth_typing import BlockIdentifier
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
 from common.services.contract_factory_service import ContractFactoryService
 from common.services.oracle_dao import OracleBlockchainInfo
-from common.settings import config
-from decimal import Decimal
+from common.settings import config_per_chain_id
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_settings import GET_VAR_COINPAIR
-from typing import Optional
 from w3multicall.multicall import W3Multicall
 from w3multicall.multicall import _decode_output, _unpack_aggregate_outputs, _encode_data
 
@@ -87,11 +88,24 @@ DefaultDecimal = Decimal('-2')
 
 
 class ConditionalConfig:
-    _VARS = ('MOC_QUEUE', 'MOC_BASE_BUCKET', 'MOC_EMA', 'MOC_CORE', )
+
+    _VARS = (
+        'MOC_V3_QUEUE_IS_EMPTY',
+        'MOC_V3_SHOULD_CALCULATE_EMA',
+        'MOC_V3_TC_INTEREST_PAYMENT',
+        'MOC_V3_SETTLEMENT_TIME',
+        'MOC_QUEUE',
+        'MOC_BASE_BUCKET',
+        'MOC_V3_BUCKET',
+        'MOC_EMA',
+        'MOC_CORE',
+        'MOC_MULTICOLLATERAL_GUARD',
+    )
 
     @classmethod
     def GetCP(cls, cp: str, name: str):
         return GET_VAR_COINPAIR(name, cp)
+    
     @classmethod
     def GetRegular(cls, ocfg: OracleConfiguration, name: str):
         return getattr(ocfg, name.upper(), None)
@@ -102,30 +116,134 @@ class ConditionalConfig:
             valid = False
         return valid and (value is not None)
 
+    @staticmethod
+    def _bool_from_raw(value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if value is None:
+            return None
+        text = str(value).strip().lower()
+        if text in ('1', 'true', 'yes', 'on'):
+            return True
+        if text in ('0', 'false', 'no', 'off', ''):
+            return False
+        return None
+
+    @staticmethod
+    def _parse_offline_cfg_response(payload):
+        parsed = ConditionalConfig._bool_from_raw(payload)
+        if parsed is not None:
+            return parsed
+
+        try:
+            data = json.loads(str(payload).strip())
+        except (TypeError, json.JSONDecodeError):
+            return None
+
+        if isinstance(data, dict):
+            for key in ('enabled', 'active', 'value', 'oracle_offline_cfg'):
+                parsed = ConditionalConfig._bool_from_raw(data.get(key))
+                if parsed is not None:
+                    return parsed
+            return None
+        return ConditionalConfig._bool_from_raw(data)
+
+    def _resolve_oracle_offline_cfg(self, raw_value):
+        parsed = ConditionalConfig._bool_from_raw(raw_value)
+        if parsed is not None:
+            return parsed, None
+
+        text = str(raw_value).strip()
+        if text.startswith('http://') or text.startswith('https://'):
+            return True, text
+
+        logger.warning(
+            f" * ConditionalPublishService: ({self.cp}) Conf.var: ORACLE_OFFLINE_CFG_ has invalid value '{raw_value}', it will be treated as disabled."
+        )
+        return False, None
+
+    def _fetch_force_publish_from_endpoint(self):
+        if not self._ORACLE_OFFLINE_CFG_ENDPOINT:
+            return False
+
+        try:
+            with urlopen(self._ORACLE_OFFLINE_CFG_ENDPOINT, timeout=5) as response:
+                payload = response.read().decode('utf-8').strip()
+            parsed = self._parse_offline_cfg_response(payload)
+            if parsed is None:
+                self.logger.warning(
+                    f"ORACLE_OFFLINE_CFG endpoint did not return a boolean-compatible payload: {payload!r}."
+                )
+                return self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST
+            self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST = parsed
+            return parsed
+        except Exception as err:
+            self.logger.warning(
+                f"Failed to fetch ORACLE_OFFLINE_CFG endpoint {self._ORACLE_OFFLINE_CFG_ENDPOINT}: {err!r}. Using last value {self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST}."
+            )
+            return self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST
+
     def __init__(self, cp: str, ocfg: OracleConfiguration):
         self.cp = cp.upper()
-        self._MOC_QUEUE = self._MOC_BASE_BUCKET = self._MOC_EMA = self._MOC_CORE = self._MULTICALL_ADDR = None
-        valid = True
+        self.logger = MyCfgdLogger(': ', str(self.cp))
+        
         for var in ConditionalConfig._VARS:
-            value = ConditionalConfig.GetCP(self.cp, var)
-            valid = self.validate(valid, var, value)
-            setattr(self, f'_{var}', value)  # set "protected" variable..
+            setattr(self, f'_{var}', None)       
+        
+        self._MULTICALL_ADDR = None
+        
+        valid = True
 
-        self._MULTICALL_ADDR = ConditionalConfig.GetRegular(ocfg, 'MULTICALL_ADDR')
-        valid = self.validate(valid, 'MULTICALL_ADDR', self._MULTICALL_ADDR)
-
-        self._ORACLE_OFFLINE_CFG = config('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
+        offline_cfg_raw = config_per_chain_id('ORACLE_OFFLINE_CFG_'+self.cp, cast=str, default='false')
+        self._ORACLE_OFFLINE_CFG, self._ORACLE_OFFLINE_CFG_ENDPOINT = self._resolve_oracle_offline_cfg(offline_cfg_raw)
+        self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST = False
         valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
 
-        self._PRICE_DELTA_PCT_NEED = config('PRICE_DELTA_PCT_NEED_'+self.cp, cast=Decimal, default=DefaultDecimal)
-        valid = self.validate(valid, 'PRICE_DELTA_PCT_NEED_', self._PRICE_DELTA_PCT_NEED)
-        self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED = config('ORACLE_PRICE_PUBLISH_BLOCKS_NEED_'+self.cp, cast=int, default=DefaultDecimal)
-        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_', self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED)
+        for var in ConditionalConfig._VARS:
+            value = ConditionalConfig.GetCP(self.cp, var)
+            #valid = self.validate(valid, var, value)
+            if not value or value in _NULL_OPTS:
+                value = []
+            else:
+                for sep in "'" + '"' + "[](){}":
+                    value = value.replace(sep, '')
+                for sep in " ;&":
+                    value = value.replace(sep, ',')
+                value = [x for x in value.split(',') if x]
+            if not value and self._ORACLE_OFFLINE_CFG:
+                self.logger.warning(f"{var}_{self.cp} is not set or is empty.")
+            setattr(self, f'_{var}', value)  # set "protected" variable..
 
-        self._PRICE_DELTA_PCT_UNNEED = config('PRICE_DELTA_PCT_UNNEED_'+self.cp, cast=Decimal, default=-1)
-        valid = self.validate(valid, 'PRICE_DELTA_PCT_UNNEED_', self._PRICE_DELTA_PCT_UNNEED)
-        self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED = config('ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_'+self.cp, cast=int, default='-1')
-        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_', self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED)
+        self._MULTICALL_ADDR = ConditionalConfig.GetRegular(
+            ocfg, 'MULTICALL_ADDR')
+        valid = self.validate(valid, 'MULTICALL_ADDR', self._MULTICALL_ADDR)
+
+        self._PRICE_DELTA_PCT_NEED = config_per_chain_id(
+            'PRICE_DELTA_PCT_NEED_' + self.cp,
+            cast=Decimal, default=DefaultDecimal)
+        valid = self.validate(valid, 'PRICE_DELTA_PCT_NEED_',
+                              self._PRICE_DELTA_PCT_NEED)
+
+        self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED = config_per_chain_id(
+            'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_' + self.cp,
+            cast=int, default=DefaultDecimal)
+        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_',
+                              self._ORACLE_PRICE_PUBLISH_BLOCKS_NEED)
+
+        self._PRICE_DELTA_PCT_UNNEED = config_per_chain_id(
+            'PRICE_DELTA_PCT_UNNEED_' + self.cp,
+            cast=Decimal, default=-1)
+        valid = self.validate(valid, 'PRICE_DELTA_PCT_UNNEED_',
+                              self._PRICE_DELTA_PCT_UNNEED)
+
+        self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED = config_per_chain_id(
+            'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_' + self.cp,
+            cast=int, default='-1')
+        valid = self.validate(valid, 'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_',
+                              self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED)
+        
         self.valid = valid
 
     def check_valid(self):
@@ -136,19 +254,31 @@ class ConditionalConfig:
             'COINPAIR': self.cp,
             'ORACLE_OFFLINE_CFG': self.ORACLE_OFFLINE_CFG,
             'PRICE_DELTA_PCT_NEED': str(self.PRICE_DELTA_PCT_NEED),
-            'ORACLE_PRICE_PUBLISH_BLOCKS_NEED': self.ORACLE_PRICE_PUBLISH_BLOCKS_NEED,
+            'ORACLE_PRICE_PUBLISH_BLOCKS_NEED':
+                self.ORACLE_PRICE_PUBLISH_BLOCKS_NEED,
             'PRICE_DELTA_PCT_UNNEED': str(self.PRICE_DELTA_PCT_UNNEED),
-            'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED': self.ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED,
+            'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED':
+                self.ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED,
+            'MOC_V3_QUEUE_IS_EMPTY': self.MOC_V3_QUEUE_IS_EMPTY,
+            'MOC_V3_SHOULD_CALCULATE_EMA': self.MOC_V3_SHOULD_CALCULATE_EMA,
+            'MOC_V3_TC_INTEREST_PAYMENT': self.MOC_V3_TC_INTEREST_PAYMENT,
+            'MOC_V3_SETTLEMENT_TIME': self.MOC_V3_SETTLEMENT_TIME,            
             'MOC_QUEUE': self.MOC_QUEUE,
             'MOC_BASE_BUCKET': self.MOC_BASE_BUCKET,
+            'MOC_V3_BUCKET': self.MOC_V3_BUCKET,
             'MOC_EMA': self.MOC_EMA,
             'MOC_CORE': self.MOC_CORE,
+            'MOC_MULTICOLLATERAL_GUARD': self.MOC_MULTICOLLATERAL_GUARD,
             'MULTICALL_ADDR': self.MULTICALL_ADDR,
         }
 
     @property
     def ORACLE_OFFLINE_CFG(self):
         return self._ORACLE_OFFLINE_CFG
+
+    @property
+    def ORACLE_OFFLINE_CFG_FORCE_PUBLISH(self):
+        return self._fetch_force_publish_from_endpoint()
 
     @property
     def PRICE_DELTA_PCT_NEED(self):
@@ -167,12 +297,32 @@ class ConditionalConfig:
         return self._ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED
 
     @property
+    def MOC_V3_QUEUE_IS_EMPTY(self):
+        return self._MOC_V3_QUEUE_IS_EMPTY
+
+    @property
+    def MOC_V3_SHOULD_CALCULATE_EMA(self):
+        return self._MOC_V3_SHOULD_CALCULATE_EMA
+
+    @property
+    def MOC_V3_TC_INTEREST_PAYMENT(self):
+        return self._MOC_V3_TC_INTEREST_PAYMENT
+
+    @property
+    def MOC_V3_SETTLEMENT_TIME(self):
+        return self._MOC_V3_SETTLEMENT_TIME
+
+    @property
     def MOC_QUEUE(self):
         return self._MOC_QUEUE
 
     @property
     def MOC_BASE_BUCKET(self):
         return self._MOC_BASE_BUCKET
+
+    @property
+    def MOC_V3_BUCKET(self):
+        return self._MOC_V3_BUCKET
 
     @property
     def MOC_EMA(self):
@@ -183,13 +333,18 @@ class ConditionalConfig:
         return self._MOC_CORE
 
     @property
+    def MOC_MULTICOLLATERAL_GUARD(self):
+        return self._MOC_MULTICOLLATERAL_GUARD
+
+    @property
     def MULTICALL_ADDR(self):
         return self._MULTICALL_ADDR
 
 
 class ConditionalPublishServiceBase:
     @classmethod
-    def SyncCreate(cls, blockchain, cp, loop: OracleBlockchainInfoLoop) -> "ConditionalPublishServiceBase":
+    def SyncCreate(cls, blockchain, cp, loop: OracleBlockchainInfoLoop
+                   ) -> "ConditionalPublishServiceBase":
         oc = OracleConfiguration(
             ContractFactoryService.get_contract_factory_service())
         run_and_wait_async(oc.initialize)
@@ -200,8 +355,11 @@ class ConditionalPublishServiceBase:
             if not ccfg.check_valid():
                 raise InvalidCfg(f" * ConditionalPublishService disabled for {ccfg.cp} not valid cfg!.")
             return ConditionalPublishService(blockchain, ccfg, loop)
-        except NoConditionalPublication as err:
+        except InvalidCfg as err:
             logger.error(err)
+            return DisabledConditionalPublishService(ccfg)
+        except NoConditionalPublication as err:
+            logger.warning(err)           
             return DisabledConditionalPublishService(ccfg)
 
     def __init__(self, ccfg: ConditionalConfig):
@@ -226,6 +384,12 @@ class ConditionalPublishServiceBase:
         raise NotImplementedError
 
     def offline_cfg(self):
+        raise NotImplementedError
+    
+    def last_online_block(self):
+        raise NotImplementedError
+
+    def last_offline_block(self):
         raise NotImplementedError
 
     def max_pub_block(self, blockchain_last_pub_block: int):
@@ -262,6 +426,12 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
 
     def offline_cfg(self):
         return False
+    
+    def last_online_block(self):
+        return 0
+    
+    def last_offline_block(self):
+        return 0
 
     def max_pub_block(self, blockchain_last_pub_block: int):
         return blockchain_last_pub_block
@@ -274,10 +444,15 @@ class DisabledConditionalPublishService(ConditionalPublishServiceBase):
 
 
 class ConditionalPublishService(ConditionalPublishServiceBase):
-    queueIsEmpty = 'isEmpty()(bool)'
-    shouldCalculateEma = 'shouldCalculateEma()(bool)'
-    getBts = 'getBts()(uint256)'
-    nextTCInterestPayment = 'nextTCInterestPayment()(uint256)'
+    
+    queueIsEmpty = 'isEmpty()(bool)' # both
+    shouldCalculateEma = 'shouldCalculateEma()(bool)' # both
+    getBts = 'getBts()(uint256)' # V1
+    nextTCInterestPayment = 'nextTCInterestPayment()(uint256)' # both
+    nextSettlementTime = "nextSettlementTime()(uint256)" # V3
+    isMicroLiquidationAvailable = 'isMicroLiquidationAvailable(address)(bool)' # V3
+    isLiquidationAvailable = 'isLiquidationAvailable(address)(bool)' # V3
+
     _last_value = None
     _last_block = None
     _expiration_blocks = None
@@ -310,18 +485,88 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if blockchain_info is not None:
             self._expiration_blocks = blockchain_info.valid_price_period_in_blocks
 
+    def _call_condition_base(self, addresses, signature):
+        out = []
+        for addr in addresses:
+            try:
+                addr = self._fix(addr)
+            except ValueError as e:
+                self.logger.error(
+                    f"{repr(addr)} is an invalid addr, it is discarded for " +
+                    f"{signature.split('()')[0]}() condition"
+                )
+                addr = None
+            obj = None if addr is None else W3Multicall.Call(addr, signature)
+            if obj is not None:
+                out.append(obj)
+        return out
+
+    def _call_condition_guard(self, guards, buckets, signature):
+        out = []
+        fixed_guards = []
+        for g in guards:
+            try:
+                fixed_guards.append(self._fix(g))
+            except ValueError as e:
+                self.logger.error(
+                    f"{repr(g)} is an invalid addr, it is discarded for " +
+                    f"{signature.split('(')[0]} condition"
+                )
+        fixed_buckets = []
+        for b in buckets:
+            try:
+                fixed_buckets.append(self._fix(b))
+            except ValueError as e:
+                self.logger.error(
+                    f"{repr(b)} is an invalid bucket addr, it is discarded for " +
+                    f"{signature.split('(')[0]} condition"
+                )
+        for g in fixed_guards:
+            for b in fixed_buckets:
+                out.append(W3Multicall.Call(g, signature, [b]))
+        return out
+
+    def _call_v3_condition1_queueIsEmpty(self):
+        return self._call_condition_base(self.cfg.MOC_V3_QUEUE_IS_EMPTY,
+                                         self.queueIsEmpty)
+
+    def _call_v3_condition2_shouldCalculateEMA(self):
+        return self._call_condition_base(self.cfg.MOC_V3_SHOULD_CALCULATE_EMA,
+                                         self.shouldCalculateEma)
+
+    def _call_v3_condition3_nextTCInterestPayment(self):
+        return self._call_condition_base(self.cfg.MOC_V3_TC_INTEREST_PAYMENT,
+                                         self.nextTCInterestPayment)
+
+    def _call_v3_condition4_nextSettlementTime(self):
+        return self._call_condition_base(self.cfg.MOC_V3_SETTLEMENT_TIME,
+                                         self.nextSettlementTime)
+
+    def _call_v3_condition5_isMicroLiquidationAvailable(self):
+        return self._call_condition_guard(self.cfg.MOC_MULTICOLLATERAL_GUARD,
+                                          self.cfg.MOC_V3_BUCKET,
+                                          self.isMicroLiquidationAvailable)
+
+    def _call_v3_condition6_isLiquidationAvailable(self):
+        return self._call_condition_guard(self.cfg.MOC_MULTICOLLATERAL_GUARD,
+                                          self.cfg.MOC_V3_BUCKET,
+                                          self.isLiquidationAvailable)
+
     def _call_condition1_queueIsEmpty(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_QUEUE), self.queueIsEmpty)
+        return self._call_condition_base(self.cfg.MOC_QUEUE,
+                                         self.queueIsEmpty)
 
     def _call_condition2_shouldCalculateEMA(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_EMA), self.shouldCalculateEma)
+        return self._call_condition_base(self.cfg.MOC_EMA,
+                                         self.shouldCalculateEma)
 
     def _call_condition3_getBts(self):
-        return W3Multicall.Call(self._fix(self.cfg.MOC_CORE), self.getBts)
+        return self._call_condition_base(self.cfg.MOC_CORE,
+                                         self.getBts)
 
     def _call_condition4_nextTCInterestPayment(self):
-        # function shouldCalculateEma() public view returns (bool)
-        return W3Multicall.Call(self._fix(self.cfg.MOC_BASE_BUCKET), self.nextTCInterestPayment)
+        return self._call_condition_base(self.cfg.MOC_BASE_BUCKET,
+                                         self.nextTCInterestPayment)
 
     @property
     def _w3(self):
@@ -338,29 +583,114 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return w3_multicall.callWBlock()
 
     def _sync_fetch(self):
-        results = self._sync_fetch_multiple(
+        calls = [
+            self._call_v3_condition1_queueIsEmpty(),
+            self._call_v3_condition2_shouldCalculateEMA(),
+            self._call_v3_condition3_nextTCInterestPayment(),
+            self._call_v3_condition4_nextSettlementTime(),
+            self._call_v3_condition5_isMicroLiquidationAvailable(),
+            self._call_v3_condition6_isLiquidationAvailable(),
             self._call_condition1_queueIsEmpty(),
             self._call_condition2_shouldCalculateEMA(),
             self._call_condition3_getBts(),
             self._call_condition4_nextTCInterestPayment(),
-        )
-        self._last_value, self._last_block = results[0], results[1]
+        ]
+        args = []
+        for call in calls:
+            for c in call:
+                args.append(c)
+        try:
+            results_base, self._last_block = self._sync_fetch_multiple(*args)
+        except Exception as err:
+            self.logger.error(f"conditional publish multicall failed: {err!r}")
+            self._last_block = None
+            self._last_value = None
+        if self._last_block is not None:
+            results = []
+            for call in calls:
+                r = []
+                for c in call:
+                    r.append(results_base.pop(0))
+                results.append(r)
+            self._last_value = results
 
     @property
     def _tuple_value(self):
-        return (self._last_value, self._last_block) if self.is_running else None
+        return (self._last_value,
+                self._last_block) if self.is_running else None
 
     def __str__(self):
-        values = ','.join(str(x) for x in self._last_value).replace('True', 'T').replace('False', 'F')
-        return '[%s|%s]' % (values, 'P.' if self.offline_cfg() else 'ok')
+        values = repr(self._last_value).lower()
+        for c in [' ', '[', ']', '(', ')', '"', "'", 'decimal', 'none']:
+            values = values.replace(c, '')
+        for w in ['true', 'false', 'none']:
+            values = values.replace(w, w[0].upper())
+        if not values:
+            values = 'N/A'
+        state = 'unneed' if self.offline_cfg() else 'need'
+        return '[%s|%s]' % (state, values)
 
     @property
     def is_running(self):
         return self._last_block is not None
 
     def getConditionActive(self, value, currentBlockNr):
-        isEmpty, calcEMA, Bts, nextTC = value
-        return (not isEmpty) or calcEMA or (Bts == 0) or (nextTC < currentBlockNr)
+
+        if value is None or currentBlockNr is None:
+            return True       
+
+        (v3_is_empty_lst, v3_calc_ema_lst, v3_next_tc_lst, v3_next_st_lst,
+         v3_micro_liq_lst, v3_liq_lst, is_empty_lst, calc_ema_lst, bts_lst,
+         next_tc_lst) = value
+
+        for is_empty in v3_is_empty_lst:
+            if not is_empty:
+                return True
+        
+        for calc_ema in v3_calc_ema_lst:
+            if calc_ema:
+                return True
+
+        for micro in v3_micro_liq_lst:
+            if micro:
+                return True
+
+        for liq in v3_liq_lst:
+            if liq:
+                return True
+
+        for is_empty in is_empty_lst:
+            if not is_empty:
+                return True
+        
+        for calc_ema in calc_ema_lst:
+            if calc_ema:
+                return True
+            
+        for bts in bts_lst:
+            if bts == 0:
+                return True
+            
+        for next_tc in next_tc_lst:
+            if next_tc < currentBlockNr:
+                return True
+
+        if (not v3_next_tc_lst and not v3_next_st_lst and
+                not v3_micro_liq_lst and not v3_liq_lst):
+            return False
+
+        block_timestamp = self._w3.eth.getBlock(currentBlockNr)["timestamp"]
+        #self.logger.info(f"Block timestamp: {block_timestamp}")
+        
+        for next_payment_time in v3_next_tc_lst:
+            if next_payment_time < block_timestamp:
+                return True
+
+        for next_settlement_time in v3_next_st_lst:
+            if next_settlement_time < block_timestamp:
+                return True
+
+        return False
 
     async def update(self):
         await run_in_executor(self._sync_fetch)
@@ -369,7 +699,33 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         await self.update()
         return self.offline_cfg()
 
+    _last_online_block = 0
+    _last_offline_block = 0
+    _last_offline_cfg = False
+
     def offline_cfg(self):
+        out = False
         if self.is_running:
-            return not self.getConditionActive(self._last_value, self._last_block)
-        return False
+            base_condition_active = self.getConditionActive(self._last_value, self._last_block)
+            force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
+            out = not (base_condition_active or force_publish)
+            if self._last_offline_cfg != out:
+                if out:
+                    self._last_offline_block = self._last_block
+                    self.logger.info(f"State change to offline again (block: {self._last_offline_block}).")
+                else:
+                    self._last_online_block = self._last_block
+                    if force_publish:
+                        self.logger.info(
+                            f"State change to online (forced by ORACLE_OFFLINE_CFG endpoint) again (block: {self._last_online_block})."
+                        )
+                    else:
+                        self.logger.info(f"State change to online again (block: {self._last_online_block}).")
+        self._last_offline_cfg = out
+        return out
+
+    def last_online_block(self):
+        return self._last_online_block
+
+    def last_offline_block(self):
+        return self._last_offline_block

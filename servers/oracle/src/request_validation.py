@@ -6,8 +6,8 @@ from common.crypto import verify_signature
 from common.services.oracle_dao import PriceWithTimestamp
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
-from oracle.src.oracle_publish_message import PublishPriceParams
-from oracle.src.oracle_turn import OracleTurn
+from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,11 @@ class DifferentLastPubBlock(ValidationFailure):
     pass
 
 
-class RequestValidation:
+class PriceRequestValidation:
     def __init__(self,
                  oracle_price_reject_delta_pct,
                  params: PublishPriceParams,
-                 oracle_turn: OracleTurn,
+                 oracle_turn: PriceOracleTurn,
                  exchange_price: PriceWithTimestamp,
                  blockchain_info: OracleBlockchainInfo):
         self.oracle_price_reject_delta_pct = oracle_price_reject_delta_pct
@@ -54,7 +54,7 @@ class RequestValidation:
     def validate_and_sign(self, signature):
         self.validate_params()
         self.validate_turn()
-        message = self.params.prepare_price_msg()
+        message = self.params.prepare_msg()
         self.validate_signature(message, signature)
         our_acc = oracle_settings.get_oracle_account()
         s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
@@ -63,11 +63,23 @@ class RequestValidation:
 
     def validate_params(self):
         if not self.params or not self.blockchain_info:
+            logger.warning(
+                "%r : ValidationFailure NoBlockchainData params=%r blockchain_info=%r",
+                self.cp,
+                self.params,
+                self.blockchain_info,
+            )
             raise NoBlockchainData("Still don't have a valid block chain info "
                                    "params %r block chain info %r" % (
                                        self.params, self.blockchain_info), self.cp)
 
         if self.params.last_pub_block != self.blockchain_info.last_pub_block:
+            logger.warning(
+                "%r : ValidationFailure DifferentLastPubBlock params=%r blockchain_last=%r",
+                self.cp,
+                self.params.last_pub_block,
+                self.blockchain_info.last_pub_block,
+            )
             raise DifferentLastPubBlock("Different last publication blocks %r "
                                         "!= %r" % (self.params.last_pub_block,
                                                    self.blockchain_info.last_pub_block),
@@ -75,16 +87,35 @@ class RequestValidation:
 
         if (not self.exchange_price or not self.exchange_price.price or
                 self.exchange_price.ts_utc <= 0):
+            logger.warning(
+                "%r : ValidationFailure NoBlockchainData exchange_price=%r",
+                self.cp,
+                self.exchange_price,
+            )
             raise NoBlockchainData("Still don't have a valid price %r" % (
                 self.exchange_price,), self.cp)
 
         if not self.params.price or self.params.price_ts_utc <= 0:
+            logger.warning(
+                "%r : ValidationFailure InvalidPrice price=%r ts=%r",
+                self.cp,
+                self.params.price,
+                self.params.price_ts_utc,
+            )
             raise ValidationFailure("Invalid publish price %r" %
                                     self.params.price, self.cp)
 
         price_delta = helpers.price_delta(self.params.price,
                                           self.exchange_price.price)
         if price_delta > self.oracle_price_reject_delta_pct:
+            logger.warning(
+                "%r : ValidationFailure PriceDeltaOutOfRange delta=%r threshold=%r price=%r exchange=%r",
+                self.cp,
+                price_delta,
+                self.oracle_price_reject_delta_pct,
+                self.params.price,
+                self.exchange_price.price,
+            )
             raise ValidationFailure("price out of range delta %r > %r and "
                                     "price %r exchange price %r" % (price_delta,
                                                                     self.oracle_price_reject_delta_pct,
@@ -93,13 +124,115 @@ class RequestValidation:
 
     def validate_turn(self):
         is_turn, msg = self.oracle_turn.validate_turn(
-            self.blockchain_info, self.params.oracle_addr, self.exchange_price)
+            self.blockchain_info, self.params.oracle_addr, extra_args={"exchange_price": self.exchange_price})
         if not is_turn:
+            logger.warning(
+                "%r : ValidationFailure InvalidTurn oracle=%s msg=%s",
+                self.cp,
+                self.params.oracle_addr,
+                msg,
+            )
             raise InvalidTurn("is not oracle %s turn : %s" % (
                 self.params.oracle_addr, msg), self.cp)
 
     def validate_signature(self, message, signature):
         if not verify_signature(self.params.oracle_addr, message,
                                 HexBytes(signature)):
+            logger.warning(
+                "%r : ValidationFailure InvalidSignature oracle=%s",
+                self.cp,
+                self.params.oracle_addr,
+            )
+            raise InvalidSignature("oracle %s invalid signature" %
+                                   self.params.oracle_addr, self.cp)
+
+
+class TaskRequestValidation:
+    def __init__(self,
+                 params: PublishTaskParams,
+                 oracle_turn: TasksOracleTurn,
+                 are_tasks_available: bool,
+                 last_block_when_available: int,
+                 tasks_flags: int,
+                 blockchain_info: OracleBlockchainInfo):
+        self.params = params
+        self.oracle_turn = oracle_turn
+        self.are_tasks_available = are_tasks_available
+        self.last_block_when_available = last_block_when_available
+        self.tasks_flags = tasks_flags
+        self.blockchain_info = blockchain_info
+
+    @property
+    def cp(self):
+        return self.params.coin_pair
+
+    def validate_and_sign(self, signature):
+        self.validate_params()
+        self.validate_turn()
+        message = self.params.prepare_msg()
+        self.validate_signature(message, signature)
+        our_acc = oracle_settings.get_oracle_account()
+        s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
+        logger.debug("%r:%s : sign result: %r" % (self.cp, our_acc.short, s))
+        return message, s
+
+    def validate_params(self):
+        if not self.params or not self.blockchain_info:
+            logger.warning(
+                "%r : ValidationFailure NoBlockchainData params=%r blockchain_info=%r",
+                self.cp,
+                self.params,
+                self.blockchain_info,
+            )
+            raise NoBlockchainData("Still don't have a valid block chain info "
+                                   "params %r block chain info %r" % (
+                                       self.params, self.blockchain_info), self.cp)
+
+        if self.params.last_pub_block != self.blockchain_info.last_pub_block:
+            logger.warning(
+                "%r : ValidationFailure DifferentLastPubBlock params=%r blockchain_last=%r",
+                self.cp,
+                self.params.last_pub_block,
+                self.blockchain_info.last_pub_block,
+            )
+            raise DifferentLastPubBlock("Different last publication blocks %r "
+                                        "!= %r" % (self.params.last_pub_block,
+                                                   self.blockchain_info.last_pub_block),
+                                        self.cp)
+        if self.params.tasks_flags != self.tasks_flags:
+            logger.warning(
+                "%r : ValidationFailure TasksFlagsMismatch params=%r onchain=%r",
+                self.cp,
+                self.params.tasks_flags,
+                self.tasks_flags,
+            )
+            raise ValidationFailure("Tasks flags mismatch %r != %r" % (
+                self.params.tasks_flags, self.tasks_flags), self.cp)
+
+    def validate_turn(self):
+        is_turn, msg = self.oracle_turn.validate_turn(
+            self.blockchain_info, self.params.oracle_addr, 
+            extra_args={
+                "are_tasks_available": self.are_tasks_available,
+                "last_block_when_available": self.last_block_when_available
+            })
+        if not is_turn:
+            logger.warning(
+                "%r : ValidationFailure InvalidTurn oracle=%s msg=%s",
+                self.cp,
+                self.params.oracle_addr,
+                msg,
+            )
+            raise InvalidTurn("is not oracle %s turn : %s" % (
+                self.params.oracle_addr, msg), self.cp)
+
+    def validate_signature(self, message, signature):
+        if not verify_signature(self.params.oracle_addr, message,
+                                HexBytes(signature)):
+            logger.warning(
+                "%r : ValidationFailure InvalidSignature oracle=%s",
+                self.cp,
+                self.params.oracle_addr,
+            )
             raise InvalidSignature("oracle %s invalid signature" %
                                    self.params.oracle_addr, self.cp)

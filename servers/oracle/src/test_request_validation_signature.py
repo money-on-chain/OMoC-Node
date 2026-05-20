@@ -129,7 +129,7 @@ def can_validate_and_sign(oracle_turn, params, is_idx):
 
 
 def sign(oracle_account, request_validation: RequestValidation):
-    message = request_validation.params.prepare_price_msg()
+    message = request_validation.params.prepare_msg()
     signature = crypto.sign_message(hexstr="0x" + message,
                                     account=oracle_account)
     return message, signature

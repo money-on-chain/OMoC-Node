@@ -117,7 +117,7 @@ async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServe
                                 exchange_price,
                                 oracle_accounts[0].addr,
                                 last_pub_block)
-    message = params.prepare_price_msg()
+    message = params.prepare_msg()
 
     needed_sigs = (len(oracles) // 2) + 1
     signatures = []

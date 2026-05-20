@@ -3,12 +3,21 @@ import typing
 from common.helpers import parseTimeDelta, MyCfgdLogger
 from common.services.blockchain import is_error
 from common.services.contract_factory_service import ContractFactoryService
-from common.settings import config
+from common.settings import config, MULTICALL_ADDR
+from .oracle_settings import GET_VAR_COINPAIR
 from decimal import Decimal
 from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+
+def parse_bytes(raw):
+    return bytes.fromhex(raw) if raw else None
+
+def parse_bytes_env(key):
+    raw = config(key, cast=str, default='')
+    return parse_bytes(raw)
+    
 OracleTurnConfiguration = typing.NamedTuple("OracleTurnConfiguration",
                                             [("price_delta_pct", int),
                                              ("price_publish_blocks", int),
@@ -166,7 +175,7 @@ class OracleConfiguration(MyCfgdLogger):
             },
             "ORACLE_ENTERING_FALLBACKS_AMOUNTS": {
                 "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('ORACLE_ENTERING_FALLBACKS_AMOUNTS', cast=bytes),
+                "configuration": lambda: parse_bytes_env('ORACLE_ENTERING_FALLBACKS_AMOUNTS'),
                 "blockchain": lambda p: self._eternal_storage_service.get_bytes(p),
                 "description": "Each int in the ORACLE_ENTERING_FALLBACKS_AMOUNTS sequence is the number of fallbacks that will be allowed to publish next.",
                 "default": b'\x02\x04\x06\x08\n',
@@ -212,7 +221,7 @@ class OracleConfiguration(MyCfgdLogger):
             },
             "MULTICALL_ADDR": {
                 "priority": self.Order.configuration_default,
-                "configuration": lambda: config('MULTICALL_ADDR', cast=str),
+                "configuration": lambda: config('MULTICALL_ADDR', cast=str, default=MULTICALL_ADDR),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Address of the multicall-contract (used for conditional publication)",
             },
@@ -295,9 +304,26 @@ class OracleConfiguration(MyCfgdLogger):
         version = 1
         return "MOC_ORACLE\\%s\\%s" % (version, param_name)
 
+    def get_entering_fallbacks_amounts(self, coin_pair=None):
+        if coin_pair:
+            override = parse_bytes(
+                GET_VAR_COINPAIR(
+                    'ORACLE_ENTERING_FALLBACKS_AMOUNTS',
+                    coin_pair
+                )
+            )
+            if override:
+                return override
+        return self.ORACLE_ENTERING_FALLBACKS_AMOUNTS
+
+    def get_oracle_turn_conf(self, coin_pair=None):
+        return OracleTurnConfiguration(
+            self.ORACLE_PRICE_DELTA_PCT,
+            self.ORACLE_PRICE_PUBLISH_BLOCKS,
+            self.get_entering_fallbacks_amounts(coin_pair),
+            self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS
+        )
+
     @property
     def oracle_turn_conf(self):
-        return OracleTurnConfiguration(self.ORACLE_PRICE_DELTA_PCT,
-                                       self.ORACLE_PRICE_PUBLISH_BLOCKS,
-                                       self.ORACLE_ENTERING_FALLBACKS_AMOUNTS,
-                                       self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS)
+        return self.get_oracle_turn_conf()
