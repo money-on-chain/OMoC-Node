@@ -166,6 +166,9 @@ class ConditionalConfig:
 
     def _fetch_force_publish_from_endpoint(self):
         if not self._ORACLE_OFFLINE_CFG_ENDPOINT:
+            self.logger.warning(
+                f"ORACLE_OFFLINE_CFG had no endpoint, skipping."
+            )
             return False
 
         try:
@@ -447,11 +450,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     
     queueIsEmpty = 'isEmpty()(bool)' # both
     shouldCalculateEma = 'shouldCalculateEma()(bool)' # both
-    getBts = 'getBts()(uint256)' # V1
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)' # both
     nextSettlementTime = "nextSettlementTime()(uint256)" # V3
-    isMicroLiquidationAvailable = 'isMicroLiquidationAvailable(address)(bool)' # V3
-    isLiquidationAvailable = 'isLiquidationAvailable(address)(bool)' # V3
 
     _last_value = None
     _last_block = None
@@ -560,10 +560,6 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return self._call_condition_base(self.cfg.MOC_EMA,
                                          self.shouldCalculateEma)
 
-    def _call_condition3_getBts(self):
-        return self._call_condition_base(self.cfg.MOC_CORE,
-                                         self.getBts)
-
     def _call_condition4_nextTCInterestPayment(self):
         return self._call_condition_base(self.cfg.MOC_BASE_BUCKET,
                                          self.nextTCInterestPayment)
@@ -588,11 +584,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             self._call_v3_condition2_shouldCalculateEMA(),
             self._call_v3_condition3_nextTCInterestPayment(),
             self._call_v3_condition4_nextSettlementTime(),
-            self._call_v3_condition5_isMicroLiquidationAvailable(),
-            self._call_v3_condition6_isLiquidationAvailable(),
             self._call_condition1_queueIsEmpty(),
             self._call_condition2_shouldCalculateEMA(),
-            self._call_condition3_getBts(),
             self._call_condition4_nextTCInterestPayment(),
         ]
         args = []
@@ -602,7 +595,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         try:
             results_base, self._last_block = self._sync_fetch_multiple(*args)
         except Exception as err:
-            self.logger.error(f"conditional publish multicall failed: {err!r}")
+            formatted = [f"{a.address} \"{a.signature}\" {a.data.hex()}" for a in args]
+            self.logger.error(f"conditional publish multicall failed to {self.cfg.MULTICALL_ADDR} args {formatted} {err!r}")
             self._last_block = None
             self._last_value = None
         if self._last_block is not None:
@@ -640,8 +634,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             return True       
 
         (v3_is_empty_lst, v3_calc_ema_lst, v3_next_tc_lst, v3_next_st_lst,
-         v3_micro_liq_lst, v3_liq_lst, is_empty_lst, calc_ema_lst, bts_lst,
-         next_tc_lst) = value
+         is_empty_lst, calc_ema_lst, next_tc_lst) = value
 
         for is_empty in v3_is_empty_lst:
             if not is_empty:
@@ -651,24 +644,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             if calc_ema:
                 return True
 
-        for micro in v3_micro_liq_lst:
-            if micro:
-                return True
-
-        for liq in v3_liq_lst:
-            if liq:
-                return True
-
         for is_empty in is_empty_lst:
             if not is_empty:
                 return True
         
         for calc_ema in calc_ema_lst:
             if calc_ema:
-                return True
-            
-        for bts in bts_lst:
-            if bts == 0:
                 return True
             
         for next_tc in next_tc_lst:
