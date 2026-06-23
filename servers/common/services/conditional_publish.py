@@ -98,7 +98,6 @@ class ConditionalConfig:
         'MOC_BASE_BUCKET',
         'MOC_V3_BUCKET',
         'MOC_EMA',
-        'MOC_CORE',
         'MOC_MULTICOLLATERAL_GUARD',
     )
 
@@ -270,7 +269,6 @@ class ConditionalConfig:
             'MOC_BASE_BUCKET': self.MOC_BASE_BUCKET,
             'MOC_V3_BUCKET': self.MOC_V3_BUCKET,
             'MOC_EMA': self.MOC_EMA,
-            'MOC_CORE': self.MOC_CORE,
             'MOC_MULTICOLLATERAL_GUARD': self.MOC_MULTICOLLATERAL_GUARD,
             'MULTICALL_ADDR': self.MULTICALL_ADDR,
         }
@@ -330,10 +328,6 @@ class ConditionalConfig:
     @property
     def MOC_EMA(self):
         return self._MOC_EMA
-
-    @property
-    def MOC_CORE(self):
-        return self._MOC_CORE
 
     @property
     def MOC_MULTICOLLATERAL_GUARD(self):
@@ -656,12 +650,10 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             if next_tc < currentBlockNr:
                 return True
 
-        if (not v3_next_tc_lst and not v3_next_st_lst and
-                not v3_micro_liq_lst and not v3_liq_lst):
+        if (not v3_next_tc_lst and not v3_next_st_lst):
             return False
 
         block_timestamp = self._w3.eth.getBlock(currentBlockNr)["timestamp"]
-        #self.logger.info(f"Block timestamp: {block_timestamp}")
         
         for next_payment_time in v3_next_tc_lst:
             if next_payment_time < block_timestamp:

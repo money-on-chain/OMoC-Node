@@ -26,7 +26,6 @@ def with_env( *env_tuples ):
 
 def _get_env():
     return with_env(('MULTICALL_ADDR', '0x72440269630E393d38975Db7fA7Cb4D14e7eC061'),
-                  ('MOC_CORE_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
                   ('MOC_EMA_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
                   ('MOC_BASE_BUCKET_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
                   ('MOC_V3_BUCKET_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
@@ -69,11 +68,9 @@ def test_cfg(capsys):
     cfg = getCFG(capsys)
     assert cfg.valid
     assert cfg.cp=='BTCUSD'
-    assert cfg._MOC_CORE is not None
     assert cfg._MOC_EMA is not None
     assert cfg._MOC_BASE_BUCKET is not None
     assert cfg._MOC_V3_BUCKET is not None
-    assert cfg.MOC_CORE is not None
     assert cfg.MOC_EMA is not None
     assert cfg.MOC_BASE_BUCKET is not None
     assert cfg.MOC_V3_BUCKET is not None
