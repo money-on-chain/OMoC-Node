@@ -51,7 +51,7 @@ PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=False)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version
-VERSION = "1.3.7.1-beta.37"
+VERSION = "1.3.7.1"
 
 # These four are for the gas_price fix. Sometimes the gas_price reaches 20Gwei
 # Used the first time if the gas price exceeds the admitted
@@ -67,17 +67,22 @@ COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, 
 TASKS_RUNNER_MIN_GAS = config('TASKS_RUNNER_MIN_GAS', cast=int, default=0)
 
 MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')
+OFFLINE_CFG_URL = MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value_simple?coinpair="
 
 PER_CHAIN_ID_DEFAULTS={
     '30':{ # RSK Mainnet
         'GAS_LIMIT_ADDR': '0xf773B590aF754D597770937Fa8ea7AbDf2668370',
         'MULTICALL_ADDR': '0x8F344C3B2a02a801c24635F594C5652c8A2eB02a',
+       
+        # Allow ORACLE_OFFLINE_CFG to be driven by endpoint URL
+        'ORACLE_OFFLINE_CFG_USDARS': OFFLINE_CFG_URL + "ISLIQ_FLIP",
+        'ORACLE_OFFLINE_CFG_USDCOP': OFFLINE_CFG_URL + "ISLIQ_FLIP",
+
     },
     '31':{ # RSK Testnet
         
         # No gas limit address for RSK Testnet as default
         'GAS_LIMIT_ADDR': None,
-
         'MULTICALL_ADDR': '0xca11bde05977b3631167028862be2a173976ca11',
         
         #
@@ -96,7 +101,11 @@ PER_CHAIN_ID_DEFAULTS={
         # 'PRICE_DELTA_PCT_NEED_XXXZZZ': Decimal(0.1),
         # 'ORACLE_PRICE_PUBLISH_BLOCKS_NEED_XXXZZZ': 10, #int
         #
-        
+
+        # Allow ORACLE_OFFLINE_CFG to be driven by endpoint URL
+        'ORACLE_OFFLINE_CFG_USDARS': OFFLINE_CFG_URL + "ISLIQ_FLIP(test)",
+        'ORACLE_OFFLINE_CFG_USDCOP': OFFLINE_CFG_URL + "ISLIQ_FLIP(test)",
+
     }
 }
 

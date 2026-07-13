@@ -1,7 +1,9 @@
 import asyncio
+import json
 import logging
 from typing import Optional
 from decimal import Decimal
+from urllib.request import urlopen
 from eth_typing import BlockIdentifier
 from common.helpers import MyCfgdLogger
 from common.services.blockchain import run_in_executor
@@ -114,6 +116,75 @@ class ConditionalConfig:
             valid = False
         return valid and (value is not None)
 
+    @staticmethod
+    def _bool_from_raw(value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if value is None:
+            return None
+        text = str(value).strip().lower()
+        if text in ('1', 'true', 'yes', 'on'):
+            return True
+        if text in ('0', 'false', 'no', 'off', ''):
+            return False
+        return None
+
+    @staticmethod
+    def _parse_offline_cfg_response(payload):
+        parsed = ConditionalConfig._bool_from_raw(payload)
+        if parsed is not None:
+            return parsed
+
+        try:
+            data = json.loads(str(payload).strip())
+        except (TypeError, json.JSONDecodeError):
+            return None
+
+        if isinstance(data, dict):
+            for key in ('enabled', 'active', 'value', 'oracle_offline_cfg'):
+                parsed = ConditionalConfig._bool_from_raw(data.get(key))
+                if parsed is not None:
+                    return parsed
+            return None
+        return ConditionalConfig._bool_from_raw(data)
+
+    def _resolve_oracle_offline_cfg(self, raw_value):
+        parsed = ConditionalConfig._bool_from_raw(raw_value)
+        if parsed is not None:
+            return parsed, None
+
+        text = str(raw_value).strip()
+        if text.startswith('http://') or text.startswith('https://'):
+            return True, text
+
+        logger.warning(
+            f" * ConditionalPublishService: ({self.cp}) Conf.var: ORACLE_OFFLINE_CFG_ has invalid value '{raw_value}', it will be treated as disabled."
+        )
+        return False, None
+
+    def _fetch_force_publish_from_endpoint(self):
+        if not self._ORACLE_OFFLINE_CFG_ENDPOINT:
+            return False
+
+        try:
+            with urlopen(self._ORACLE_OFFLINE_CFG_ENDPOINT, timeout=5) as response:
+                payload = response.read().decode('utf-8').strip()
+            parsed = self._parse_offline_cfg_response(payload)
+            if parsed is None:
+                self.logger.warning(
+                    f"ORACLE_OFFLINE_CFG endpoint did not return a boolean-compatible payload: {payload!r}."
+                )
+                return self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST
+            self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST = parsed
+            return parsed
+        except Exception as err:
+            self.logger.warning(
+                f"Failed to fetch ORACLE_OFFLINE_CFG endpoint {self._ORACLE_OFFLINE_CFG_ENDPOINT}: {err!r}. Using last value {self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST}."
+            )
+            return self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST
+
     def __init__(self, cp: str, ocfg: OracleConfiguration):
         self.cp = cp.upper()
         self.logger = MyCfgdLogger(': ', str(self.cp))
@@ -125,7 +196,9 @@ class ConditionalConfig:
         
         valid = True
 
-        self._ORACLE_OFFLINE_CFG = config_per_chain_id('ORACLE_OFFLINE_CFG_'+self.cp, cast=bool, default=False)
+        offline_cfg_raw = config_per_chain_id('ORACLE_OFFLINE_CFG_'+self.cp, cast=str, default='false')
+        self._ORACLE_OFFLINE_CFG, self._ORACLE_OFFLINE_CFG_ENDPOINT = self._resolve_oracle_offline_cfg(offline_cfg_raw)
+        self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST = False
         valid = self.validate(valid, 'ORACLE_OFFLINE_CFG_', self._ORACLE_OFFLINE_CFG, ('', '0x0', 'disabled'))
 
         for var in ConditionalConfig._VARS:
@@ -202,6 +275,10 @@ class ConditionalConfig:
     @property
     def ORACLE_OFFLINE_CFG(self):
         return self._ORACLE_OFFLINE_CFG
+
+    @property
+    def ORACLE_OFFLINE_CFG_FORCE_PUBLISH(self):
+        return self._fetch_force_publish_from_endpoint()
 
     @property
     def PRICE_DELTA_PCT_NEED(self):
@@ -629,14 +706,21 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     def offline_cfg(self):
         out = False
         if self.is_running:
-            out = not self.getConditionActive(self._last_value, self._last_block)
+            base_condition_active = self.getConditionActive(self._last_value, self._last_block)
+            force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
+            out = not (base_condition_active or force_publish)
             if self._last_offline_cfg != out:
                 if out:
                     self._last_offline_block = self._last_block
                     self.logger.info(f"State change to offline again (block: {self._last_offline_block}).")
                 else:
                     self._last_online_block = self._last_block
-                    self.logger.info(f"State change to online again (block: {self._last_online_block}).")
+                    if force_publish:
+                        self.logger.info(
+                            f"State change to online (forced by ORACLE_OFFLINE_CFG endpoint) again (block: {self._last_online_block})."
+                        )
+                    else:
+                        self.logger.info(f"State change to online again (block: {self._last_online_block}).")
         self._last_offline_cfg = out
         return out
 
@@ -645,4 +729,3 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
 
     def last_offline_block(self):
         return self._last_offline_block
-
