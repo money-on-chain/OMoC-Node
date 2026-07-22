@@ -458,6 +458,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if (ccfg.PRICE_DELTA_PCT_UNNEED<0 or ccfg.PRICE_DELTA_PCT_UNNEED>100) and (ccfg.PRICE_DELTA_PCT_UNNEED!=DefaultDecimal):
             raise InvalidCfg('Invalid price delta pct unneed setup')
         self.blockchain = blockchain
+        # These values are refreshed together with the on-chain conditions in
+        # _sync_fetch(). Keeping them cached makes offline_cfg() a read-only
+        # operation, which is important because it is called several times per
+        # oracle loop iteration.
+        self._base_condition_active = True
+        self._force_publish = False
         self.logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
         self.from_blockchain(loop.get())
         self._sync_fetch()  # prevent running without values!
@@ -601,6 +607,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
                     r.append(results_base.pop(0))
                 results.append(r)
             self._last_value = results
+            self._base_condition_active = self.getConditionActive(
+                self._last_value, self._last_block
+            )
+            self._force_publish = False
+            if not self._base_condition_active:
+                self._force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
 
     @property
     def _tuple_value(self):
@@ -679,16 +691,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     def offline_cfg(self):
         out = False
         if self.is_running:
-            base_condition_active = self.getConditionActive(self._last_value, self._last_block)
-            force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
-            out = not (base_condition_active or force_publish)
+            out = not (self._base_condition_active or self._force_publish)
             if self._last_offline_cfg != out:
                 if out:
                     self._last_offline_block = self._last_block
                     self.logger.info(f"State change to offline again (block: {self._last_offline_block}).")
                 else:
                     self._last_online_block = self._last_block
-                    if force_publish:
+                    if self._force_publish:
                         self.logger.info(
                             f"State change to online (forced by ORACLE_OFFLINE_CFG endpoint) again (block: {self._last_online_block})."
                         )
