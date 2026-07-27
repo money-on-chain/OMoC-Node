@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 from contextlib import contextmanager
 from pprint import pprint
 
@@ -144,6 +145,44 @@ def test_inactive_conditions_without_force_publish_use_unneed_config():
     service._sync_fetch()
 
     assert service.offline_cfg()
+    assert service.cfg.endpoint_calls == 1
+
+
+def test_inactive_conditions_keep_previous_force_publish_until_endpoint_fetch_finishes():
+    service = conditional_service(base_condition_active=False, force_publish=True)
+    service._base_condition_active = False
+    service._force_publish = True
+    service._last_block = 123
+    service._last_value = None
+    service._sync_fetch_multiple = lambda *args: ([], 123)
+    service.getConditionActive = lambda value, block: False
+
+    class BlockingEndpointConfig(EndpointConfig):
+        def __init__(self, force_publish):
+            super().__init__(force_publish)
+            self.entered = threading.Event()
+            self.release = threading.Event()
+
+        @property
+        def ORACLE_OFFLINE_CFG_FORCE_PUBLISH(self):
+            self.endpoint_calls += 1
+            self.entered.set()
+            self.release.wait(timeout=2)
+            return self.force_publish
+
+    cfg = BlockingEndpointConfig(force_publish=True)
+    service.cfg = cfg
+
+    refresh = threading.Thread(target=service._sync_fetch)
+    refresh.start()
+
+    assert cfg.entered.wait(timeout=1)
+    assert not service.offline_cfg()
+
+    cfg.release.set()
+    refresh.join(timeout=1)
+
+    assert not service.offline_cfg()
     assert service.cfg.endpoint_calls == 1
 
 

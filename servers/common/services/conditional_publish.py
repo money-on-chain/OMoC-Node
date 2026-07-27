@@ -609,12 +609,16 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
                     r.append(results_base.pop(0))
                 results.append(r)
             self._last_value = results
-            self._base_condition_active = self.getConditionActive(
+            base_condition_active = self.getConditionActive(
                 self._last_value, self._last_block
             )
-            self._force_publish = False
-            if not self._base_condition_active:
-                self._force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
+            force_publish = False
+            if not base_condition_active:
+                force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
+            self.__dict__.update({
+                '_base_condition_active': base_condition_active,
+                '_force_publish': force_publish,
+            })
 
     @property
     def _tuple_value(self):
