@@ -2,6 +2,7 @@ from oracle.src.coin_pair_runner import CoinPairRunner
 import os
 from oracle.src.tasks_runner import TasksRunner
 import urllib3
+from urllib3.exceptions import LocationParseError
 from aiohttp import ClientConnectorError, InvalidURL, ClientResponseError
 from hexbytes import HexBytes
 
@@ -197,10 +198,16 @@ async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTa
 
 async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceParams, PublishTaskParams],
                         message, my_signature, timeout=10):
-    x = urllib3.util.parse_url(oracle.internetName)
+    try:
+        x = urllib3.util.parse_url(oracle.internetName)
+    except (LocationParseError, ValueError, TypeError) as err:
+        logger.error("%s : Invalid url for oracle %s, %s: %r" % (
+            params.coin_pair, oracle.addr, oracle.internetName, err))
+        return
+
     target_uri = "%s://%s" % (x.scheme, x.host)
-    if not x.port is None:
-        target_uri+=':%d'%x.port
+    if x.port is not None:
+        target_uri += ':%d' % x.port
     target_uri += params.get_post()
     logger.debug("%s : Trying to get signatures from: %s == %s" % (params.coin_pair, target_uri, oracle.addr))
     try:
@@ -220,11 +227,22 @@ async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceP
                                                             oracle.internetName, response))
             return
         obj = json.loads(response)
+        if not isinstance(obj, dict):
+            logger.error(
+                "%s : Invalid signature payload from: %s, %s -> %r" % (
+                    params.coin_pair, oracle.addr, oracle.internetName, obj))
+            return
         if "signature" not in obj:
             logger.error(
                 "%s : Missing signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
             return
-        signature = HexBytes(obj["signature"])
+        signature_value = obj["signature"]
+        if not isinstance(signature_value, (str, bytes, bytearray)):
+            logger.error(
+                "%s : Invalid signature type from: %s, %s -> %r" % (
+                    params.coin_pair, oracle.addr, oracle.internetName, type(signature_value)))
+            return
+        signature = HexBytes(signature_value)
     except json.JSONDecodeError as err:
         logger.error(
             "%s : JSONDecodeError exception from %s, %s: %r for %r" % (
@@ -255,7 +273,16 @@ async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceP
         logger.warning(traceback.format_exc())
         return
 
-    if not verify_signature(oracle.addr, message, signature):
+    try:
+        if not verify_signature(oracle.addr, message, signature):
+            logger.info(
+                "%s : Signature verification failed for %s, %s" % (
+                    params.coin_pair, oracle.addr, oracle.internetName))
+            return
+    except Exception as err:
+        logger.error(
+            "%s : Unexpected signature verification error for %s, %s: %r" % (
+                params.coin_pair, oracle.addr, oracle.internetName, err))
         return
 
     # TODO: Verify that the oracle is still in the approved set (to avoid consuming gas later)

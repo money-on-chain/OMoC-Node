@@ -4,6 +4,7 @@ import time
 import typing
 
 import urllib3
+from urllib3.exceptions import LocationParseError
 
 from common import helpers
 from common.bg_task_executor import BgTaskExecutor
@@ -30,7 +31,16 @@ class IpFilterLoop(BgTaskExecutor):
                 continue
             for oracle in bi.selected_oracles:
                 try:
-                    name = urllib3.util.parse_url(oracle.internetName).host
+                    parsed = urllib3.util.parse_url(oracle.internetName)
+                except (LocationParseError, ValueError, TypeError) as err:
+                    logger.error("Cannot parse oracle URL %r: %r" % (oracle.internetName, err))
+                    continue
+
+                try:
+                    name = parsed.host
+                    if not name:
+                        logger.error("Cannot resolve oracle URL %r: missing host" % oracle.internetName)
+                        continue
                     for ip in helpers.get_ip_addresses(name):
                         self.valid_ips[ip] = now
                 except socket.error as e:
