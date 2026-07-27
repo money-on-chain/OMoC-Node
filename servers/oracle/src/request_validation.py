@@ -136,8 +136,19 @@ class PriceRequestValidation:
                 self.params.oracle_addr, msg), self.cp)
 
     def validate_signature(self, message, signature):
-        if not verify_signature(self.params.oracle_addr, message,
-                                HexBytes(signature)):
+        try:
+            signature_bytes = HexBytes(signature)
+        except (TypeError, ValueError) as err:
+            logger.warning(
+                "%r : ValidationFailure InvalidSignature oracle=%s reason=%r",
+                self.cp,
+                self.params.oracle_addr,
+                err,
+            )
+            raise InvalidSignature("oracle %s invalid signature" %
+                                   self.params.oracle_addr, self.cp)
+
+        if not verify_signature(self.params.oracle_addr, message, signature_bytes):
             logger.warning(
                 "%r : ValidationFailure InvalidSignature oracle=%s",
                 self.cp,
@@ -227,8 +238,19 @@ class TaskRequestValidation:
                 self.params.oracle_addr, msg), self.cp)
 
     def validate_signature(self, message, signature):
-        if not verify_signature(self.params.oracle_addr, message,
-                                HexBytes(signature)):
+        try:
+            signature_bytes = HexBytes(signature)
+        except (TypeError, ValueError) as err:
+            logger.warning(
+                "%r : ValidationFailure InvalidSignature oracle=%s reason=%r",
+                self.cp,
+                self.params.oracle_addr,
+                err,
+            )
+            raise InvalidSignature("oracle %s invalid signature" %
+                                   self.params.oracle_addr, self.cp)
+
+        if not verify_signature(self.params.oracle_addr, message, signature_bytes):
             logger.warning(
                 "%r : ValidationFailure InvalidSignature oracle=%s",
                 self.cp,

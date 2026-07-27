@@ -90,6 +90,52 @@ def get_oracle_account(oracle_addr, private_key) -> BlockchainAccount:
 
 
 @pytest.mark.asyncio
+async def test_gather_signatures_ignores_malformed_oracle_urls(httpserver1: HTTPServer):
+    message_version = 3
+    coin_pair = CoinPair('BTCUSD')
+    price = 19030550000000000000000
+    ts_utc = 1606323345.214337
+    exchange_price = PriceWithTimestamp(price, ts_utc)
+    last_pub_block = 1234567
+
+    oracle_account1 = get_oracle_account("0x610Bb1573d1046FCb8A70Bbbd395754cD57C2b60",
+                                         "0x77c5495fbb039eed474fc940f29955ed0531693cc9212911efd35dff0373153f")
+    oracle_account2 = get_oracle_account("0x855FA758c77D68a04990E992aA4dcdeF899F654A",
+                                         "0xd99b5b29e6da2528bf458b26237a6cf8655a3e3276c1cdc0de1f98cefee81c01")
+    params = PublishPriceParams(message_version,
+                                coin_pair,
+                                exchange_price,
+                                oracle_account1.addr,
+                                last_pub_block)
+    message = params.prepare_msg()
+
+    requester_signature = crypto.sign_message(hexstr="0x" + message, account=oracle_account1)
+    responder_signature = crypto.sign_message(hexstr="0x" + message, account=oracle_account2)
+
+    httpserver1.expect_request("/sign/").respond_with_json({
+        "message": message,
+        "signature": responder_signature.hex()
+    })
+
+    oracles = [
+        FullOracleRoundInfo(oracle_account1.addr, 'http://127.0.0.1:5001', 14000000000000000000,
+                            '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                            current_round_num),
+        FullOracleRoundInfo(oracle_account2.addr, 'http://[', 8000000000000000000,
+                            '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                            current_round_num),
+        FullOracleRoundInfo(oracle_account2.addr, 'http://127.0.0.1:5001', 8000000000000000000,
+                            '0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826', points, True,
+                            current_round_num),
+    ]
+
+    sigs = await gather_signatures(oracles, params, message, requester_signature, timeout=2)
+
+    assert len(sigs) == 2
+    assert requester_signature in sigs
+
+
+@pytest.mark.asyncio
 async def test_gather_signatures_gathers_just_needed_sigs(httpserver1: HTTPServer,
                                                           httpserver2: HTTPServer,
                                                           httpserver3: HTTPServer,
