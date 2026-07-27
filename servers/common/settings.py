@@ -76,6 +76,7 @@ PER_CHAIN_ID_DEFAULTS={
        
         # Allow ORACLE_OFFLINE_CFG to be driven by endpoint URL
         'ORACLE_OFFLINE_CFG_RIFUSD': OFFLINE_CFG_URL + "ISLIQ_ROC",
+        'PRICE_DELTA_PCT_UNNEED_RIFUSD': Decimal('10.0'),
 
     },
     '31':{ # RSK Testnet
@@ -103,6 +104,7 @@ PER_CHAIN_ID_DEFAULTS={
 
         # Allow ORACLE_OFFLINE_CFG to be driven by endpoint URL
         'ORACLE_OFFLINE_CFG_RIFUSD': OFFLINE_CFG_URL + "ISLIQ_ROC(test)",
+        'PRICE_DELTA_PCT_UNNEED_RIFUSD': Decimal('10.0'),
 
     }
 }
