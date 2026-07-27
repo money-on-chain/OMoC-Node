@@ -227,11 +227,22 @@ async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceP
                                                             oracle.internetName, response))
             return
         obj = json.loads(response)
+        if not isinstance(obj, dict):
+            logger.error(
+                "%s : Invalid signature payload from: %s, %s -> %r" % (
+                    params.coin_pair, oracle.addr, oracle.internetName, obj))
+            return
         if "signature" not in obj:
             logger.error(
                 "%s : Missing signature from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
             return
-        signature = HexBytes(obj["signature"])
+        signature_value = obj["signature"]
+        if not isinstance(signature_value, (str, bytes, bytearray)):
+            logger.error(
+                "%s : Invalid signature type from: %s, %s -> %r" % (
+                    params.coin_pair, oracle.addr, oracle.internetName, type(signature_value)))
+            return
+        signature = HexBytes(signature_value)
     except json.JSONDecodeError as err:
         logger.error(
             "%s : JSONDecodeError exception from %s, %s: %r for %r" % (
@@ -262,7 +273,16 @@ async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceP
         logger.warning(traceback.format_exc())
         return
 
-    if not verify_signature(oracle.addr, message, signature):
+    try:
+        if not verify_signature(oracle.addr, message, signature):
+            logger.info(
+                "%s : Signature verification failed for %s, %s" % (
+                    params.coin_pair, oracle.addr, oracle.internetName))
+            return
+    except Exception as err:
+        logger.error(
+            "%s : Unexpected signature verification error for %s, %s: %r" % (
+                params.coin_pair, oracle.addr, oracle.internetName, err))
         return
 
     # TODO: Verify that the oracle is still in the approved set (to avoid consuming gas later)
