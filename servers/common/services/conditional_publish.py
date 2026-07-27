@@ -165,6 +165,8 @@ class ConditionalConfig:
 
     def _fetch_force_publish_from_endpoint(self):
         if not self._ORACLE_OFFLINE_CFG_ENDPOINT:
+            if self._ORACLE_OFFLINE_CFG is True:
+                return self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST
             self.logger.warning(
                 f"ORACLE_OFFLINE_CFG had no endpoint, skipping."
             )
