@@ -1,4 +1,6 @@
+import logging
 import os
+import threading
 from contextlib import contextmanager
 from pprint import pprint
 
@@ -8,6 +10,42 @@ from common.services.contract_factory_service import ContractFactoryService
 from oracle.src.oracle_configuration import OracleConfiguration
 
 ONCE = True
+
+
+class EndpointConfig:
+    def __init__(self, force_publish):
+        self.force_publish = force_publish
+        self.endpoint_calls = 0
+        self.MULTICALL_ADDR = "0x0000000000000000000000000000000000000000"
+        self.MOC_V3_QUEUE_IS_EMPTY = []
+        self.MOC_V3_SHOULD_CALCULATE_EMA = []
+        self.MOC_V3_TC_INTEREST_PAYMENT = []
+        self.MOC_V3_SETTLEMENT_TIME = []
+        self.MOC_QUEUE = []
+        self.MOC_EMA = []
+        self.MOC_BASE_BUCKET = []
+
+    @property
+    def ORACLE_OFFLINE_CFG_FORCE_PUBLISH(self):
+        self.endpoint_calls += 1
+        return self.force_publish
+
+
+def conditional_service(base_condition_active, force_publish):
+    service = object.__new__(ConditionalPublishService)
+    service.cfg = EndpointConfig(force_publish)
+    service.logger = logging.getLogger(__name__)
+    service._last_value = None
+    service._last_block = None
+    service._base_condition_active = True
+    service._force_publish = False
+    service._last_online_block = 0
+    service._last_offline_block = 0
+    service._last_offline_cfg = False
+    service._sync_fetch_multiple = lambda *args: ([], 123)
+    service.getConditionActive = lambda value, block: base_condition_active
+    return service
+
 
 @contextmanager
 def with_env( *env_tuples ):
@@ -26,7 +64,6 @@ def with_env( *env_tuples ):
 
 def _get_env():
     return with_env(('MULTICALL_ADDR', '0x72440269630E393d38975Db7fA7Cb4D14e7eC061'),
-                  ('MOC_CORE_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
                   ('MOC_EMA_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
                   ('MOC_BASE_BUCKET_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
                   ('MOC_V3_BUCKET_BTCUSD', '0xD8d315932b5c5b9B21B14A39f5F12e4b9Bd65571'),
@@ -69,11 +106,9 @@ def test_cfg(capsys):
     cfg = getCFG(capsys)
     assert cfg.valid
     assert cfg.cp=='BTCUSD'
-    assert cfg._MOC_CORE is not None
     assert cfg._MOC_EMA is not None
     assert cfg._MOC_BASE_BUCKET is not None
     assert cfg._MOC_V3_BUCKET is not None
-    assert cfg.MOC_CORE is not None
     assert cfg.MOC_EMA is not None
     assert cfg.MOC_BASE_BUCKET is not None
     assert cfg.MOC_V3_BUCKET is not None
@@ -83,6 +118,72 @@ def test_invalid_cfg(capsys):
     oc = getOCFG(capsys)
     cfg = ConditionalConfig('btcusd', oc)
     assert not cfg.valid
+
+
+def test_active_base_condition_does_not_fetch_endpoint():
+    service = conditional_service(base_condition_active=True, force_publish=True)
+
+    service._sync_fetch()
+
+    assert not service.offline_cfg()
+    assert service.cfg.endpoint_calls == 0
+
+
+def test_inactive_base_condition_fetches_endpoint_once_per_update():
+    service = conditional_service(base_condition_active=False, force_publish=True)
+
+    service._sync_fetch()
+
+    assert not service.offline_cfg()
+    assert not service.offline_cfg()
+    assert service.cfg.endpoint_calls == 1
+
+
+def test_inactive_conditions_without_force_publish_use_unneed_config():
+    service = conditional_service(base_condition_active=False, force_publish=False)
+
+    service._sync_fetch()
+
+    assert service.offline_cfg()
+    assert service.cfg.endpoint_calls == 1
+
+
+def test_inactive_conditions_keep_previous_force_publish_until_endpoint_fetch_finishes():
+    service = conditional_service(base_condition_active=False, force_publish=True)
+    service._base_condition_active = False
+    service._force_publish = True
+    service._last_block = 123
+    service._last_value = None
+    service._sync_fetch_multiple = lambda *args: ([], 123)
+    service.getConditionActive = lambda value, block: False
+
+    class BlockingEndpointConfig(EndpointConfig):
+        def __init__(self, force_publish):
+            super().__init__(force_publish)
+            self.entered = threading.Event()
+            self.release = threading.Event()
+
+        @property
+        def ORACLE_OFFLINE_CFG_FORCE_PUBLISH(self):
+            self.endpoint_calls += 1
+            self.entered.set()
+            self.release.wait(timeout=2)
+            return self.force_publish
+
+    cfg = BlockingEndpointConfig(force_publish=True)
+    service.cfg = cfg
+
+    refresh = threading.Thread(target=service._sync_fetch)
+    refresh.start()
+
+    assert cfg.entered.wait(timeout=1)
+    assert not service.offline_cfg()
+
+    cfg.release.set()
+    refresh.join(timeout=1)
+
+    assert not service.offline_cfg()
+    assert service.cfg.endpoint_calls == 1
 
 
 # def test_condition_qaclock(capsys):

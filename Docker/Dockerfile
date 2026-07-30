@@ -26,7 +26,7 @@ RUN /app/omoc_node/.venv/bin/python -m pip install -r requirements.txt
 RUN mkdir -p /app/moc_prices_source
 RUN /opt/pyenv/versions/3.12.13/bin/python -m venv /app/moc_prices_source/.venv && \
     /app/moc_prices_source/.venv/bin/python -m pip install --upgrade pip setuptools wheel
-RUN /app/moc_prices_source/.venv/bin/python -m pip install moneyonchain-prices-source==0.7.6
+RUN /app/moc_prices_source/.venv/bin/python -m pip install moneyonchain-prices-source==0.7.7
 
 # ---------- runtime stage ----------
 FROM base

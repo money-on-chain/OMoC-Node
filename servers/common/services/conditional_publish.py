@@ -98,7 +98,6 @@ class ConditionalConfig:
         'MOC_BASE_BUCKET',
         'MOC_V3_BUCKET',
         'MOC_EMA',
-        'MOC_CORE',
         'MOC_MULTICOLLATERAL_GUARD',
     )
 
@@ -166,6 +165,11 @@ class ConditionalConfig:
 
     def _fetch_force_publish_from_endpoint(self):
         if not self._ORACLE_OFFLINE_CFG_ENDPOINT:
+            if self._ORACLE_OFFLINE_CFG is True:
+                return self._ORACLE_OFFLINE_CFG_FORCE_PUBLISH_LAST
+            self.logger.warning(
+                f"ORACLE_OFFLINE_CFG had no endpoint, skipping."
+            )
             return False
 
         try:
@@ -267,7 +271,6 @@ class ConditionalConfig:
             'MOC_BASE_BUCKET': self.MOC_BASE_BUCKET,
             'MOC_V3_BUCKET': self.MOC_V3_BUCKET,
             'MOC_EMA': self.MOC_EMA,
-            'MOC_CORE': self.MOC_CORE,
             'MOC_MULTICOLLATERAL_GUARD': self.MOC_MULTICOLLATERAL_GUARD,
             'MULTICALL_ADDR': self.MULTICALL_ADDR,
         }
@@ -327,10 +330,6 @@ class ConditionalConfig:
     @property
     def MOC_EMA(self):
         return self._MOC_EMA
-
-    @property
-    def MOC_CORE(self):
-        return self._MOC_CORE
 
     @property
     def MOC_MULTICOLLATERAL_GUARD(self):
@@ -447,11 +446,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     
     queueIsEmpty = 'isEmpty()(bool)' # both
     shouldCalculateEma = 'shouldCalculateEma()(bool)' # both
-    getBts = 'getBts()(uint256)' # V1
     nextTCInterestPayment = 'nextTCInterestPayment()(uint256)' # both
     nextSettlementTime = "nextSettlementTime()(uint256)" # V3
-    isMicroLiquidationAvailable = 'isMicroLiquidationAvailable(address)(bool)' # V3
-    isLiquidationAvailable = 'isLiquidationAvailable(address)(bool)' # V3
 
     _last_value = None
     _last_block = None
@@ -464,6 +460,12 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         if (ccfg.PRICE_DELTA_PCT_UNNEED<0 or ccfg.PRICE_DELTA_PCT_UNNEED>100) and (ccfg.PRICE_DELTA_PCT_UNNEED!=DefaultDecimal):
             raise InvalidCfg('Invalid price delta pct unneed setup')
         self.blockchain = blockchain
+        # These values are refreshed together with the on-chain conditions in
+        # _sync_fetch(). Keeping them cached makes offline_cfg() a read-only
+        # operation, which is important because it is called several times per
+        # oracle loop iteration.
+        self._base_condition_active = True
+        self._force_publish = False
         self.logger.info(f" * ConditionalPublishService setup for {self.cfg.cp}.")
         self.from_blockchain(loop.get())
         self._sync_fetch()  # prevent running without values!
@@ -560,10 +562,6 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         return self._call_condition_base(self.cfg.MOC_EMA,
                                          self.shouldCalculateEma)
 
-    def _call_condition3_getBts(self):
-        return self._call_condition_base(self.cfg.MOC_CORE,
-                                         self.getBts)
-
     def _call_condition4_nextTCInterestPayment(self):
         return self._call_condition_base(self.cfg.MOC_BASE_BUCKET,
                                          self.nextTCInterestPayment)
@@ -588,11 +586,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             self._call_v3_condition2_shouldCalculateEMA(),
             self._call_v3_condition3_nextTCInterestPayment(),
             self._call_v3_condition4_nextSettlementTime(),
-            self._call_v3_condition5_isMicroLiquidationAvailable(),
-            self._call_v3_condition6_isLiquidationAvailable(),
             self._call_condition1_queueIsEmpty(),
             self._call_condition2_shouldCalculateEMA(),
-            self._call_condition3_getBts(),
             self._call_condition4_nextTCInterestPayment(),
         ]
         args = []
@@ -602,7 +597,8 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         try:
             results_base, self._last_block = self._sync_fetch_multiple(*args)
         except Exception as err:
-            self.logger.error(f"conditional publish multicall failed: {err!r}")
+            formatted = [f"{a.address} \"{a.signature}\" {a.data.hex()}" for a in args]
+            self.logger.error(f"conditional publish multicall failed to {self.cfg.MULTICALL_ADDR} args {formatted} {err!r}")
             self._last_block = None
             self._last_value = None
         if self._last_block is not None:
@@ -613,6 +609,16 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
                     r.append(results_base.pop(0))
                 results.append(r)
             self._last_value = results
+            base_condition_active = self.getConditionActive(
+                self._last_value, self._last_block
+            )
+            force_publish = False
+            if not base_condition_active:
+                force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
+            self.__dict__.update({
+                '_base_condition_active': base_condition_active,
+                '_force_publish': force_publish,
+            })
 
     @property
     def _tuple_value(self):
@@ -640,8 +646,7 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             return True       
 
         (v3_is_empty_lst, v3_calc_ema_lst, v3_next_tc_lst, v3_next_st_lst,
-         v3_micro_liq_lst, v3_liq_lst, is_empty_lst, calc_ema_lst, bts_lst,
-         next_tc_lst) = value
+         is_empty_lst, calc_ema_lst, next_tc_lst) = value
 
         for is_empty in v3_is_empty_lst:
             if not is_empty:
@@ -649,14 +654,6 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
         
         for calc_ema in v3_calc_ema_lst:
             if calc_ema:
-                return True
-
-        for micro in v3_micro_liq_lst:
-            if micro:
-                return True
-
-        for liq in v3_liq_lst:
-            if liq:
                 return True
 
         for is_empty in is_empty_lst:
@@ -667,20 +664,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
             if calc_ema:
                 return True
             
-        for bts in bts_lst:
-            if bts == 0:
-                return True
-            
         for next_tc in next_tc_lst:
             if next_tc < currentBlockNr:
                 return True
 
-        if (not v3_next_tc_lst and not v3_next_st_lst and
-                not v3_micro_liq_lst and not v3_liq_lst):
+        if (not v3_next_tc_lst and not v3_next_st_lst):
             return False
 
         block_timestamp = self._w3.eth.getBlock(currentBlockNr)["timestamp"]
-        #self.logger.info(f"Block timestamp: {block_timestamp}")
         
         for next_payment_time in v3_next_tc_lst:
             if next_payment_time < block_timestamp:
@@ -706,16 +697,14 @@ class ConditionalPublishService(ConditionalPublishServiceBase):
     def offline_cfg(self):
         out = False
         if self.is_running:
-            base_condition_active = self.getConditionActive(self._last_value, self._last_block)
-            force_publish = self.cfg.ORACLE_OFFLINE_CFG_FORCE_PUBLISH
-            out = not (base_condition_active or force_publish)
+            out = not (self._base_condition_active or self._force_publish)
             if self._last_offline_cfg != out:
                 if out:
                     self._last_offline_block = self._last_block
                     self.logger.info(f"State change to offline again (block: {self._last_offline_block}).")
                 else:
                     self._last_online_block = self._last_block
-                    if force_publish:
+                    if self._force_publish:
                         self.logger.info(
                             f"State change to online (forced by ORACLE_OFFLINE_CFG endpoint) again (block: {self._last_online_block})."
                         )
