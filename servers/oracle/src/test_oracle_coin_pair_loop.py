@@ -89,6 +89,14 @@ def get_oracle_account(oracle_addr, private_key) -> BlockchainAccount:
     return BlockchainAccount(address, secret)
 
 
+def test_signal_is_exposed_from_runner():
+    signal_service = object()
+    loop = OracleCoinPairLoop.__new__(OracleCoinPairLoop)
+    loop._runner = type("Runner", (), {"signal_service": signal_service})()
+
+    assert loop.signal is signal_service
+
+
 @pytest.mark.asyncio
 async def test_gather_signatures_ignores_malformed_oracle_urls(httpserver1: HTTPServer):
     message_version = 3
