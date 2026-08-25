@@ -19,6 +19,41 @@ from common.services.supporters_service import SupportersService
 
 logger = logging.getLogger(__name__)
 
+PUBLISH_PRICE_WITH_EXPIRATION_ABI = {
+    "inputs": [
+        {"internalType": "uint256", "name": "_version", "type": "uint256"},
+        {"internalType": "bytes32", "name": "_coinpair", "type": "bytes32"},
+        {"internalType": "uint256", "name": "_price", "type": "uint256"},
+        {
+            "internalType": "address",
+            "name": "_votedOracle",
+            "type": "address",
+        },
+        {"internalType": "uint256", "name": "_blockNumber", "type": "uint256"},
+        {
+            "internalType": "uint256",
+            "name": "_expiration",
+            "type": "uint256",
+        },
+        {"internalType": "uint8[]", "name": "_sigV", "type": "uint8[]"},
+        {"internalType": "bytes32[]", "name": "_sigR", "type": "bytes32[]"},
+        {"internalType": "bytes32[]", "name": "_sigS", "type": "bytes32[]"},
+    ],
+    "name": "publishPriceWithExpiration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+}
+
+
+# TODO: Remove this compatibility ABI once a moneyonchain release includes
+# publishPriceWithExpiration and the pinned dependency is upgraded in
+# servers/requirements.txt. The package ABI must match the deployed contract.
+def with_expiring_publish_abi(abi):
+    if any(item.get("name") == "publishPriceWithExpiration" for item in abi):
+        return abi
+    return [*abi, PUBLISH_PRICE_WITH_EXPIRATION_ABI]
+
 
 class ContractFactoryService:
     @staticmethod
@@ -101,7 +136,7 @@ class MocContractFactoryService(ContractFactoryService):
         ContractFactoryService.__init__(self, blockchain)
 
     def get_coin_pair_price(self, addr) -> CoinPairService:
-        abi = self._read_abi('CoinPairPrice.abi')
+        abi = with_expiring_publish_abi(self._read_abi('CoinPairPrice.abi'))
         return CoinPairService(self._get_contract(addr, abi))
 
     def get_tasks_runner(self, addr) -> TasksRunnerService:
@@ -168,7 +203,9 @@ class BuildDirContractFactoryService(ContractFactoryService):
 
     def get_coin_pair_price(self, addr) -> CoinPairService:
         data = self._read_data("COIN_PAIR_PRICE")
-        return CoinPairService(self._get_contract(addr, data["abi"]))
+        return CoinPairService(
+            self._get_contract(addr, with_expiring_publish_abi(data["abi"]))
+        )
 
     def get_tasks_runner(self, addr) -> TasksRunnerService:
         data = self._read_data("TASKS_RUNNER")

@@ -6,7 +6,10 @@ from common.services.oracle_dao import OracleBlockchainInfo
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_publish_message import PublishPriceParams
+from oracle.src.oracle_publish_message import (
+    EXPIRING_PRICE_MESSAGE_VERSION,
+    PublishPriceParams,
+)
 from oracle.src.oracle_turn import PriceOracleTurn
 from oracle.src.price_feeder.price_feeder import PriceFeederLoop
 from oracle.src.request_validation import PriceRequestValidation
@@ -57,12 +60,16 @@ class CoinPairRunner(MyCfgdLogger):
         return f"X:{self._exchange_price.price / ETHER} C:{cur}"
     
     def prepare_publish_params(self, blockchain_info, oracle_addr):
+        expiration = (
+            int(time.time()) + self._conf.PRICE_SIGNATURE_EXPIRATION_SECONDS
+        )
         return PublishPriceParams(
-            self._conf.MESSAGE_VERSION,
+            EXPIRING_PRICE_MESSAGE_VERSION,
             self.cps.coin_pair,
             self._exchange_price,
             oracle_addr,
             blockchain_info.last_pub_block,
+            expiration,
         )
 
     async def create_validator(self, params: PublishPriceParams):
@@ -74,4 +81,6 @@ class CoinPairRunner(MyCfgdLogger):
             self.oracle_turn,
             exchange_price,
             blockchain_info,
+            self._conf.PRICE_SIGNATURE_MIN_VALIDITY_SECONDS,
+            self._conf.PRICE_SIGNATURE_MAX_VALIDITY_SECONDS,
         )

@@ -11,7 +11,11 @@ from common.services.oracle_dao import CoinPair, PriceWithTimestamp
 from oracle.src import oracle_settings
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
-from oracle.src.oracle_publish_message import PublishPriceParams
+from oracle.src.oracle_publish_message import (
+    EXPIRING_PRICE_MESSAGE_VERSION,
+    LEGACY_PRICE_MESSAGE_VERSION,
+    PublishPriceParams,
+)
 from oracle.src.oracle_publish_message import PublishTaskParams
 from oracle.src.oracle_settings import ORACLE_PRICE_ENGINES_SIG
 from oracle.src.request_validation import ValidationFailure
@@ -88,6 +92,7 @@ async def read_info():
         "version": settings.VERSION,
         "ts": dt_now_at_utc(),
         "config_hash": ORACLE_PRICE_ENGINES_SIG,
+        "capabilities": {"price_signature_versions": [3, 4]},
     }
     try:
         bkc = main_executor.cf.get_blockchain()
@@ -120,6 +125,8 @@ async def sign(
     signature: str = Form(...),
 ):
     try:
+        if int(version) != LEGACY_PRICE_MESSAGE_VERSION:
+            raise ValidationFailure("Legacy price endpoint accepts only V3", coin_pair)
         params = PublishPriceParams(
             int(version),
             CoinPair(coin_pair),
@@ -135,6 +142,56 @@ async def sign(
         logger.debug("Sign: %r" % (params,))
         message, my_signature = validation_data.validate_and_sign(signature)
         logger.debug(f"Sign After: {message} {my_signature}")
+        return {"message": message, "signature": my_signature.hex()}
+
+    except ValidationFailure as e:
+        reason = get_error_msg(e)
+        logger.warning(
+            "Giving a Failed Dependency to node %s, reason: %s",
+            oracle_addr,
+            reason,
+        )
+        raise HTTPException(status_code=424, detail=reason)
+    except Exception as e:
+        logger.error(e)
+        if settings.ON_ERROR_PRINT_STACK_TRACE:
+            logger.error(
+                "\n".join(traceback.format_exception(type(e), e, e.__traceback__))
+            )
+        raise HTTPException(status_code=422, detail=get_error_msg(e))
+
+
+@app.post("/sign-price-v4/")
+async def sign_price_v4(
+    *,
+    version: str = Form(...),
+    coin_pair: str = Form(...),
+    price: str = Form(...),
+    price_timestamp: str = Form(...),
+    oracle_addr: str = Form(...),
+    last_pub_block: str = Form(...),
+    expiration: str = Form(...),
+    signature: str = Form(...),
+):
+    try:
+        if int(version) != EXPIRING_PRICE_MESSAGE_VERSION:
+            raise ValidationFailure(
+                "Expiring price endpoint accepts only V4", coin_pair
+            )
+        params = PublishPriceParams(
+            int(version),
+            CoinPair(coin_pair),
+            PriceWithTimestamp(int(price), float(price_timestamp)),
+            oracle_addr,
+            int(last_pub_block),
+            int(expiration),
+        )
+        validation_data = await main_executor.get_validation_data(params)
+        if not validation_data:
+            raise ValidationFailure("Missing coin pair", coin_pair)
+
+        logger.debug("Sign V4: %r", params)
+        message, my_signature = validation_data.validate_and_sign(signature)
         return {"message": message, "signature": my_signature.hex()}
 
     except ValidationFailure as e:
