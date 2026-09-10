@@ -2,6 +2,16 @@
 # disk_clean.sh
 # Clean up disk space by removing unnecessary packages, logs, and Docker logs.
 
+set -Eeuo pipefail
+
+trap 'STATUS=$?; echo "Error: script failed at line $LINENO (exit code: $STATUS)" >&2; exit "$STATUS"' ERR
+
+# Debe ejecutarse como root
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root."
+    exit 1
+fi
+
 PREV_MB=$(df -m / | awk 'NR==2{print $4}')
 
 # Clean .deb packages that are no longer required
