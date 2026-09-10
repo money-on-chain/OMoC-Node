@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.7.3] - 2026-09-10
+
+### Fixed
+
+- Align signature validation with the smart contract: require 65-byte signatures and accept only recovery byte (`v`) values of `0`, `1`, `27`, or `28`. Invalid signatures now return `False` during verification.
+
+### Changed
+
+- Disable RIFUSD conditional publishing configuration by default on mainnet and testnet by commenting out the endpoint defaults. `ORACLE_OFFLINE_CFG_RIFUSD` now defaults to `false` unless explicitly configured.
+- Update the Docker image's `moneyonchain-prices-source` dependency from `0.7.7` to `0.7.8`.
+- Move the Docker rebuild script to `Docker/scripts/` and update its download URL in `Docker/update.sh`.
+- Replace the legacy disk cleanup script with a Docker-oriented version in `Docker/scripts/`, including Docker log cleanup and updated usage documentation.
+
 ## [1.3.7.1] - 2026-05-20
 
 ### Added

@@ -51,7 +51,7 @@ PROXY_HEADERS = config('PROXY_HEADERS', cast=bool, default=False)
 # Print stack trace of errors, used for development
 ON_ERROR_PRINT_STACK_TRACE = config('ON_ERROR_PRINT_STACK_TRACE', cast=bool, default=False)
 # Swagger app version
-VERSION = "1.3.7.2"
+VERSION = "1.3.7.3"
 
 # These four are for the gas_price fix. Sometimes the gas_price reaches 20Gwei
 # Used the first time if the gas price exceeds the admitted
@@ -75,7 +75,7 @@ PER_CHAIN_ID_DEFAULTS={
         'MULTICALL_ADDR': '0x8F344C3B2a02a801c24635F594C5652c8A2eB02a',
        
         # Allow ORACLE_OFFLINE_CFG to be driven by endpoint URL
-        'ORACLE_OFFLINE_CFG_RIFUSD': OFFLINE_CFG_URL + "ISLIQ_ROC",
+        # 'ORACLE_OFFLINE_CFG_RIFUSD': OFFLINE_CFG_URL + "ISLIQ_ROC",
         'PRICE_DELTA_PCT_UNNEED_RIFUSD': Decimal('10.0'),
         'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_RIFUSD': 3456,
 
@@ -104,7 +104,7 @@ PER_CHAIN_ID_DEFAULTS={
         #
 
         # Allow ORACLE_OFFLINE_CFG to be driven by endpoint URL
-        'ORACLE_OFFLINE_CFG_RIFUSD': OFFLINE_CFG_URL + "ISLIQ_ROC(test)",
+        # 'ORACLE_OFFLINE_CFG_RIFUSD': OFFLINE_CFG_URL + "ISLIQ_ROC(test)",
         'PRICE_DELTA_PCT_UNNEED_RIFUSD': Decimal('10.0'),
         'ORACLE_PRICE_PUBLISH_BLOCKS_UNNEED_RIFUSD': 3456,
 
