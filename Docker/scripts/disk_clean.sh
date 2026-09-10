@@ -33,7 +33,9 @@ find /var/log -type f -name '*.[0-99].gz' -exec rm {} +
 echo
 echo "Docker's log clean..."
 echo
-truncate -s 0 /var/lib/docker/containers/**/*-json.log
+if [[ -d /var/lib/docker/containers ]]; then
+    find /var/lib/docker/containers -type f -name '*-json.log' -exec truncate -s 0 {} +
+fi
 
 # Summary
 MB=$(df -m / | awk 'NR==2{print $4}')
