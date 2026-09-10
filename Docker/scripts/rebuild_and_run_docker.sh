@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# rebuild_and_run_docker_instance.sh
+# rebuild_and_run_docker.sh
+# Rebuild the docker image and run the oracle service.
 
 IMG_TAG="latest"
 IMG_BASE="moneyonchain/omoc_node"
