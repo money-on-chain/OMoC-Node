@@ -189,6 +189,45 @@ The rest of the parameters are optional. If they are missing they are taken from
 
     Timeout used when requesting signatures fom other oracles.
 
+- TASK_MESSAGE_VERSION = 3
+
+    Updated nodes always publish prices using V4 through
+    `publishPriceWithExpiration`. `TASK_MESSAGE_VERSION` is independent and
+    remains V3. During migration, V4 publishers accept V3 signatures returned
+    by nodes that have not been upgraded yet.
+
+- PRICE_SIGNATURE_EXPIRATION_SECONDS = "5 mins"
+- PRICE_SIGNATURE_MIN_VALIDITY_SECONDS = "30 secs"
+- PRICE_SIGNATURE_MAX_VALIDITY_SECONDS = "10 mins"
+
+    V4 signature lifetime and the minimum/maximum remaining lifetime accepted
+    by signing nodes. A V4 publisher first requests V4 signatures and falls
+    back to V3 for nodes that have not been upgraded yet.
+
+### Removing V3 compatibility after migration
+
+Updated oracle nodes always originate V4 price publications. V3 support is
+kept only for the migration period. A V4 publisher can accept signatures from
+peers that have not been upgraded, and the legacy `/sign/` endpoint lets a V3
+publisher obtain signatures from migrated nodes. This bidirectional
+compatibility allows both node versions to coexist without losing quorum.
+
+Once every oracle node supports V4, the node-side cleanup is small:
+
+- remove the V4-to-V3 signature request fallback;
+- stop building the legacy V3 message and publisher signature;
+- remove the legacy `/sign/` price endpoint;
+- remove the legacy price-message helpers and migration tests; and
+- keep TasksRunner on its independent message version unless it is migrated
+  separately.
+
+This cleanup prevents upgraded nodes from producing or requesting V3 price
+signatures, but enforcing V4 exclusively also requires a smart-contract
+upgrade. During the migration, `publishPriceWithExpiration` accepts both V4
+and legacy V3 signatures. A future contract version should remove the V3
+signature-recovery fallback and require every consensus signature to match the
+V4 message, including its expiration.
+
 - ORACLE_COIN_PAIR_FILTER = [ "BTCUSD", "RIFUSD" ]
 
     This can be used to limit the coin pairs that the Oracle monitors. The missing coin pairs are ignored
@@ -365,6 +404,12 @@ ORACLE_ENTERING_FALLBACKS_AMOUNTS=020406080A
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
+
+# Updated nodes always use V4 for price publications.
+TASK_MESSAGE_VERSION = 3
+PRICE_SIGNATURE_EXPIRATION_SECONDS = "5 mins"
+PRICE_SIGNATURE_MIN_VALIDITY_SECONDS = "30 secs"
+PRICE_SIGNATURE_MAX_VALIDITY_SECONDS = "10 mins"
 
 # If configured (json array of strings) only publish for those coinpairs in the list
 ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]

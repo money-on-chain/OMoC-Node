@@ -152,12 +152,33 @@ class OracleConfiguration(MyCfgdLogger):
                 "description": "Size of the queue used to save historical exchange prices",
                 "default": 30,
             },
-            "MESSAGE_VERSION": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: config('MESSAGE_VERSION', cast=int),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Version field of the message that is send to the blockchain",
+            "TASK_MESSAGE_VERSION": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: config('TASK_MESSAGE_VERSION', cast=int),
+                "blockchain": lambda *args: None,
+                "description": "TasksRunner message version, independent from price messages",
                 "default": 3,
+            },
+            "PRICE_SIGNATURE_EXPIRATION_SECONDS": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: parseTimeDelta(config('PRICE_SIGNATURE_EXPIRATION_SECONDS', cast=str)),
+                "blockchain": lambda *args: None,
+                "description": "Validity period in seconds for V4 price signatures",
+                "default": 300,
+            },
+            "PRICE_SIGNATURE_MIN_VALIDITY_SECONDS": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: parseTimeDelta(config('PRICE_SIGNATURE_MIN_VALIDITY_SECONDS', cast=str)),
+                "blockchain": lambda *args: None,
+                "description": "Minimum remaining validity required before signing a V4 price",
+                "default": 30,
+            },
+            "PRICE_SIGNATURE_MAX_VALIDITY_SECONDS": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: parseTimeDelta(config('PRICE_SIGNATURE_MAX_VALIDITY_SECONDS', cast=str)),
+                "blockchain": lambda *args: None,
+                "description": "Maximum validity accepted when signing a V4 price",
+                "default": 600,
             },
             "ORACLE_PRICE_DELTA_PCT": {
                 "priority": self.Order.configuration_blockchain_default,
