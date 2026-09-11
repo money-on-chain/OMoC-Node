@@ -74,12 +74,9 @@ class LendingLiquidationProvider:
     async def build_liquidations(self, limit):
         if not self.is_ready() or limit <= 0:
             return []
-        selected = []
-        total = 0
+        candidates_by_market = []
         seen = set()
         for market in self.markets:
-            if total >= limit:
-                break
             pool_id, _ = await self._get_enabled_pool(market)
             if pool_id is None:
                 continue
@@ -87,54 +84,48 @@ class LendingLiquidationProvider:
                 lambda market=market: self.repository.top_vaults(
                     market.tp_token,
                     market.moc_bucket,
-                    settings.LENDING_TOP_K_PER_MARKET,
+                    limit,
                 )
             )
-            batch_size = max(1, limit - total)
-            for offset in range(0, len(vaults), batch_size):
-                if total >= limit:
-                    break
-                chunk = []
-                for vault in vaults[offset : offset + batch_size]:
-                    key = (pool_id.lower(), vault.user.lower())
-                    if key not in seen:
-                        seen.add(key)
-                        chunk.append(vault)
-                if not chunk:
+            market_candidates = []
+            for vault in vaults:
+                key = (pool_id.lower(), vault.user.lower())
+                if key in seen:
                     continue
-                results = await self.service.simulate_liquidations(
-                    [
-                        (vault.user, market.tp_token, market.moc_bucket)
-                        for vault in chunk
-                    ],
-                    self.multicall_addr,
+                seen.add(key)
+                market_candidates.append(
+                    (pool_id, vault.user, market.tp_token, market.moc_bucket)
                 )
-                if is_error(results) or len(results) != len(chunk):
-                    continue
-                for vault, available in zip(chunk, results):
-                    if available:
-                        selected.append(
-                            (
-                                pool_id,
-                                vault.user,
-                                market.tp_token,
-                                market.moc_bucket,
-                            )
-                        )
-                        total += 1
+            if market_candidates:
+                candidates_by_market.append(market_candidates)
 
-        if not selected:
+        candidates = []
+        rank = 0
+        while len(candidates) < limit:
+            added = False
+            for market_candidates in candidates_by_market:
+                if rank < len(market_candidates):
+                    candidates.append(market_candidates[rank])
+                    added = True
+                    if len(candidates) == limit:
+                        break
+            if not added:
+                break
+            rank += 1
+
+        if not candidates:
             return []
-        final_results = await self.service.simulate_liquidations(
-            [(user, tp_token, moc_bucket) for _, user, tp_token, moc_bucket in selected],
+
+        available = await self.service.get_liquidations_available(
+            [(user, tp_token, moc_bucket) for _, user, tp_token, moc_bucket in candidates],
             self.multicall_addr,
         )
-        if is_error(final_results) or len(final_results) != len(selected):
+        if is_error(available) or len(available) != len(candidates):
             return []
 
         pools = {}
-        for (pool_id, user, _, _), available in zip(selected, final_results):
-            if available:
+        for (pool_id, user, _, _), is_available in zip(candidates, available):
+            if is_available:
                 pools.setdefault(pool_id, []).append(user)
         return [
             PoolLiquidations(pool_id, users)

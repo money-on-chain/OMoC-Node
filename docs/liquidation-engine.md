@@ -27,8 +27,8 @@ message = version || name || votedOracle || lastPublicationBlock
 The liquidation batch is deliberately not sent to `/sign-liquidation/` because
 it is not part of the contract's signed message. Peers validate only the
 publisher authorization: version, service name, oracle turn, signature and
-`lastPublicationBlock`. The publisher checks pools and simulates every
-`LendingManager.liquidate(user, tpToken, mocBucket)` call locally before
+`lastPublicationBlock`. The publisher checks pools and queries
+`LendingManager.isLiquidationAvailable(user, tpToken, mocBucket)` locally before
 submitting the selected batch to `runLiquidations`.
 
 `LiquidationEngine` has its own registration, round and
@@ -71,25 +71,27 @@ LENDING_INDEX_INTERVAL=10
 LENDING_DISCOVERY_TIMEOUT=2
 LENDING_MAX_LAG_BLOCKS=20
 LENDING_REORG_RETENTION_BLOCKS=1000
-LENDING_TOP_K_PER_MARKET=100
 LENDING_LIQUIDATION_MARKETS='[{"tpToken":"0x...","mocBucket":"0x..."}]'
 ```
 
 The SQLite path must point to a persistent container volume. An indexer error
 or excessive lag disables local proposals but does not affect price publication
-or legacy TasksRunner execution.
+or legacy TasksRunner execution. The Docker image defaults `LENDING_DB_PATH` to
+`/data/lending-index.sqlite3`; deployments must attach a named volume or bind
+mount to `/data` so the index survives container replacement.
 
 The publisher reads `maxLiquidationsPerBatch` from `LiquidationEngine` before
 each discovery and never builds a transaction with more attempts than the
 current on-chain limit. The limit counts attempted liquidations globally across
 all pools, including repeated users and failed attempts.
 
-The publisher simulates candidates in batches through
-`Multicall.tryAggregate(false, calls)`, so a failed liquidation does not revert
-the other simulations. It then simulates the final selected batch once more in
-execution order, accounting for state changes caused by preceding successful
-liquidations. If the configured Multicall is unavailable or does not support
-`tryAggregate`, the node falls back to individual `eth_call` requests.
+Candidates are interleaved by risk rank across markets until the on-chain limit
+is reached: the riskiest vault from every market, then the second riskiest, and
+so on. The publisher checks that single candidate batch through
+`Multicall.tryAggregate(false, calls)` using `isLiquidationAvailable`; unavailable
+positions are omitted without refilling their slots. If the configured Multicall
+is unavailable or does not support `tryAggregate`, the node falls back to
+individual `eth_call` requests.
 
 Discovery has a total wait budget of `LENDING_DISCOVERY_TIMEOUT` seconds. At
 most one discovery operation remains in flight per LiquidationRunner. A failure
