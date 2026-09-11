@@ -49,6 +49,7 @@ COPY --from=builder /app/omoc_node/.venv /app/omoc_node/.venv
 
 WORKDIR /app/omoc_node
 RUN mkdir -p /data
+ENV LENDING_DB_PATH=/data/lending-index.sqlite3
 VOLUME ["/data"]
 COPY ./servers/build ./build
 COPY ./servers/common ./common

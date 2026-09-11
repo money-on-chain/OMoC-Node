@@ -77,16 +77,9 @@ class OracleCoinPairService():
             return await self._coin_pair_service.get_max_liquidations_per_batch()
         raise Exception("Not a LiquidationEngineService")
 
-    async def simulate_liquidation(self, user, tp_token, moc_bucket):
+    async def get_liquidations_available(self, liquidations, multicall_addr):
         if isinstance(self._coin_pair_service, LiquidationEngineService):
-            return await self._coin_pair_service.simulate_liquidation(
-                user, tp_token, moc_bucket
-            )
-        raise Exception("Not a LiquidationEngineService")
-
-    async def simulate_liquidations(self, liquidations, multicall_addr):
-        if isinstance(self._coin_pair_service, LiquidationEngineService):
-            return await self._coin_pair_service.simulate_liquidations(
+            return await self._coin_pair_service.get_liquidations_available(
                 liquidations, multicall_addr
             )
         raise Exception("Not a LiquidationEngineService")

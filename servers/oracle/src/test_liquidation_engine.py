@@ -19,10 +19,15 @@ from oracle.src.request_validation import LiquidationRequestValidation, Validati
 
 
 POOL_ID = "0x" + "11" * 32
+POOL_ID_B = "0x" + "22" * 32
 ORACLE = "0x0000000000000000000000000000000000000003"
 USER = "0x0000000000000000000000000000000000000002"
+USER_B = "0x0000000000000000000000000000000000000008"
+USER_C = "0x0000000000000000000000000000000000000009"
 TP_TOKEN = "0x0000000000000000000000000000000000000004"
 MOC_BUCKET = "0x0000000000000000000000000000000000000005"
+TP_TOKEN_B = "0x000000000000000000000000000000000000000a"
+MOC_BUCKET_B = "0x000000000000000000000000000000000000000b"
 MANAGER = "0x0000000000000000000000000000000000000006"
 MULTICALL = "0x0000000000000000000000000000000000000007"
 
@@ -122,12 +127,12 @@ async def test_liquidation_service_reads_contract_batch_limit():
 
 
 @pytest.mark.asyncio
-async def test_liquidation_service_simulates_a_batch_with_multicall():
+async def test_liquidation_service_checks_availability_with_multicall():
     encoded_calls = []
 
     class ManagerFunctions:
         @staticmethod
-        def liquidate(user, tp_token, moc_bucket):
+        def isLiquidationAvailable(user, tp_token, moc_bucket):
             return SimpleNamespace(
                 _encode_transaction_data=lambda: "0x" + user[2:]
             )
@@ -138,7 +143,10 @@ async def test_liquidation_service_simulates_a_batch_with_multicall():
             encoded_calls.extend(calls)
             assert require_success is False
             return SimpleNamespace(
-                call=lambda transaction: [(True, b""), (False, b"")]
+                call=lambda transaction: [
+                    (True, (1).to_bytes(32, "big")),
+                    (True, (0).to_bytes(32, "big")),
+                ]
             )
 
     blockchain = SimpleNamespace(
@@ -154,7 +162,7 @@ async def test_liquidation_service_simulates_a_batch_with_multicall():
     )
     service.get_lending_manager = AsyncMock(return_value=MANAGER)
 
-    results = await service.simulate_liquidations(
+    results = await service.get_liquidations_available(
         [(USER, TP_TOKEN, MOC_BUCKET), (ORACLE, TP_TOKEN, MOC_BUCKET)],
         MULTICALL,
     )
@@ -168,7 +176,7 @@ async def test_provider_builds_grouped_liquidations_with_multicall():
     service = SimpleNamespace(
         get_liquidation_pool_id=AsyncMock(return_value=HexBytes(POOL_ID)),
         get_liquidation_pool=AsyncMock(return_value=(TP_TOKEN, MOC_BUCKET, True)),
-        simulate_liquidations=AsyncMock(side_effect=[[True, True], [True, False]]),
+        get_liquidations_available=AsyncMock(return_value=[True, False]),
     )
     repository = SimpleNamespace(
         top_vaults=Mock(
@@ -215,11 +223,56 @@ async def test_provider_builds_grouped_liquidations_with_multicall():
         ],
         MULTICALL,
     )
-    assert service.simulate_liquidations.await_count == 2
-    assert all(
-        invocation.args == expected_call
-        for invocation in service.simulate_liquidations.await_args_list
+    service.get_liquidations_available.assert_awaited_once_with(*expected_call)
+
+
+@pytest.mark.asyncio
+async def test_provider_interleaves_markets_and_does_not_refill_unavailable_slots():
+    def vault(user, risk):
+        return SimpleNamespace(
+            user=user,
+            ac_balance="100",
+            credit_units=str(risk),
+            liquidating=False,
+        )
+
+    service = SimpleNamespace(
+        get_liquidation_pool_id=AsyncMock(
+            side_effect=[HexBytes(POOL_ID), HexBytes(POOL_ID_B)]
+        ),
+        get_liquidation_pool=AsyncMock(
+            side_effect=[
+                (TP_TOKEN, MOC_BUCKET, True),
+                (TP_TOKEN_B, MOC_BUCKET_B, True),
+            ]
+        ),
+        get_liquidations_available=AsyncMock(return_value=[True, False, True]),
     )
+    repository = SimpleNamespace(
+        top_vaults=Mock(
+            side_effect=[
+                [vault(USER, 90), vault(USER_B, 80)],
+                [vault(ORACLE, 70), vault(USER_C, 60)],
+            ]
+        )
+    )
+    provider = LendingLiquidationProvider(
+        service,
+        repository,
+        SimpleNamespace(status=Mock(return_value={"status": "ready"})),
+        markets=[
+            LendingMarket(TP_TOKEN, MOC_BUCKET),
+            LendingMarket(TP_TOKEN_B, MOC_BUCKET_B),
+        ],
+        multicall_addr=MULTICALL,
+    )
+
+    liquidations = await provider.build_liquidations(3)
+
+    assert liquidations == [PoolLiquidations(POOL_ID, [USER, USER_B])]
+    checked = service.get_liquidations_available.await_args.args[0]
+    assert [item[0] for item in checked] == [USER, ORACLE, USER_B]
+    assert len(checked) == 3
 
 
 @pytest.mark.asyncio

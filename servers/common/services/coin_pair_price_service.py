@@ -171,9 +171,9 @@ class LiquidationEngineService(BaseCoinPairService):
                 {"name": "tpToken_", "type": "address"},
                 {"name": "mocBucket_", "type": "address"},
             ],
-            "name": "liquidate",
-            "outputs": [],
-            "stateMutability": "nonpayable",
+            "name": "isLiquidationAvailable",
+            "outputs": [{"name": "", "type": "bool"}],
+            "stateMutability": "view",
             "type": "function",
         }
     ]
@@ -224,26 +224,20 @@ class LiquidationEngineService(BaseCoinPairService):
     async def get_max_liquidations_per_batch(self):
         return await self.coin_pair_call("maxLiquidationsPerBatch")
 
-    async def simulate_liquidation(self, user, tp_token, moc_bucket):
-        results = await self.simulate_liquidations(
-            [(user, tp_token, moc_bucket)], multicall_addr=None
-        )
-        return bool(results and results[0])
-
-    async def simulate_liquidations(self, liquidations, multicall_addr):
+    async def get_liquidations_available(self, liquidations, multicall_addr):
         if not liquidations:
             return []
         manager_addr = await self.get_lending_manager()
         if is_error(manager_addr):
             return [False] * len(liquidations)
 
-        def simulate():
+        def check_available():
             manager = self._contract._blockchain.get_contract(
                 manager_addr, self.LENDING_MANAGER_ABI
             )
             calls = []
             for user, tp_token, moc_bucket in liquidations:
-                data = manager.functions.liquidate(
+                data = manager.functions.isLiquidationAvailable(
                     user, tp_token, moc_bucket
                 )._encode_transaction_data()
                 calls.append((manager_addr, HexBytes(data)))
@@ -257,26 +251,35 @@ class LiquidationEngineService(BaseCoinPairService):
                         {"from": self.addr}
                     )
                     if len(results) == len(liquidations):
-                        return [bool(success) for success, _ in results]
+                        return [
+                            bool(success)
+                            and len(return_data) == 32
+                            and int.from_bytes(bytes(return_data), "big") == 1
+                            for success, return_data in results
+                        ]
                 except Exception as err:
                     logger.warning(
-                        "Liquidation Multicall unavailable; using sequential fallback: %s",
+                        "Liquidation availability Multicall unavailable; "
+                        "using sequential fallback: %s",
                         err,
                     )
 
             results = []
             for user, tp_token, moc_bucket in liquidations:
                 try:
-                    manager.functions.liquidate(user, tp_token, moc_bucket).call(
-                        {"from": self.addr}
+                    results.append(
+                        bool(
+                            manager.functions.isLiquidationAvailable(
+                                user, tp_token, moc_bucket
+                            ).call({"from": self.addr})
+                        )
                     )
-                    results.append(True)
                 except Exception as err:
-                    logger.debug("Liquidation simulation rejected %s: %s", user, err)
+                    logger.debug("Liquidation availability failed for %s: %s", user, err)
                     results.append(False)
             return results
 
-        return await run_in_executor(simulate)
+        return await run_in_executor(check_available)
 
     async def log_data(self):
         return "liquidation engine"
