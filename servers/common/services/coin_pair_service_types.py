@@ -6,8 +6,8 @@ class CoinPairServiceType(Enum):
 
     COIN_PAIR = auto()
     TASKS_RUNNER = auto()
+    LIQUIDATION_ENGINE = auto()
     UNKNOWN = auto()
 
 
 __all__ = ["CoinPairServiceType"]
-

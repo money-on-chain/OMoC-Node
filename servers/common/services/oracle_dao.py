@@ -25,6 +25,10 @@ class CoinPair:
     def is_tasks_runner(self):
         return self.cp.lower().startswith("task")
 
+    def is_liquidation_engine(self):
+        name = self.cp.lower()
+        return name.startswith("lending") or name.startswith("liquidat")
+
     def __str__(self):
         return self.cp
 

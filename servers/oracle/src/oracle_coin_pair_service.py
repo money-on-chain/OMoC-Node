@@ -4,12 +4,20 @@ from typing import List, Union
 from hexbytes import HexBytes
 
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
-from common.services.coin_pair_price_service import CoinPairService, TasksRunnerService
+from common.services.coin_pair_price_service import (
+    CoinPairService,
+    LiquidationEngineService,
+    TasksRunnerService,
+)
 from common.services.coin_pair_service_types import CoinPairServiceType
 from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishLiquidationParams,
+    PublishPriceParams,
+    PublishTaskParams,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class OracleCoinPairService():
     def __init__(self, blockchain: BlockChain,
-                 coin_pair_service: Union[CoinPairService, TasksRunnerService],
+                 coin_pair_service: Union[CoinPairService, TasksRunnerService, LiquidationEngineService],
                  info_service: InfoGetterService,
                  oracle_manager_service: OracleManagerService,
                  coin_pair_info: CoinPairInfo):
@@ -52,6 +60,29 @@ class OracleCoinPairService():
         if self.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
             return await self._coin_pair_service.get_tasks_available_as_flags()
         raise Exception("Not a TasksRunnerService")
+
+    # LiquidationEngine getters
+    async def get_liquidation_pool_id(self, tp_token, moc_bucket):
+        if isinstance(self._coin_pair_service, LiquidationEngineService):
+            return await self._coin_pair_service.get_pool_id(tp_token, moc_bucket)
+        raise Exception("Not a LiquidationEngineService")
+
+    async def get_liquidation_pool(self, pool_id):
+        if isinstance(self._coin_pair_service, LiquidationEngineService):
+            return await self._coin_pair_service.get_pool(pool_id)
+        raise Exception("Not a LiquidationEngineService")
+
+    async def get_max_liquidations_per_batch(self):
+        if isinstance(self._coin_pair_service, LiquidationEngineService):
+            return await self._coin_pair_service.get_max_liquidations_per_batch()
+        raise Exception("Not a LiquidationEngineService")
+
+    async def get_liquidations_available(self, liquidations, multicall_addr):
+        if isinstance(self._coin_pair_service, LiquidationEngineService):
+            return await self._coin_pair_service.get_liquidations_available(
+                liquidations, multicall_addr
+            )
+        raise Exception("Not a LiquidationEngineService")
 
     async def log_data(self):
         return await self._coin_pair_service.log_data()
@@ -97,7 +128,7 @@ class OracleCoinPairService():
         return await self._coin_pair_service.get_available_reward_fees()
 
     async def publish(self,
-                      params: Union[PublishPriceParams, PublishTaskParams],
+                      params: Union[PublishPriceParams, PublishTaskParams, PublishLiquidationParams],
                       signatures,
                       account: BlockchainAccount = None,
                       wait=False,
