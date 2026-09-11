@@ -159,6 +159,20 @@ class OracleConfiguration(MyCfgdLogger):
                 "description": "Version field of the message that is send to the blockchain",
                 "default": 3,
             },
+            "TASK_MESSAGE_VERSION": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: config('TASK_MESSAGE_VERSION', cast=int),
+                "blockchain": lambda *args: None,
+                "description": "Legacy TasksRunner message version",
+                "default": 3,
+            },
+            "LIQUIDATION_MESSAGE_VERSION": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: config('LIQUIDATION_MESSAGE_VERSION', cast=int),
+                "blockchain": lambda *args: None,
+                "description": "LiquidationEngine authorization message version",
+                "default": 3,
+            },
             "ORACLE_PRICE_DELTA_PCT": {
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: config('ORACLE_PRICE_DELTA_PCT', cast=Decimal),

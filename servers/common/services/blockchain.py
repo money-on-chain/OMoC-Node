@@ -253,6 +253,14 @@ class BlockChain:
     @exec_with_catch_async
     async def get_block_by_number(self, block_number, full=False):
         return await run_in_executor(lambda: self.W3.eth.getBlock(block_number, full))
+
+    async def get_logs(self, filter_params):
+        """Fetch logs without blocking the event loop.
+
+        Exceptions intentionally propagate so indexers can retry with a smaller
+        range or expose the RPC failure in their own health state.
+        """
+        return await run_in_executor(lambda: self.W3.eth.getLogs(filter_params))
     
     async def get_tx(self, method, account_addr: str, gas_price, gas: int = None, nonce: int = None):
         logger.debug(f"+++++++++ get tx ++++++++ {str(account_addr)} - {method}")

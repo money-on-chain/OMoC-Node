@@ -4,12 +4,22 @@ from typing import List, Union
 from hexbytes import HexBytes
 
 from common.helpers import hb_to_bytes, dt_now_at_utc
-from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChainContract
+from common.services.blockchain import (
+    BlockChainAddress,
+    BlockchainAccount,
+    BlockChainContract,
+    is_error,
+    run_in_executor,
+)
 from common.services.coin_pair_service_types import CoinPairServiceType
 from common.services.oracle_dao import OracleRoundInfo, RoundInfo
 
 from common import settings
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishLiquidationParams,
+    PublishPriceParams,
+    PublishTaskParams,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +148,7 @@ class TasksRunnerService(BaseCoinPairService):
             logger.warning("getTasksAvailableAsFlags reverted, assuming 0")
             return 0
         return ret
-    
+
     async def log_data(self):
         tasks_available = await self.get_tasks_available()
         tasks_flags = await self.get_tasks_available_as_flags()
@@ -151,3 +161,149 @@ class TasksRunnerService(BaseCoinPairService):
                                                   params.last_pub_block, v, r, s, account=account, wait=wait,
                                                  last_gas_price=last_gas_price,
                                                  gas=gas)
+
+
+class LiquidationEngineService(BaseCoinPairService):
+    LENDING_MANAGER_ABI = [
+        {
+            "inputs": [
+                {"name": "user_", "type": "address"},
+                {"name": "tpToken_", "type": "address"},
+                {"name": "mocBucket_", "type": "address"},
+            ],
+            "name": "liquidate",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function",
+        }
+    ]
+    MULTICALL_ABI = [
+        {
+            "inputs": [
+                {"name": "requireSuccess", "type": "bool"},
+                {
+                    "components": [
+                        {"name": "target", "type": "address"},
+                        {"name": "callData", "type": "bytes"},
+                    ],
+                    "name": "calls",
+                    "type": "tuple[]",
+                },
+            ],
+            "name": "tryAggregate",
+            "outputs": [
+                {
+                    "components": [
+                        {"name": "success", "type": "bool"},
+                        {"name": "returnData", "type": "bytes"},
+                    ],
+                    "name": "returnData",
+                    "type": "tuple[]",
+                }
+            ],
+            "stateMutability": "payable",
+            "type": "function",
+        }
+    ]
+
+    def get_service_type(self):
+        return CoinPairServiceType.LIQUIDATION_ENGINE
+
+    async def get_price(self):
+        return await self.coin_pair_call("getPrice")
+
+    async def get_pool_id(self, tp_token, moc_bucket):
+        return await self.coin_pair_call("getPoolId", tp_token, moc_bucket)
+
+    async def get_pool(self, pool_id):
+        return await self.coin_pair_call("pools", pool_id)
+
+    async def get_lending_manager(self):
+        return await self.coin_pair_call("lendingManager")
+
+    async def get_max_liquidations_per_batch(self):
+        return await self.coin_pair_call("maxLiquidationsPerBatch")
+
+    async def simulate_liquidation(self, user, tp_token, moc_bucket):
+        results = await self.simulate_liquidations(
+            [(user, tp_token, moc_bucket)], multicall_addr=None
+        )
+        return bool(results and results[0])
+
+    async def simulate_liquidations(self, liquidations, multicall_addr):
+        if not liquidations:
+            return []
+        manager_addr = await self.get_lending_manager()
+        if is_error(manager_addr):
+            return [False] * len(liquidations)
+
+        def simulate():
+            manager = self._contract._blockchain.get_contract(
+                manager_addr, self.LENDING_MANAGER_ABI
+            )
+            calls = []
+            for user, tp_token, moc_bucket in liquidations:
+                data = manager.functions.liquidate(
+                    user, tp_token, moc_bucket
+                )._encode_transaction_data()
+                calls.append((manager_addr, HexBytes(data)))
+
+            if multicall_addr:
+                try:
+                    multicall = self._contract._blockchain.get_contract(
+                        multicall_addr, self.MULTICALL_ABI
+                    )
+                    results = multicall.functions.tryAggregate(False, calls).call(
+                        {"from": self.addr}
+                    )
+                    if len(results) == len(liquidations):
+                        return [bool(success) for success, _ in results]
+                except Exception as err:
+                    logger.warning(
+                        "Liquidation Multicall unavailable; using sequential fallback: %s",
+                        err,
+                    )
+
+            results = []
+            for user, tp_token, moc_bucket in liquidations:
+                try:
+                    manager.functions.liquidate(user, tp_token, moc_bucket).call(
+                        {"from": self.addr}
+                    )
+                    results.append(True)
+                except Exception as err:
+                    logger.debug("Liquidation simulation rejected %s: %s", user, err)
+                    results.append(False)
+            return results
+
+        return await run_in_executor(simulate)
+
+    async def log_data(self):
+        return "liquidation engine"
+
+    async def _publish(
+        self,
+        params: PublishLiquidationParams,
+        v: List[int],
+        r: List[bytes],
+        s: List[bytes],
+        account: BlockchainAccount = None,
+        wait=False,
+        last_gas_price=None,
+    ):
+        gas = settings.LIQUIDATION_ENGINE_GAS_LIMIT or None
+        return await self.coin_pair_execute(
+            "runLiquidations",
+            params.version,
+            params.coin_pair.longer(),
+            params.as_contract_liquidations(),
+            params.oracle_addr,
+            params.last_pub_block,
+            v,
+            r,
+            s,
+            account=account,
+            wait=wait,
+            last_gas_price=last_gas_price,
+            gas=gas,
+        )

@@ -7,7 +7,11 @@ from moneyonchain.manager import ConnectionManager
 from common import settings, helpers
 from common.services.blockchain import BlockChain, BlockChainContract, \
     parse_addr
-from common.services.coin_pair_price_service import CoinPairService, TasksRunnerService
+from common.services.coin_pair_price_service import (
+    CoinPairService,
+    LiquidationEngineService,
+    TasksRunnerService,
+)
 from common.services.eternal_storage_service import EternalStorageService
 from common.services.info_getter_service import InfoGetterService
 from common.services.moc_token_service import MocTokenService
@@ -18,6 +22,74 @@ from common.services.supporters_service import SupportersService
 
 
 logger = logging.getLogger(__name__)
+
+
+LIQUIDATION_ENGINE_ABI = [
+    {
+        "inputs": [
+            {"name": "_tpToken", "type": "address"},
+            {"name": "_mocBucket", "type": "address"},
+        ],
+        "name": "getPoolId",
+        "outputs": [{"name": "", "type": "bytes32"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [{"name": "", "type": "bytes32"}],
+        "name": "pools",
+        "outputs": [
+            {"name": "tpToken", "type": "address"},
+            {"name": "mocBucket", "type": "address"},
+            {"name": "enabled", "type": "bool"},
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "lendingManager",
+        "outputs": [{"name": "", "type": "address"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "maxLiquidationsPerBatch",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"name": "_version", "type": "uint256"},
+            {"name": "_name", "type": "bytes32"},
+            {
+                "components": [
+                    {"name": "poolId", "type": "bytes32"},
+                    {"name": "users", "type": "address[]"},
+                ],
+                "name": "_liquidations",
+                "type": "tuple[]",
+            },
+            {"name": "_votedOracle", "type": "address"},
+            {"name": "_blockNumber", "type": "uint256"},
+            {"name": "_sigV", "type": "uint8[]"},
+            {"name": "_sigR", "type": "bytes32[]"},
+            {"name": "_sigS", "type": "bytes32[]"},
+        ],
+        "name": "runLiquidations",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+]
+
+
+def with_liquidation_engine_abi(abi):
+    names = {item.get("name") for item in abi}
+    missing = [item for item in LIQUIDATION_ENGINE_ABI if item["name"] not in names]
+    return abi if not missing else abi + missing
 
 
 class ContractFactoryService:
@@ -45,6 +117,9 @@ class ContractFactoryService:
         raise Exception("Unimplemented")
     
     def get_tasks_runner(self, addr) -> TasksRunnerService:
+        raise Exception("Unimplemented")
+
+    def get_liquidation_engine(self, addr) -> LiquidationEngineService:
         raise Exception("Unimplemented")
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
@@ -107,6 +182,10 @@ class MocContractFactoryService(ContractFactoryService):
     def get_tasks_runner(self, addr) -> TasksRunnerService:
         abi = self._read_abi('TasksRunner.abi')
         return TasksRunnerService(self._get_contract(addr, abi))
+
+    def get_liquidation_engine(self, addr) -> LiquidationEngineService:
+        abi = with_liquidation_engine_abi(self._read_abi('TasksRunner.abi'))
+        return LiquidationEngineService(self._get_contract(addr, abi))
 
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
@@ -173,6 +252,11 @@ class BuildDirContractFactoryService(ContractFactoryService):
     def get_tasks_runner(self, addr) -> TasksRunnerService:
         data = self._read_data("TASKS_RUNNER")
         return TasksRunnerService(self._get_contract(addr, data["abi"]))
+
+    def get_liquidation_engine(self, addr) -> LiquidationEngineService:
+        data = self._read_data("TASKS_RUNNER")
+        abi = with_liquidation_engine_abi(data["abi"])
+        return LiquidationEngineService(self._get_contract(addr, abi))
 
     def get_eternal_storage(self, addr) -> EternalStorageService:
         data = self._read_data("ETERNAL_STORAGE")

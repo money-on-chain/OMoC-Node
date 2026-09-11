@@ -16,6 +16,7 @@ from oracle.src.price_feeder.price_feeder import PriceFeederLoop
 from oracle.src.request_validation import PriceRequestValidation, TaskRequestValidation
 from oracle.src.scheduler_oracle_loop import SchedulerCoinPairLoop
 from oracle.src.coin_pair_runner import CoinPairRunner
+from oracle.src.liquidation_runner import LiquidationRunner
 from oracle.src.tasks_runner import TasksRunner
 from typing import Union
 
@@ -25,7 +26,7 @@ OracleLoopTasks = typing.NamedTuple("OracleLoopTasks",
                                     [("coin_pair_service", OracleCoinPairService),
                                      ("tasks", typing.List[BgTaskExecutor]),
                                      ("coin_pair_loop", OracleCoinPairLoop),
-                                     ("runner", Union[CoinPairRunner, TasksRunner]),
+                                     ("runner", Union[CoinPairRunner, TasksRunner, LiquidationRunner]),
                                      ("blockchain_info_loop", OracleBlockchainInfoLoop),
                                      ("oracle_turn", Union[PriceOracleTurn, TasksOracleTurn])
                                      ])
@@ -34,11 +35,14 @@ OracleLoopTasks = typing.NamedTuple("OracleLoopTasks",
 class OracleLoop(BgTaskExecutor):
 
     def __init__(self, conf: OracleConfiguration, oracle_service: OracleService,
-                 bs_loop: BlockchainStateLoop):
+                 bs_loop: BlockchainStateLoop, lending_repository=None,
+                 lending_indexer=None):
         self.bs_loop = bs_loop
         self.conf = conf
         self.oracle_addr = oracle_settings.get_oracle_account().addr
         self.oracle_service = oracle_service
+        self.lending_repository = lending_repository
+        self.lending_indexer = lending_indexer
         self.cpMap: typing.Dict[str, OracleLoopTasks] = {}
         super().__init__(name="OracleLoop", main=self.run)
 
@@ -65,6 +69,14 @@ class OracleLoop(BgTaskExecutor):
                 tasks.extend([pf_loop])
             if cp_service.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
                 runner = TasksRunner(self.conf, cp_service, bl_loop)
+            if cp_service.coin_pair_type == CoinPairServiceType.LIQUIDATION_ENGINE:
+                runner = LiquidationRunner(
+                    self.conf,
+                    cp_service,
+                    bl_loop,
+                    self.lending_repository,
+                    self.lending_indexer,
+                )
             cp_loop = OracleCoinPairLoop(self.conf, runner, self.bs_loop)
             tasks.extend([bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
@@ -101,7 +113,7 @@ class OracleLoop(BgTaskExecutor):
         # logger.info("Oracle loop done")
         return self.conf.ORACLE_MAIN_LOOP_TASK_INTERVAL
 
-    async def get_validation_data(self, params: Union[PublishPriceParams, PublishTaskParams]) -> Union[PriceRequestValidation, TaskRequestValidation, None]:
+    async def get_validation_data(self, params):
         tasks: OracleLoopTasks = self.cpMap.get(str(params.coin_pair))
         if not tasks or not tasks.runner:
             return
