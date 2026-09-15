@@ -316,12 +316,22 @@ class OracleConfiguration(MyCfgdLogger):
                 return override
         return self.ORACLE_ENTERING_FALLBACKS_AMOUNTS
 
+    def get_trigger_valid_publication_blocks(self, coin_pair=None):
+        if coin_pair:
+            override = GET_VAR_COINPAIR(
+                'ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS',
+                coin_pair,
+            )
+            if override is not None and override != '':
+                return int(override)
+        return self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS
+
     def get_oracle_turn_conf(self, coin_pair=None):
         return OracleTurnConfiguration(
             self.ORACLE_PRICE_DELTA_PCT,
             self.ORACLE_PRICE_PUBLISH_BLOCKS,
             self.get_entering_fallbacks_amounts(coin_pair),
-            self.ORACLE_TRIGGER_VALID_PUBLICATION_BLOCKS
+            self.get_trigger_valid_publication_blocks(coin_pair)
         )
 
     @property
