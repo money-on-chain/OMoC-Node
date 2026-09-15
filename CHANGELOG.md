@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.7.4] - 2026-09-14
+
+### Fixed
+
+- Adjust the default `RIF/USD` fallback cadence to giving selected oracles more time to publish and reducing fallback publications.
+
 ## [1.3.7.3] - 2026-09-10
 
 ### Fixed
