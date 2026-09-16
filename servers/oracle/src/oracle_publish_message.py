@@ -6,6 +6,9 @@ from common.services.oracle_dao import CoinPair, PriceWithTimestamp
 
 logger = logging.getLogger(__name__)
 
+LEGACY_PRICE_MESSAGE_VERSION = 3
+EXPIRING_PRICE_MESSAGE_VERSION = 4
+
 
 class PublishPriceParams(
     typing.NamedTuple(
@@ -17,6 +20,7 @@ class PublishPriceParams(
             ("price_ts_utc", int),
             ("oracle_addr", str),
             ("last_pub_block", int),
+            ("expiration", typing.Optional[int]),
         ],
     )
 ):
@@ -27,6 +31,7 @@ class PublishPriceParams(
         price: PriceWithTimestamp,
         oracle_addr: str,
         last_pub_block: int,
+        expiration: typing.Optional[int] = None,
     ):
         return super(PublishPriceParams, cls).__new__(
             cls,
@@ -36,6 +41,7 @@ class PublishPriceParams(
             price.ts_utc,
             oracle_addr,
             last_pub_block,
+            expiration,
         )
 
     def prepare_msg(self):
@@ -53,6 +59,9 @@ class PublishPriceParams(
             helpers.enc_packed_address,
             helpers.enc_uint256,
         ]
+        if self.expiration is not None:
+            parameters.append(self.expiration)
+            fs.append(helpers.enc_uint256)
         # encVersion = enc_uint256(version)
         # encPrice = enc_uint256(price)
         # encOracle = enc_address(cfg.address)
@@ -63,6 +72,8 @@ class PublishPriceParams(
         return full_msg
 
     def get_post(self):
+        if self.expiration is not None:
+            return "/sign-price-v4/"
         return "/sign/"
 
     def to_post_data(self, my_signature):
@@ -75,10 +86,24 @@ class PublishPriceParams(
             "last_pub_block": str(self.last_pub_block),
             "signature": my_signature.hex()
         }
+        if self.expiration is not None:
+            post_data["expiration"] = str(self.expiration)
         return post_data
     
     def log_data(self):
-        return "price: %r" % self.price
+        expiration = (
+            "" if self.expiration is None else ", expiration: %r" % self.expiration
+        )
+        return "price: %r%s" % (self.price, expiration)
+
+    def as_legacy(self):
+        return PublishPriceParams(
+            LEGACY_PRICE_MESSAGE_VERSION,
+            self.coin_pair,
+            PriceWithTimestamp(self.price, self.price_ts_utc),
+            self.oracle_addr,
+            self.last_pub_block,
+        )
 
 
 class PublishTaskParams(
