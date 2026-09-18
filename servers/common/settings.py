@@ -65,6 +65,27 @@ GAS_PRICE_HARD_LIMIT_MULTIPLIER = config('GAS_PRICE_HARD_LIMIT_MULTIPLIER', cast
 
 COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, default=2500000)
 TASKS_RUNNER_MIN_GAS = config('TASKS_RUNNER_MIN_GAS', cast=int, default=0)
+LIQUIDATION_ENGINE_GAS_LIMIT = config('LIQUIDATION_ENGINE_GAS_LIMIT', cast=int, default=0)
+
+# Local lending indexing is opt-in. Markets is a JSON array with ``tpToken``
+# and ``mocBucket`` addresses.
+LENDING_INDEXER_ENABLED = config('LENDING_INDEXER_ENABLED', cast=bool, default=False)
+LENDING_MANAGER_ADDRESS = config('LENDING_MANAGER_ADDRESS', cast=str, default='')
+LENDING_DEPLOYMENT_BLOCK = config('LENDING_DEPLOYMENT_BLOCK', cast=int, default=0)
+LENDING_DB_PATH = config('LENDING_DB_PATH', cast=str, default='lending-index.sqlite3')
+LENDING_CONFIRMATIONS = config('LENDING_CONFIRMATIONS', cast=int, default=2)
+LENDING_GET_LOGS_BLOCK_RANGE = config(
+    'LENDING_GET_LOGS_BLOCK_RANGE', cast=int, default=2000
+)
+LENDING_INDEX_INTERVAL = config('LENDING_INDEX_INTERVAL', cast=float, default=10.0)
+LENDING_DISCOVERY_TIMEOUT = config('LENDING_DISCOVERY_TIMEOUT', cast=float, default=2.0)
+LENDING_MAX_LAG_BLOCKS = config('LENDING_MAX_LAG_BLOCKS', cast=int, default=20)
+LENDING_REORG_RETENTION_BLOCKS = config(
+    'LENDING_REORG_RETENTION_BLOCKS', cast=int, default=1000
+)
+LENDING_LIQUIDATION_MARKETS = config(
+    'LENDING_LIQUIDATION_MARKETS', cast=str, default='[]'
+)
 
 MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')
 OFFLINE_CFG_URL = MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value_simple?coinpair="

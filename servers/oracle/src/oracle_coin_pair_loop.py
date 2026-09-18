@@ -1,5 +1,6 @@
 from oracle.src.coin_pair_runner import CoinPairRunner
 import os
+from oracle.src.liquidation_runner import LiquidationRunner
 from oracle.src.tasks_runner import TasksRunner
 import urllib3
 from urllib3.exceptions import LocationParseError
@@ -23,7 +24,11 @@ from common.services.conditional_publish import ConditionalPublishServiceBase
 from oracle.src import monitor, oracle_settings
 from oracle.src.oracle_coin_pair_service import FullOracleRoundInfo
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishLiquidationParams,
+    PublishPriceParams,
+    PublishTaskParams,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +41,7 @@ ETHER = 10**18
 
 class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
     def __init__(self, conf: OracleConfiguration,
-                 runner: Union[CoinPairRunner, TasksRunner],
+                 runner: Union[CoinPairRunner, TasksRunner, LiquidationRunner],
                  bs_loop: BlockchainStateLoop,
                  ):
         self.bs_loop = bs_loop
@@ -115,7 +120,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
                 return 1
         return self._conf.ORACLE_COIN_PAIR_LOOP_TASK_INTERVAL
 
-    async def publish(self, oracles, params: Union[PublishPriceParams, PublishTaskParams],
+    async def publish(self, oracles, params: Union[PublishPriceParams, PublishTaskParams, PublishLiquidationParams],
                       fallback_index=None, blockchain_info=None):
         str_as = ""
         if fallback_index is not None:
@@ -147,11 +152,14 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
             self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, {params.log_data()}{str_block}")
             self.trace(f"sending tx {params.log_data()} {str_as_low}")
+            gas_price = await self.bs_loop.gas_calc.get_current(
+                gas_limit_as_ceiling=isinstance(params, PublishLiquidationParams)
+            )
             tx = await self._runner.cps.publish(params,
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
                                                wait=True,
-                                               last_gas_price=await self.bs_loop.gas_calc.get_current())
+                                               last_gas_price=gas_price)
             if is_error(tx):
                 self.error(f"ERROR PUBLISHING{str_as}, txid={repr(tx)}")
                 self.trace(f"publish error: {repr(tx)}")
@@ -174,7 +182,7 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return False
 
 
-async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTaskParams], message, my_signature, timeout=10):
+async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTaskParams, PublishLiquidationParams], message, my_signature, timeout=10):
 
     cors = [
         get_signature(oracle, params, message, my_signature, timeout=timeout)
@@ -196,7 +204,7 @@ async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTa
     return [x.signature for x in sorted_sigs]
 
 
-async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceParams, PublishTaskParams],
+async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceParams, PublishTaskParams, PublishLiquidationParams],
                         message, my_signature, timeout=10):
     try:
         x = urllib3.util.parse_url(oracle.internetName)

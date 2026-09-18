@@ -10,6 +10,7 @@ from oracle.src.ip_filter_loop import IpFilterLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_loop import OracleLoop
 from oracle.src.oracle_service import OracleService
+from oracle.src.lending import LendingIndexerLoop, LendingRepository
 from oracle.src.scheduler_supporters_loop import SchedulerSupportersLoop
 
 
@@ -25,6 +26,8 @@ class MainLoop(BgTaskExecutor):
         self.oracle_loop: OracleLoop = None
         self.bs_loop: BlockchainStateLoop = None
         self.ip_filter_loop: IpFilterLoop = None
+        self.lending_indexer = None
+        self.lending_repository = None
         super().__init__(name="MainLoop", main=self.run)
 
     async def web_server_startup(self):
@@ -41,9 +44,9 @@ class MainLoop(BgTaskExecutor):
             if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_ADDR is None:
                 logger.warning("MainExecutor waiting to get configuration from blockchain")
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
-            self.initialized = True
             self._print_info()
             self._startup()
+            self.initialized = True
 
         await self.conf.update()
         # TODO: react to a change in addresses.
@@ -53,7 +56,32 @@ class MainLoop(BgTaskExecutor):
     def _startup(self):
         oracle_service = OracleService(self.cf, self.conf.ORACLE_MANAGER_ADDR, self.conf.INFO_ADDR)
         self.bs_loop = BlockchainStateLoop(self.conf, self.cf, settings.GAS_LIMIT_ADDR)
-        self.oracle_loop = OracleLoop(self.conf, oracle_service, self.bs_loop)
+        if settings.LENDING_INDEXER_ENABLED:
+            if not settings.LENDING_MANAGER_ADDRESS:
+                raise ValueError(
+                    "LENDING_MANAGER_ADDRESS is required when lending indexing is enabled"
+                )
+            blockchain = self.cf.get_blockchain()
+            chain_id = settings.CHAIN_ID or blockchain.chain_id
+            if chain_id is None:
+                raise ValueError("CHAIN_ID is required for the local lending index")
+            self.lending_repository = LendingRepository(
+                settings.LENDING_DB_PATH,
+                chain_id,
+                settings.LENDING_MANAGER_ADDRESS,
+                settings.LENDING_DEPLOYMENT_BLOCK,
+            )
+            self.lending_indexer = LendingIndexerLoop(
+                blockchain, self.lending_repository, settings
+            )
+            self.tasks.append(self.lending_indexer)
+        self.oracle_loop = OracleLoop(
+            self.conf,
+            oracle_service,
+            self.bs_loop,
+            self.lending_repository,
+            self.lending_indexer,
+        )
         self.tasks.append(self.oracle_loop)
         self.tasks.append(self.bs_loop)
         if oracle_settings.ORACLE_RUN_IP_FILTER:
@@ -97,3 +125,15 @@ class MainLoop(BgTaskExecutor):
             logger.warning("Trying to filter ip while filter isn't yet up..")
             return False
         return self.ip_filter_loop.is_valid_ip(ip)
+
+    def lending_indexer_status(self):
+        return self.lending_indexer.status() if self.lending_indexer else None
+
+    def lending_liquidation_provider(self):
+        if self.oracle_loop is None:
+            return None
+        for tasks in self.oracle_loop.cpMap.values():
+            provider = getattr(tasks.runner, "liquidation_provider", None)
+            if provider is not None:
+                return provider
+        return None

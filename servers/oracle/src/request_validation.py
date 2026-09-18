@@ -6,7 +6,11 @@ from common.crypto import verify_signature
 from common.services.oracle_dao import PriceWithTimestamp
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishLiquidationParams,
+    PublishPriceParams,
+    PublishTaskParams,
+)
 from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 
 logger = logging.getLogger(__name__)
@@ -158,6 +162,10 @@ class PriceRequestValidation:
                                    self.params.oracle_addr, self.cp)
 
 
+# Kept for callers and tests that still use the original public class name.
+RequestValidation = PriceRequestValidation
+
+
 class TaskRequestValidation:
     def __init__(self,
                  params: PublishTaskParams,
@@ -258,3 +266,47 @@ class TaskRequestValidation:
             )
             raise InvalidSignature("oracle %s invalid signature" %
                                    self.params.oracle_addr, self.cp)
+
+
+class LiquidationRequestValidation(TaskRequestValidation):
+    def __init__(
+        self,
+        params: PublishLiquidationParams,
+        oracle_turn: TasksOracleTurn,
+        blockchain_info: OracleBlockchainInfo,
+        expected_version: int,
+    ):
+        self.params = params
+        self.oracle_turn = oracle_turn
+        self.blockchain_info = blockchain_info
+        self.expected_version = expected_version
+
+    def validate_params(self):
+        if not self.params or not self.blockchain_info:
+            raise NoBlockchainData(
+                "Still don't have valid blockchain information", self.cp
+            )
+        if self.params.version != self.expected_version:
+            raise ValidationFailure("Invalid LiquidationEngine message version", self.cp)
+        if self.params.last_pub_block != self.blockchain_info.last_pub_block:
+            raise DifferentLastPubBlock(
+                "Different last publication blocks %r != %r"
+                % (
+                    self.params.last_pub_block,
+                    self.blockchain_info.last_pub_block,
+                ),
+                self.cp,
+            )
+    def validate_turn(self):
+        is_turn, _ = self.oracle_turn.is_oracle_turn(
+            self.blockchain_info,
+            self.params.oracle_addr,
+            extra_args={
+                "are_tasks_available": True,
+                "last_block_when_available": self.blockchain_info.last_pub_block,
+            },
+        )
+        if not is_turn:
+            raise InvalidTurn(
+                "is not oracle %s turn" % self.params.oracle_addr, self.cp
+            )

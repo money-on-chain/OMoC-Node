@@ -1,4 +1,4 @@
-from fastapi import Form, HTTPException, Response, Request
+from fastapi import Form, HTTPException, Query, Request, Response
 from starlette.responses import JSONResponse
 
 import logging
@@ -11,8 +11,11 @@ from common.services.oracle_dao import CoinPair, PriceWithTimestamp
 from oracle.src import oracle_settings
 from oracle.src.main_loop import MainLoop
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop
-from oracle.src.oracle_publish_message import PublishPriceParams
-from oracle.src.oracle_publish_message import PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishLiquidationParams,
+    PublishPriceParams,
+    PublishTaskParams,
+)
 from oracle.src.oracle_settings import ORACLE_PRICE_ENGINES_SIG
 from oracle.src.request_validation import ValidationFailure
 
@@ -88,7 +91,16 @@ async def read_info():
         "version": settings.VERSION,
         "ts": dt_now_at_utc(),
         "config_hash": ORACLE_PRICE_ENGINES_SIG,
+        "capabilities": {
+            "task_signature_versions": [3],
+            "liquidation_signature_versions": [3],
+        },
     }
+    indexer_status = getattr(
+        main_executor, "lending_indexer_status", lambda: None
+    )()
+    if indexer_status is not None:
+        data["lendingIndexer"] = indexer_status
     try:
         bkc = main_executor.cf.get_blockchain()
         data.update(fill_blockchain_info(bkc))
@@ -106,6 +118,37 @@ async def read_info():
     except Exception as err:
         data["error"] = str(err)
     return data
+
+
+@app.get("/v1/lending/markets/{tp_token}/{moc_bucket}/risk-vaults")
+async def lending_risk_vaults(
+    tp_token: str,
+    moc_bucket: str,
+    limit: int = Query(20, ge=1, le=100),
+):
+    provider = main_executor.lending_liquidation_provider()
+    status = main_executor.lending_indexer_status()
+    if provider is None or status is None:
+        raise HTTPException(status_code=503, detail="Lending indexer is disabled")
+    try:
+        vaults = await provider.risk_vaults(tp_token, moc_bucket, limit)
+    except Exception as err:
+        raise HTTPException(status_code=422, detail=get_error_msg(err))
+    return {
+        "node": oracle_settings.get_oracle_account().addr,
+        "chainId": provider.repository.chain_id,
+        "lastProjectedBlock": status["lastProjectedBlock"],
+        "lastProjectedBlockHash": status["lastProjectedBlockHash"],
+        "rows": [
+            {
+                "user": vault.user,
+                "acBalance": vault.ac_balance,
+                "creditUnits": vault.credit_units,
+                "liquidating": vault.liquidating,
+            }
+            for vault in vaults
+        ],
+    }
 
 
 @app.post("/sign/")
@@ -193,3 +236,44 @@ async def sign_task(
                 "\n".join(traceback.format_exception(type(e), e, e.__traceback__))
             )
         raise HTTPException(status_code=422, detail=get_error_msg(e))
+
+
+@app.post("/sign-liquidation/")
+async def sign_liquidation(
+    *,
+    version: str = Form(...),
+    coin_pair: str = Form(...),
+    oracle_addr: str = Form(...),
+    last_pub_block: str = Form(...),
+    signature: str = Form(...),
+):
+    try:
+        params = PublishLiquidationParams.from_post_data(
+            version,
+            coin_pair,
+            oracle_addr,
+            last_pub_block,
+        )
+        validation_data = await main_executor.get_validation_data(params)
+        if not validation_data:
+            raise ValidationFailure("Missing coin pair", coin_pair)
+
+        message, my_signature = validation_data.validate_and_sign(signature)
+        return {"message": message, "signature": my_signature.hex()}
+    except ValidationFailure as err:
+        reason = get_error_msg(err)
+        logger.warning(
+            "Giving a Failed Dependency to node %s, reason: %s",
+            oracle_addr,
+            reason,
+        )
+        raise HTTPException(status_code=424, detail=reason)
+    except Exception as err:
+        logger.error(err)
+        if settings.ON_ERROR_PRINT_STACK_TRACE:
+            logger.error(
+                "\n".join(
+                    traceback.format_exception(type(err), err, err.__traceback__)
+                )
+            )
+        raise HTTPException(status_code=422, detail=get_error_msg(err))
