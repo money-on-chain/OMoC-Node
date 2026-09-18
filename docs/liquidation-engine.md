@@ -85,6 +85,12 @@ each discovery and never builds a transaction with more attempts than the
 current on-chain limit. The limit counts attempted liquidations globally across
 all pools, including repeated users and failed attempts.
 
+Before publishing `runLiquidations`, the node reads `maxGasPrice` from
+`GAS_LIMIT_ADDR` through the shared blockchain state gas calculator. Regular
+price publications continue to use `maxGasPrice + 1` as a floor; lending
+liquidations use `maxGasPrice - 1` as a ceiling because their internal MoC v1
+calls enforce that maximum against `tx.gasprice`.
+
 Candidates are interleaved by risk rank across markets until the on-chain limit
 is reached: the riskiest vault from every market, then the second riskiest, and
 so on. The publisher checks that single candidate batch through

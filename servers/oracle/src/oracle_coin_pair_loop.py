@@ -152,11 +152,14 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             str_block = f", block {blockchain_info.last_pub_block}" if blockchain_info else ""
             self.info(f"SENDING TRANSACTION{str_as}, last pub block {params.last_pub_block}, {params.log_data()}{str_block}")
             self.trace(f"sending tx {params.log_data()} {str_as_low}")
+            gas_price = await self.bs_loop.gas_calc.get_current(
+                gas_limit_as_ceiling=isinstance(params, PublishLiquidationParams)
+            )
             tx = await self._runner.cps.publish(params,
                                                sigs,
                                                account=oracle_settings.get_oracle_account(),
                                                wait=True,
-                                               last_gas_price=await self.bs_loop.gas_calc.get_current())
+                                               last_gas_price=gas_price)
             if is_error(tx):
                 self.error(f"ERROR PUBLISHING{str_as}, txid={repr(tx)}")
                 self.trace(f"publish error: {repr(tx)}")

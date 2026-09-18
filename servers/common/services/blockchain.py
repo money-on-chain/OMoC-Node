@@ -176,7 +176,7 @@ class GasCalculator:
         return gas_price > self.get_last_price()
 
     @exec_with_catch_async
-    async def get_current(self):
+    async def get_current(self, gas_limit_as_ceiling=False):
         gas_price = await run_in_executor(lambda: self.W3.eth.gasPrice)
  
         if self.gas_limit_service is not None:
@@ -200,14 +200,21 @@ class GasCalculator:
         if self.gas_price_hard_limit_min > gas_price:
             gas_price = self.gas_price_hard_limit_min
 
-        if gas_limit_service_value is not None:
+        if gas_limit_service_value is not None and not gas_limit_as_ceiling:
             if (gas_limit_service_value + 1) > gas_price:
                 gas_price = (gas_limit_service_value + 1)
         
         if self.gas_price_hard_limit_max and self.gas_price_hard_limit_max < gas_price:
             gas_price = self.gas_price_hard_limit_max
         
+        # Keep the uncapped network price as the reference for subsequent
+        # calculations.  The MoC v1 ceiling is transaction-specific and must
+        # not lower the gas-price history used by other publications.
         self.set_last_price(gas_price)
+
+        if gas_limit_service_value is not None and gas_limit_as_ceiling:
+            if (gas_limit_service_value - 1) < gas_price:
+                gas_price = (gas_limit_service_value - 1)
 
         logger.info(f"Current Gas Price: {gas_price}")
 
