@@ -1,12 +1,18 @@
+import logging
+import time
+
 from hexbytes import HexBytes
 
-import logging
 from common import crypto, helpers
 from common.crypto import verify_signature
 from common.services.oracle_dao import PriceWithTimestamp
 from oracle.src import oracle_settings
 from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    EXPIRING_PRICE_MESSAGE_VERSION,
+    PublishPriceParams,
+    PublishTaskParams,
+)
 from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 
 logger = logging.getLogger(__name__)
@@ -40,12 +46,16 @@ class PriceRequestValidation:
                  params: PublishPriceParams,
                  oracle_turn: PriceOracleTurn,
                  exchange_price: PriceWithTimestamp,
-                 blockchain_info: OracleBlockchainInfo):
+                 blockchain_info: OracleBlockchainInfo,
+                 min_expiration_validity=0,
+                 max_expiration_validity=None):
         self.oracle_price_reject_delta_pct = oracle_price_reject_delta_pct
         self.params = params
         self.oracle_turn = oracle_turn
         self.exchange_price = exchange_price
         self.blockchain_info = blockchain_info
+        self.min_expiration_validity = min_expiration_validity
+        self.max_expiration_validity = max_expiration_validity
 
     @property
     def cp(self):
@@ -84,6 +94,22 @@ class PriceRequestValidation:
                                         "!= %r" % (self.params.last_pub_block,
                                                    self.blockchain_info.last_pub_block),
                                         self.cp)
+
+        if self.params.expiration is not None:
+            if self.params.version != EXPIRING_PRICE_MESSAGE_VERSION:
+                raise ValidationFailure(
+                    "Expiration is only valid for V4 price messages", self.cp
+                )
+            remaining_validity = self.params.expiration - int(time.time())
+            if remaining_validity < self.min_expiration_validity:
+                raise ValidationFailure(
+                    "Price signature expiration is too close or expired", self.cp
+                )
+            if (self.max_expiration_validity is not None and
+                    remaining_validity > self.max_expiration_validity):
+                raise ValidationFailure(
+                    "Price signature expiration is too far in the future", self.cp
+                )
 
         if (not self.exchange_price or not self.exchange_price.price or
                 self.exchange_price.ts_utc <= 0):

@@ -58,7 +58,7 @@ class TasksRunner(MyCfgdLogger):
 
     def prepare_publish_params(self, blockchain_info, oracle_addr):
         return PublishTaskParams(
-            self._conf.MESSAGE_VERSION,
+            self._conf.TASK_MESSAGE_VERSION,
             self.cps.coin_pair,
             self._tasks_flags,
             oracle_addr,

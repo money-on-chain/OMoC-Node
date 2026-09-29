@@ -31,6 +31,8 @@ OracleSignature = typing.NamedTuple("OracleSignature",
                                     [("addr", str),
                                      ('signature', HexBytes)])
 
+SIGNATURE_ENDPOINT_UNSUPPORTED = object()
+
 ETHER = 10**18
 
 
@@ -118,17 +120,31 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
     async def publish(self, oracles, params: Union[PublishPriceParams, PublishTaskParams],
                       fallback_index=None, blockchain_info=None):
         str_as = ""
+        str_as_low = ""
         if fallback_index is not None:
             # fallback_index, zero means is chosen, 1..x means fallback
             str_as = " AS CHOSEN" if fallback_index==0 else f" AS FALLBACK #{fallback_index}"
             str_as_low = " (chosen)" if fallback_index==0 else f" (fallback {fallback_index})"
         message = params.prepare_msg()
         signature = crypto.sign_message(hexstr="0x" + message, account=oracle_settings.get_oracle_account())
+        legacy_params = None
+        legacy_message = None
+        legacy_signature = None
+        if isinstance(params, PublishPriceParams) and params.expiration is not None:
+            legacy_params = params.as_legacy()
+            legacy_message = legacy_params.prepare_msg()
+            legacy_signature = crypto.sign_message(
+                hexstr="0x" + legacy_message,
+                account=oracle_settings.get_oracle_account(),
+            )
         self.info(f"GOT MESSAGE params {params} and signature {signature}")
         # send message to all oracles to sign
         self.info(f"GATHERING SIGNATURES:"
                   f"last pub blk {params.last_pub_block}, {params.log_data()}{str_as_low}")
         sigs = await gather_signatures(oracles, params, message, signature,
+                                       legacy_params=legacy_params,
+                                       legacy_message=legacy_message,
+                                       legacy_signature=legacy_signature,
                                        timeout=self._conf.ORACLE_GATHER_SIGNATURE_TIMEOUT)
         if len(sigs) < len(oracles) // 2 + 1:
             self.info(f"Publish: Not enough signatures {len(sigs)}/{len(oracles)}{str_as_low}")
@@ -137,7 +153,14 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
         else:
             self.info(f"Publish: enough signatures {len(sigs)}/{len(oracles)}{str_as_low}")
 
-        if settings.DEBUG:
+        if (isinstance(params, PublishPriceParams) and
+                params.expiration is not None and
+                params.expiration - int(time.time()) <
+                self._conf.PRICE_SIGNATURE_MIN_VALIDITY_SECONDS):
+            self.info("Publish: V4 signatures are too close to expiration; retrying")
+            return False
+
+        if settings.DEBUG and legacy_message is None:
             self.debug(f"GOT SIGS %r and params %r recover %r" %
                 ([to_short(x) for x in sigs], params,
                  [to_short(crypto.recover(hexstr=message, signature=x)) for x in sigs]))
@@ -174,10 +197,21 @@ class OracleCoinPairLoop(BgTaskExecutor, MyCfgdLogger):
             return False
 
 
-async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTaskParams], message, my_signature, timeout=10):
+async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTaskParams], message,
+                            my_signature, timeout=10, legacy_params=None,
+                            legacy_message=None, legacy_signature=None):
 
     cors = [
-        get_signature(oracle, params, message, my_signature, timeout=timeout)
+        get_signature(
+            oracle,
+            params,
+            message,
+            my_signature,
+            timeout=timeout,
+            legacy_params=legacy_params,
+            legacy_message=legacy_message,
+            legacy_signature=legacy_signature,
+        )
         for oracle in oracles if oracle.addr != params.oracle_addr]
     
     # sigs = await asyncio.gather(*cors, return_exceptions=True)
@@ -197,7 +231,33 @@ async def gather_signatures(oracles, params: Union[PublishPriceParams, PublishTa
 
 
 async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceParams, PublishTaskParams],
-                        message, my_signature, timeout=10):
+                        message, my_signature, timeout=10, legacy_params=None,
+                        legacy_message=None, legacy_signature=None):
+    result = await _get_signature_once(
+        oracle, params, message, my_signature, timeout=timeout
+    )
+    if result is not SIGNATURE_ENDPOINT_UNSUPPORTED:
+        return result
+    if legacy_params is None:
+        return None
+
+    logger.info(
+        "%s : V4 signature endpoint unsupported by oracle %s; retrying with legacy V3",
+        params.coin_pair,
+        oracle.addr,
+    )
+    return await _get_signature_once(
+        oracle,
+        legacy_params,
+        legacy_message,
+        legacy_signature,
+        timeout=timeout,
+    )
+
+
+async def _get_signature_once(oracle: FullOracleRoundInfo,
+                              params: Union[PublishPriceParams, PublishTaskParams],
+                              message, my_signature, timeout=10):
     try:
         x = urllib3.util.parse_url(oracle.internetName)
     except (LocationParseError, ValueError, TypeError) as err:
@@ -221,6 +281,8 @@ async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceP
         response, status = await helpers.request_post(target_uri, post_data,
                                                       timeout=timeout,
                                                       raise_for_status=raise_for_status)
+        if status in (404, 405):
+            return SIGNATURE_ENDPOINT_UNSUPPORTED
         if status != 200:
             logger.error(
                 "%s : Signature rejected by %s, %s : %s" % (params.coin_pair, oracle.addr,
@@ -256,6 +318,8 @@ async def get_signature(oracle: FullOracleRoundInfo, params: Union[PublishPriceP
         logger.info("%s : Timeout from: %s, %s" % (params.coin_pair, oracle.addr, oracle.internetName))
         return
     except ClientResponseError as err:
+        if err.status in (404, 405):
+            return SIGNATURE_ENDPOINT_UNSUPPORTED
         logger.info("%s : Invalid response from: %s, %s -> %r" % (
             params.coin_pair, oracle.addr, oracle.internetName, err.message))
         return
