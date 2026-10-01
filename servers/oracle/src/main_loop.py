@@ -10,7 +10,6 @@ from oracle.src.ip_filter_loop import IpFilterLoop
 from oracle.src.oracle_configuration import OracleConfiguration
 from oracle.src.oracle_loop import OracleLoop
 from oracle.src.oracle_service import OracleService
-from oracle.src.scheduler_supporters_loop import SchedulerSupportersLoop
 
 
 logger = logging.getLogger(__name__)
@@ -31,14 +30,10 @@ class MainLoop(BgTaskExecutor):
         await self.conf.initialize()
         self.start_bg_task()
 
-    async def scheduler_alone_startup(self):
-        await self.conf.initialize()
-        await self.start_bg_task()
-
     async def run(self):
         logger.debug("MainExecutor loop start")
         if not self.initialized:
-            if self.conf.ORACLE_MANAGER_ADDR is None or self.conf.SUPPORTERS_ADDR is None:
+            if self.conf.ORACLE_MANAGER_ADDR is None:
                 logger.warning("MainExecutor waiting to get configuration from blockchain")
                 return self.conf.ORACLE_MAIN_EXECUTOR_TASK_INTERVAL
             self.initialized = True
@@ -62,9 +57,6 @@ class MainLoop(BgTaskExecutor):
         if oracle_settings.ORACLE_MONITOR_RUN:
             monitor.log_setup()
             self.tasks.append(monitor.MonitorTask(self.cf.get_blockchain(), oracle_service))
-        if oracle_settings.SCHEDULER_RUN_SUPPORTERS_SCHEDULER:
-            supporters_service = self.cf.get_supporters(self.conf.SUPPORTERS_ADDR)
-            self.tasks.append(SchedulerSupportersLoop(self.conf, supporters_service,self.bs_loop))
         for t in self.tasks:
             logger.debug(f'****** task {t}')
             t.start_bg_task()

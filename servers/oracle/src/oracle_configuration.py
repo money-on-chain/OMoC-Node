@@ -53,7 +53,7 @@ class OracleConfiguration(MyCfgdLogger):
                 "priority": self.Order.configuration_blockchain_default,
                 "configuration": lambda: config('SUPPORTERS_ADDR', cast=str),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
-                "description": "Supporters address, called by scheduler to switch rounds"
+                "description": "Supporters contract address"
             },
             "STAKING_MACHINE_ADDR": {
                 "priority": self.Order.configuration_blockchain_default,
@@ -123,20 +123,6 @@ class OracleConfiguration(MyCfgdLogger):
                 "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
                 "description": "Timeout used when requesting signatures from other oracles",
                 "default": 60,
-            },
-            "SCHEDULER_POOL_DELAY": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: parseTimeDelta(config('SCHEDULER_POOL_DELAY', cast=str)),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Delay in which the scheduler checks for round change conditions",
-                "default": 10,
-            },
-            "SCHEDULER_ROUND_DELAY": {
-                "priority": self.Order.configuration_blockchain_default,
-                "configuration": lambda: parseTimeDelta(config('SCHEDULER_ROUND_DELAY', cast=str)),
-                "blockchain": lambda p: self._eternal_storage_service.get_uint(p),
-                "description": "Delay in which the scheduler checks for round change after a round was closed",
-                "default": 60 * 60 * 24,
             },
             "ORACLE_PRICE_DIGITS": {
                 "priority": self.Order.configuration_blockchain_default,

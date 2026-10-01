@@ -23,14 +23,6 @@ ORACLE_MONITOR_RUN = config('ORACLE_MONITOR_RUN', cast=bool, default=False)
 # Flag that indicates if we must filter requests to /sign by ip.
 ORACLE_RUN_IP_FILTER = config('ORACLE_RUN_IP_FILTER', cast=bool, default=True)
 
-# Run the oracle round scheduler?
-SCHEDULER_RUN_ORACLE_SCHEDULER = config('SCHEDULER_RUN_ORACLE_SCHEDULER',
-                                        cast=bool, default=True)
-
-# Run the supporters round scheduler?
-SCHEDULER_RUN_SUPPORTERS_SCHEDULER = config('SCHEDULER_RUN_SUPPORTERS_SCHEDULER',
-                                            cast=bool, default=True)
-
 # Monitor : Log exchange prices file name
 ORACLE_MONITOR_LOG_EXCHANGE_PRICE = config('ORACLE_MONITOR_LOG_EXCHANGE_PRICE',
                                            cast=str, default="exchanges.log")
@@ -110,11 +102,3 @@ def get_oracle_account() -> BlockchainAccount:
     if default_addr != addr:
         raise ValueError(f"ORACLE_ADDR doesn't match ORACLE_PRIVATE_KEY, {default_addr}!={addr}")
     return BlockchainAccount(addr, secret)
-
-
-def get_oracle_scheduler_account() -> BlockchainAccount:
-    return get_oracle_account()
-
-
-def get_supporters_scheduler_account() -> BlockchainAccount:
-    return get_oracle_account()
