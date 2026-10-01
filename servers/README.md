@@ -109,26 +109,9 @@ The rest of the parameters are optional. If they are missing they are taken from
     
     This is the timeout used when connecting to the blockchain node.
 
-- SCHEDULER_POOL_DELAY = "10 secs"
-
-    Delay in which the supporters scheduler checks for round change conditions and try to execute a 
-    distribute transaction.
-
-- SCHEDULER_ROUND_DELAY = "1 days"
-    
-    Delay in which the supporters scheduler checks for round change after a round was successfully closed.
-    
-- SCHEDULER_RUN_ORACLE_SCHEDULER = True
-
-    This parameter can be used to disable the Oracle scheduler.
-
-- SCHEDULER_RUN_SUPPORTERS_SCHEDULER = True     
-        
-    This parameter can be used to disable the Supporters scheduler.
-
 - ORACLE_RUN = True
     
-    This parameter can be used to disable the Oracle. The server still runs the schedulers.
+    Disables the oracle price collection and publication tasks. The HTTP server still runs.
 
 - ORACLE_PORT = 5556
 
@@ -348,20 +331,8 @@ CHAIN_ID=31
 # Timeout used when connection to the blockchain node
 # WEB3_TIMEOUT = "30 secs"
 
-############################################### SCHEDULER
-
-# Delay in which the scheduler checks for round change conditions
-# SCHEDULER_POOL_DELAY = "10 secs"
-# Delay in which the scheduler checks for round change after a round was closed
-# SCHEDULER_ROUND_DELAY = "1 days"
-# Run the oracle round scheduler?
-# SCHEDULER_RUN_ORACLE_SCHEDULER = True
-# Run the supporters round scheduler?
-# SCHEDULER_RUN_SUPPORTERS_SCHEDULER = True
-
-
 ############################################### ORACLE
-# Run the oracle server (sign api and publisher).
+# Enable oracle price collection and publication tasks.
 ORACLE_RUN = True
 
 # Port in which the oracle listen for sign request
