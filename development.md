@@ -131,7 +131,7 @@ pip install -r requirements.txt
 
 #### Running the Netsim script
 
-The Netsim script allows to run a simulation of the decentralized oracle system where a defined set of oracles publish prices on the testing environment. This way fundamental functionality such as round open, close, publisher selection and reward distribution can be quickly verified.
+The Netsim script runs a simulation of the decentralized oracle system where a defined set of oracles publish prices in the testing environment. Round changes and reward distribution require a separate process.
 
 #### Configuration through .env file
 
@@ -161,11 +161,6 @@ While the contract owner at deployment will be set to the address:
 Make sure the following entries are set in the `.env` file:
 
 ```
-SCHEDULER_SIGNING_ADDR="0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
-SCHEDULER_SIGNING_KEY="6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"
-SCHEDULER_POOL_DELAY="10 secs"
-SCHEDULER_ROUND_DELAY="60 secs"
-SCHEDULER_REWARD_BAG_ADDR="0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826"
 PRICE_FETCHER_OWNER_ADDR="0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
 PRICE_FETCHER_OWNER_KEY="4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
 REWARD_BAG_KEY="c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4"
