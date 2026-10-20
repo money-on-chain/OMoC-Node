@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.7.5] - 2026-10-20
+
+### Added
+
+- Add expiration to V4 price signatures, with configurable validity limits and a retry when gathered signatures are too close to expiration.
+- Add a V3 signature fallback for price oracles that do not support the V4 signing endpoint. TasksRunner messages continue to use V3.
+- Add `IGNORE_POSSIBLY_STUCK_TASKS` as an emergency node control: skip a TasksRunner attempt only when every available task is listed, ignoring zero-address slots.
+
+### Fixed
+
+- Use the signal property in the debug information endpoint.
+
+### Changed
+
+- Remove the automatic coin-pair and supporters round schedulers and their obsolete configuration.
+- Update `moneyonchain-prices-source` in the Docker image to `0.7.9`.
+
 ## [1.3.7.4] - 2026-09-14
 
 ### Fixed
