@@ -14,7 +14,6 @@ from oracle.src.oracle_service import OracleService
 from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 from oracle.src.price_feeder.price_feeder import PriceFeederLoop
 from oracle.src.request_validation import PriceRequestValidation, TaskRequestValidation
-from oracle.src.scheduler_oracle_loop import SchedulerCoinPairLoop
 from oracle.src.coin_pair_runner import CoinPairRunner
 from oracle.src.tasks_runner import TasksRunner
 from typing import Union
@@ -70,8 +69,6 @@ class OracleLoop(BgTaskExecutor):
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
                                                  cp_loop, runner, bl_loop,
                                                  runner.oracle_turn)
-        if oracle_settings.SCHEDULER_RUN_ORACLE_SCHEDULER:
-            tasks.append(SchedulerCoinPairLoop(self.conf, cp_service, self.bs_loop))
         for x in tasks:
             x.start_bg_task()
 

@@ -10,8 +10,6 @@ echo "////////"
 
 export ORACLE_ADDR="${Addr[$InstanceID]}"
 export ORACLE_PRIVATE_KEY="${Priv[$InstanceID]}"
-export SCHEDULER_SIGNING_ADDR="${Addr[$InstanceID]}"
-export SCHEDULER_SIGNING_KEY="${Priv[$InstanceID]}"
 export ORACLE_PORT="${OracPort[$InstanceID]}"
 export ORACLE_COIN_PAIR_FILTER="${OracleCoinPairFilter[$InstanceID]}"
 
