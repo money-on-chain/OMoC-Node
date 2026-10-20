@@ -225,6 +225,9 @@ class TaskRequestValidation:
                                    "params %r block chain info %r" % (
                                        self.params, self.blockchain_info), self.cp)
 
+        if not self.are_tasks_available:
+            raise ValidationFailure("No tasks available for signing", self.cp)
+
         if self.params.last_pub_block != self.blockchain_info.last_pub_block:
             logger.warning(
                 "%r : ValidationFailure DifferentLastPubBlock params=%r blockchain_last=%r",
