@@ -10,12 +10,14 @@ from oracle.src import request_validation
 from oracle.src.oracle_coin_pair_loop import OracleCoinPairLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_publish_message import PublishTaskParams
+from oracle.src.oracle_turn import TasksOracleTurn
 from oracle.src.request_validation import ValidationFailure
 from oracle.src.tasks_runner import TasksRunner
 
 
 STUCK_TASK = "0x40652119dfC7a114c43D36bd5369400577803E91"
 OTHER_TASK = "0x610Bb1573d1046FCb8A70Bbbd395754cD57C2b60"
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 
 def make_runner(tasks):
@@ -93,11 +95,24 @@ async def test_ignored_tasks_reject_matching_zero_flags_without_signing(monkeypa
     sign_message = Mock()
     monkeypatch.setattr(request_validation.crypto, "sign_message", sign_message)
     runner = make_runner([STUCK_TASK])
-    runner.oracle_turn.validate_turn.return_value = (False, "There are no tasks available")
+    runner.vi_loop.get.return_value = SimpleNamespace(
+        last_pub_block=5,
+        last_pub_block_hash="0x" + "00" * 32,
+        selected_oracles=[SimpleNamespace(addr=OTHER_TASK, stake=1)],
+    )
+    runner.oracle_turn = TasksOracleTurn.__new__(TasksOracleTurn)
+    runner.oracle_turn.reset(None, "TASKS")
     validator = await runner.create_validator(
         PublishTaskParams(3, runner.cps.coin_pair, 0, OTHER_TASK, 5)
     )
 
+    # The base turn check approves the first selected oracle without checking
+    # are_tasks_available, so the validator must reject before reaching it.
+    assert runner.oracle_turn.validate_turn(
+        validator.blockchain_info,
+        OTHER_TASK,
+        {"are_tasks_available": False, "last_block_when_available": None},
+    )[0] is True
     with pytest.raises(ValidationFailure):
         validator.validate_and_sign("0x00")
     sign_message.assert_not_called()
@@ -106,7 +121,39 @@ async def test_ignored_tasks_reject_matching_zero_flags_without_signing(monkeypa
 @pytest.mark.asyncio
 async def test_mixed_tasks_remain_available(monkeypatch):
     monkeypatch.setattr(settings, "IGNORE_POSSIBLY_STUCK_TASKS", {STUCK_TASK.lower()})
-    runner = make_runner([STUCK_TASK, OTHER_TASK])
+    runner = make_runner([STUCK_TASK, ZERO_ADDRESS, OTHER_TASK])
+
+    assert await runner.is_oracle_turn(SimpleNamespace(block_num=6), OTHER_TASK) == (
+        True, True, [OTHER_TASK]
+    )
+    assert runner._tasks_flags == 7
+    validator = await runner.create_validator(
+        PublishTaskParams(3, runner.cps.coin_pair, 7, OTHER_TASK, 5)
+    )
+    assert validator.are_tasks_available is True
+    assert validator.tasks_flags == 7
+
+
+@pytest.mark.asyncio
+async def test_zero_address_slots_do_not_keep_ignored_tasks_available(monkeypatch):
+    monkeypatch.setattr(settings, "IGNORE_POSSIBLY_STUCK_TASKS", {STUCK_TASK.lower()})
+    runner = make_runner([STUCK_TASK, ZERO_ADDRESS])
+
+    assert await runner.is_oracle_turn(SimpleNamespace(block_num=6), OTHER_TASK) == (False, None, None)
+    runner.oracle_turn.is_oracle_turn.assert_not_called()
+    validator = await runner.create_validator(
+        PublishTaskParams(3, runner.cps.coin_pair, 7, OTHER_TASK, 5)
+    )
+    assert validator.are_tasks_available is False
+    with pytest.raises(ValidationFailure):
+        validator.validate_and_sign("0x00")
+
+
+@pytest.mark.asyncio
+async def test_empty_task_lookup_does_not_suppress_available_tasks(monkeypatch):
+    monkeypatch.setattr(settings, "IGNORE_POSSIBLY_STUCK_TASKS", {STUCK_TASK.lower()})
+    # TasksRunnerService returns [] when getTasksAvailable reverts.
+    runner = make_runner([])
 
     assert await runner.is_oracle_turn(SimpleNamespace(block_num=6), OTHER_TASK) == (
         True, True, [OTHER_TASK]

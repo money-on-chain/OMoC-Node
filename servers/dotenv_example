@@ -24,8 +24,9 @@ ORACLE_COIN_PAIR_FILTER=["BTCUSD"]
 
 # Updated nodes always publish prices using V4. TasksRunner stays on V3.
 TASK_MESSAGE_VERSION=3
-# Emergency-only: the address below is ignored by default when it is the only
-# available task. Override with comma-separated addresses, or set to empty to disable.
+# Emergency-only: this node skips its task attempt when the address below is
+# the only available nonzero task. Override with comma-separated addresses,
+# or set to empty to disable.
 # IGNORE_POSSIBLY_STUCK_TASKS=0x40652119dfC7a114c43D36bd5369400577803E91
 PRICE_SIGNATURE_EXPIRATION_SECONDS="5 mins"
 PRICE_SIGNATURE_MIN_VALIDITY_SECONDS="30 secs"
