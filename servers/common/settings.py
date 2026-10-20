@@ -65,6 +65,14 @@ GAS_PRICE_HARD_LIMIT_MULTIPLIER = config('GAS_PRICE_HARD_LIMIT_MULTIPLIER', cast
 
 COIN_PAIR_SW_ROUND_GAS_LIMIT = config('COIN_PAIR_SW_ROUND_GAS_LIMIT', cast=int, default=2500000)
 TASKS_RUNNER_MIN_GAS = config('TASKS_RUNNER_MIN_GAS', cast=int, default=0)
+# Emergency-only: nodes can omit a misconfigured or overly frequent task when
+# every currently available task is on this comma-separated address list.
+IGNORE_POSSIBLY_STUCK_TASKS = frozenset(
+    address.strip().lower()
+    for address in config('IGNORE_POSSIBLY_STUCK_TASKS', cast=str,
+                          default='0x40652119dfC7a114c43D36bd5369400577803E91').split(',')
+    if address.strip()
+)
 
 MOC_PRICE_SOURCES_API_URI = config('MOC_PRICE_SOURCES_API_URI', cast=str, default='http://localhost:7989')
 OFFLINE_CFG_URL = MOC_PRICE_SOURCES_API_URI + "/api/coinpairs/get_value_simple?coinpair="
