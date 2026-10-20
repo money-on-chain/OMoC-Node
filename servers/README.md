@@ -337,7 +337,8 @@ ORACLE_ENTERING_FALLBACKS_AMOUNTS=020406080A
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
 
-# Emergency-only: suppress task rounds when every available task address is listed.
+# Emergency-only: this node skips its task attempt when every available
+# nonzero task address is listed.
 # The address below is the default. Set this to empty to disable the filter.
 # This node also refuses to sign those task requests from other nodes.
 # IGNORE_POSSIBLY_STUCK_TASKS = 0x40652119dfC7a114c43D36bd5369400577803E91

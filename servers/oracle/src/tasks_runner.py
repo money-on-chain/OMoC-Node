@@ -11,6 +11,7 @@ from oracle.src.price_feeder.price_feeder import PriceFeederLoop
 from oracle.src.request_validation import TaskRequestValidation
 
 ETHER = 10**18
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 class TasksRunner(MyCfgdLogger):
     def __init__(
@@ -82,10 +83,14 @@ class TasksRunner(MyCfgdLogger):
         tasks_flags = await self.cps.get_tasks_available_as_flags()
         if are_tasks_available and settings.IGNORE_POSSIBLY_STUCK_TASKS:
             tasks = await self.cps.get_tasks_available()
-            # Emergency-only consensus control: suppress the entire task round
-            # when every available address is configured as possibly stuck.
-            # A round with any other task keeps its original on-chain flags.
-            if all(str(task).lower() in settings.IGNORE_POSSIBLY_STUCK_TASKS for task in tasks):
-                self.warning("All available tasks are in IGNORE_POSSIBLY_STUCK_TASKS; skipping task round")
+            # Emergency-only node control: the contract may leave zero-address
+            # slots for unavailable tasks. Skip this node's attempt only when
+            # at least one real address remains and all of them are ignored.
+            # An empty result may also mean the getter reverted.
+            available_tasks = [str(task).lower() for task in tasks
+                               if str(task).lower() != ZERO_ADDRESS]
+            if available_tasks and all(task in settings.IGNORE_POSSIBLY_STUCK_TASKS
+                                       for task in available_tasks):
+                self.warning("All available tasks are in IGNORE_POSSIBLY_STUCK_TASKS; skipping task attempt")
                 return False, 0
         return are_tasks_available, tasks_flags
