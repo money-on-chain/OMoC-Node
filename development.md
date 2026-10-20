@@ -131,7 +131,7 @@ pip install -r requirements.txt
 
 #### Running the Netsim script
 
-The Netsim script runs a simulation of the decentralized oracle system where a defined set of oracles publish prices in the testing environment. Round changes and reward distribution require a separate process.
+The Netsim script runs a simulation of the decentralized oracle system where a defined set of oracles publish prices in the testing environment. The steps below start the initial round but do not configure the TasksRunner task that handles later round changes. They do not test later rounds or reward distribution.
 
 #### Configuration through .env file
 
@@ -174,9 +174,9 @@ Make sure you are at the `servers` directory and ganache-cli is running, execute
 python -m scripts.netsim
 ```
 
-The startup will show you configuration settings along with three (by default) oracles that will begin to fetch prices; the scheduler will wait for conditions to open a round. 
+The startup will show you configuration settings along with three (by default) oracles that will begin to fetch prices.
 
-Keep in mind that in this version rewards are distributed from a source address which must be feed with MOCs. To do this, execute the add_rewards scripts as follows:
+To fund the reward source address with MOCs, run:
 
 ```
 python -m scripts.add_rewards
@@ -185,10 +185,10 @@ python -m scripts.add_rewards
 To start the initial round as an administrator would do, execute from the same `servers` directory:
 
 ```
-python -m scripts.start_initial_round
+python -m scripts.oracle_start_initial_round
 ```
 
-The scheduler will call the smart contract interface to trigger the opening of the first round, so the oracles can publish prices.
+This script calls `switchRound` for the initial round so the oracles can publish prices. In a deployment configured with TasksRunner, a registered task handles later round changes; this Netsim setup does not register that task.
 
 Use the list_oracles script to verify how many points each oracle has gained in the current round:
 
