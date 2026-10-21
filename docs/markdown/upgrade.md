@@ -8,7 +8,7 @@ In case you only need to update logs files, please go to the fourth step and at 
 
 1. Stop services:
 
-    `supervisorctl stop backend ; supervisorctl stop oracle`
+    `supervisorctl stop oracle`
     
 2. Update code to latest version:
 
@@ -33,15 +33,15 @@ In case you only need to update logs files, please go to the fourth step and at 
 
     `cd /etc/supervisor/conf.d/`
 
-	* Both in oracle.conf and in backend.conf add the following lines:
+	* In oracle.conf add the following lines:
 
 	![SupervisorLogs](./images/supervisor.png)
 
 6. Start services:
 
-    `supervisorctl start backend ; supervisorctl start oracle`
+    `supervisorctl start oracle`
 
-7. Check if oracle and backend service's are running:
+7. Check if the oracle service is running:
 
     `supervisorctl status`
 

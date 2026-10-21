@@ -13,10 +13,6 @@ cd ..
 rm latest.tgz
 
 git pull
-# We update the monitor python environment
-. ./venv/bin/activate
-pip install -r monitor/backend/requirements.txt
-deactivate
 # We update the oracle server python environment
 cd servers
 . ./venv/bin/activate
@@ -35,14 +31,3 @@ search="NODE_URL" ; replace="#NODE_URL" ; sed -i "s/${search}/${replace}/g" ${se
 echo "" >> ${server_env}
 echo "# RSK testnet node" >> ${server_env}
 echo "NODE_URL=\"https://public-node.testnet.rsk.co:443\"" >> ${server_env}
-
-# Remove log folder for backend
-backend_env="/home/ubuntu/OMoC-Node/monitor/backend/.env"
-search="ALERT_LOG_FILENAME" ; replace="#ALERT_LOG_FILENAME" ; sed -i "s/${search}/${replace}/g" ${backend_env}
-#echo "" >> ${backend_env}
-#echo "# Log file reporting" >> ${backend_env}
-#echo "ALERT_LOG_FILENAME=/var/log/supervisor/monitor.log" >> ${backend_env}
-#-- Another option is to do as follow (but requires sudo): --
-#sudo touch /var/log/supervisor/monitor.log
-#sudo chown ubuntu:ubuntu /var/log/supervisor/monitor.log
-#-- Fixed on the AMI, not included in the upgrade
