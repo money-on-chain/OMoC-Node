@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.7.5] - 2026-10-20
+
+### Added
+
+- Add `IGNORE_POSSIBLY_STUCK_TASKS` to skip a TasksRunner attempt when every available task is listed. Zero-address slots do not count, and the node also declines to sign matching requests.
+
+### Fixed
+
+- Use the signal property in the debug information endpoint.
+
+### Changed
+
+- Remove the automatic coin-pair and supporters round schedulers and their obsolete configuration and documentation.
+- Update the Docker image's `moneyonchain-prices-source` dependency to `0.7.9`.
+
 ## [1.3.7.4] - 2026-09-14
 
 ### Fixed
