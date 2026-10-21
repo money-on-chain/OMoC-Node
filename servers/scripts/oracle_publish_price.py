@@ -1,8 +1,12 @@
 from random import randint
+import time
 
 from common import crypto, helpers
 from common.services.oracle_dao import PriceWithTimestamp
-from oracle.src.oracle_publish_message import PublishPriceParams
+from oracle.src.oracle_publish_message import (
+    EXPIRING_PRICE_MESSAGE_VERSION,
+    PublishPriceParams,
+)
 from scripts import script_settings
 
 
@@ -22,20 +26,27 @@ async def main():
         last_block = await cps.get_last_pub_block()
         print('PRICE ', price, 'LAST PUBLISHED BLOCK ', last_block)
 
-        params = PublishPriceParams(conf.MESSAGE_VERSION, cp,
-                                    PriceWithTimestamp(price, 0), oracle_account.addr, last_block)
+        expiration = int(time.time()) + conf.PRICE_SIGNATURE_EXPIRATION_SECONDS
+        params = PublishPriceParams(
+            EXPIRING_PRICE_MESSAGE_VERSION,
+            cp,
+            PriceWithTimestamp(price, 0),
+            oracle_account.addr,
+            last_block,
+            expiration,
+        )
         message = params.prepare_msg()
         print("params", params)
         print("message", message)
         # sign myself locally, just testing
         signature = crypto.sign_message_hex(hexstr="0x" + message, account=oracle_account)
         print("sign result: ", signature)
-        tx = await cps.publish_price(params.version,
-                                     params.coin_pair,
-                                     params.price,
-                                     params.oracle_addr,
-                                     params.last_pub_block,
-                                     [signature], account=oracle_account, wait=True)
+        tx = await cps.publish(
+            params,
+            [signature],
+            account=oracle_account,
+            wait=True,
+        )
         print("publish price", tx)
         print('PRICE POST', await cps.get_price())
 

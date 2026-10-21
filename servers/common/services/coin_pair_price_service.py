@@ -106,6 +106,22 @@ class CoinPairService(BaseCoinPairService):
         return "price: %r " % price
 
     async def _publish(self, params: PublishPriceParams, v: List[int], r: List[bytes], s: List[bytes], account: BlockchainAccount = None, wait=False, last_gas_price=None):
+        if params.expiration is not None:
+            return await self.coin_pair_execute(
+                "publishPriceWithExpiration",
+                params.version,
+                params.coin_pair.longer(),
+                params.price,
+                params.oracle_addr,
+                params.last_pub_block,
+                params.expiration,
+                v,
+                r,
+                s,
+                account=account,
+                wait=wait,
+                last_gas_price=last_gas_price,
+            )
         return await self.coin_pair_execute("publishPrice", params.version,
                                                   params.coin_pair.longer(), params.price, params.oracle_addr,
                                                   params.last_pub_block, v, r, s, account=account, wait=wait,
