@@ -131,16 +131,16 @@ pip install -r requirements.txt
 
 #### Running the Netsim script
 
-The Netsim script allows to run a simulation of the decentralized oracle system where a defined set of oracles publish prices on the testing environment. This way fundamental functionality such as round open, close, publisher selection and reward distribution can be quickly verified.
+The Netsim script runs a simulation of the decentralized oracle system where a defined set of oracles publish prices in the testing environment. The steps below start the initial round but do not configure the TasksRunner task that handles later round changes. They do not test later rounds or reward distribution.
 
 #### Configuration through .env file
 
-Servers must be configured accordingly in a `.env` file. We supply a `dotenv_example` file under the `servers` folder as a starting version; check NODE_URL and NETWORK_ID entries to match the `ganache-cli` settings, or of any node your are running:
+Servers must be configured accordingly in a `.env` file. We supply a `dotenv_example` file under the `servers` folder as a starting version; set `NODE_URL` and `DEVELOP_NETWORK_ID` to match the Ganache deployment:
 
 ```
 # ganache cli
 NODE_URL = "http://localhost:8545"
-NETWORK_ID=12341234
+DEVELOP_NETWORK_ID=12341234
 CHAIN_ID=1
 ```
 
@@ -158,17 +158,15 @@ While the contract owner at deployment will be set to the address:
 0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1
 ```
 
-Make sure the following entries are set in the `.env` file:
+After deploying the contracts, replace the `REGISTRY_ADDR=0x` placeholder in `.env` with the address of the deployed Registry contract. For an OMoC-SC-Shared deployment, find it under `proxies` → `@moc/shared/Registry` → `address` in `.openzeppelin/dev-12341234.json`. Also set the following Ganache test accounts; do not use them on other networks:
 
 ```
-SCHEDULER_SIGNING_ADDR="0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
-SCHEDULER_SIGNING_KEY="6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"
-SCHEDULER_POOL_DELAY="10 secs"
-SCHEDULER_ROUND_DELAY="60 secs"
-SCHEDULER_REWARD_BAG_ADDR="0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826"
-PRICE_FETCHER_OWNER_ADDR="0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
-PRICE_FETCHER_OWNER_KEY="4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
-REWARD_BAG_KEY="c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4"
+SCRIPT_ORACLE_OWNER_ADDR="0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+SCRIPT_ORACLE_OWNER_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
+SCRIPT_REWARD_BAG_ADDR="0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
+SCRIPT_REWARD_BAG_PRIVATE_KEY="0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"
+ORACLE_PRIVATE_KEY="0x6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c"
+REGISTRY_ADDR="<address of the Registry deployed on this Ganache network>"
 ``` 
 
 #### Execution of the netsim script
@@ -179,26 +177,26 @@ Make sure you are at the `servers` directory and ganache-cli is running, execute
 python -m scripts.netsim
 ```
 
-The startup will show you configuration settings along with three (by default) oracles that will begin to fetch prices; the scheduler will wait for conditions to open a round. 
+The startup will show you configuration settings along with three (by default) oracles that will begin to fetch prices.
 
-Keep in mind that in this version rewards are distributed from a source address which must be feed with MOCs. To do this, execute the add_rewards scripts as follows:
+To fund the reward source address with MOCs, run:
 
 ```
-python -m scripts.add_rewards
+python -m scripts.oracle_add_rewards
 ```
 
 To start the initial round as an administrator would do, execute from the same `servers` directory:
 
 ```
-python -m scripts.start_initial_round
+python -m scripts.oracle_start_initial_round
 ```
 
-The scheduler will call the smart contract interface to trigger the opening of the first round, so the oracles can publish prices.
+This script calls `switchRound` for the initial round so the oracles can publish prices. In a deployment configured with TasksRunner, a registered task handles later round changes; this Netsim setup does not register that task.
 
-Use the list_oracles script to verify how many points each oracle has gained in the current round:
+Use the oracle_list script to verify how many points each oracle has gained in the current round:
 
 ```
-python -m scripts.list_oracles
+python -m scripts.oracle_list
 
  INFO FOR  0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d  : 
  {'internetName': 'http://127.0.0.1:24004', 

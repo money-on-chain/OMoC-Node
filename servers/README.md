@@ -109,26 +109,9 @@ The rest of the parameters are optional. If they are missing they are taken from
     
     This is the timeout used when connecting to the blockchain node.
 
-- SCHEDULER_POOL_DELAY = "10 secs"
-
-    Delay in which the supporters scheduler checks for round change conditions and try to execute a 
-    distribute transaction.
-
-- SCHEDULER_ROUND_DELAY = "1 days"
-    
-    Delay in which the supporters scheduler checks for round change after a round was successfully closed.
-    
-- SCHEDULER_RUN_ORACLE_SCHEDULER = True
-
-    This parameter can be used to disable the Oracle scheduler.
-
-- SCHEDULER_RUN_SUPPORTERS_SCHEDULER = True     
-        
-    This parameter can be used to disable the Supporters scheduler.
-
 - ORACLE_RUN = True
     
-    This parameter can be used to disable the Oracle. The server still runs the schedulers.
+    Disables the oracle price collection and publication tasks. The HTTP server still runs.
 
 - ORACLE_PORT = 5556
 
@@ -309,20 +292,8 @@ CHAIN_ID=31
 # Timeout used when connection to the blockchain node
 # WEB3_TIMEOUT = "30 secs"
 
-############################################### SCHEDULER
-
-# Delay in which the scheduler checks for round change conditions
-# SCHEDULER_POOL_DELAY = "10 secs"
-# Delay in which the scheduler checks for round change after a round was closed
-# SCHEDULER_ROUND_DELAY = "1 days"
-# Run the oracle round scheduler?
-# SCHEDULER_RUN_ORACLE_SCHEDULER = True
-# Run the supporters round scheduler?
-# SCHEDULER_RUN_SUPPORTERS_SCHEDULER = True
-
-
 ############################################### ORACLE
-# Run the oracle server (sign api and publisher).
+# Enable oracle price collection and publication tasks.
 ORACLE_RUN = True
 
 # Port in which the oracle listen for sign request
@@ -365,6 +336,12 @@ ORACLE_ENTERING_FALLBACKS_AMOUNTS=020406080A
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
+
+# Emergency-only: this node skips its task attempt when every available
+# nonzero task address is listed.
+# The address below is the default. Set this to empty to disable the filter.
+# This node also refuses to sign those task requests from other nodes.
+# IGNORE_POSSIBLY_STUCK_TASKS = 0x40652119dfC7a114c43D36bd5369400577803E91
 
 # If configured (json array of strings) only publish for those coinpairs in the list
 ORACLE_COIN_PAIR_FILTER =[ "BTCUSD", "RIFUSD" ]

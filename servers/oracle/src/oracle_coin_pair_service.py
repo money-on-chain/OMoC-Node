@@ -48,6 +48,11 @@ class OracleCoinPairService():
             return await self._coin_pair_service.get_are_tasks_available()
         raise Exception("Not a TasksRunnerService")
 
+    async def get_tasks_available(self):
+        if self.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
+            return await self._coin_pair_service.get_tasks_available()
+        raise Exception("Not a TasksRunnerService")
+
     async def get_tasks_available_as_flags(self) -> int:
         if self.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
             return await self._coin_pair_service.get_tasks_available_as_flags()
@@ -149,12 +154,3 @@ class OracleCoinPairService():
 
     async def get_round_info(self) -> RoundInfo:
         return await self._coin_pair_service.get_round_info()
-
-    async def switch_round(self, account: BlockchainAccount = None, wait=False,
-                           last_gas_price=None):       
-        return await self._coin_pair_service.switch_round(account=account, wait=wait,
-                           last_gas_price=last_gas_price)
-
-    async def get_last_block_timestamp(self):
-        data = await self._blockchain.get_last_block_data()
-        return data["timestamp"]

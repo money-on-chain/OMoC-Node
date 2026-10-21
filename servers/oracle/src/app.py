@@ -100,7 +100,7 @@ async def read_info():
             if settings.DEBUG:
                 data[cp]["conditional-publication"] = cpm[
                     cp
-                ].coin_pair_loop._signal_service.cfg_as_dict()
+                ].coin_pair_loop.signal.cfg_as_dict()
             data[cp].update(fill_cp_info(obl._cps._coin_pair_service))
 
     except Exception as err:
