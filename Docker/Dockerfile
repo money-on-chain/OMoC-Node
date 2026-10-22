@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential curl git ca-certificates \
     libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
     libsqlite3-dev libffi-dev liblzma-dev tk-dev xz-utils uuid-dev \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419~deb12u2' \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 https://github.com/pyenv/pyenv.git $PYENV_ROOT
@@ -19,7 +20,8 @@ RUN pyenv install 3.12.13 && \
 
 RUN mkdir -p /app/omoc_node
 RUN /opt/pyenv/versions/3.8.20/bin/python -m venv /app/omoc_node/.venv && \
-    /app/omoc_node/.venv/bin/python -m pip install --upgrade pip setuptools wheel
+    /app/omoc_node/.venv/bin/python -m pip install --upgrade \
+    'pip==25.0.1' 'setuptools==75.3.2' 'wheel==0.45.1'
 COPY servers/requirements.txt .
 RUN /app/omoc_node/.venv/bin/python -m pip install -r requirements.txt
 
@@ -39,6 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
     libssl3 zlib1g libbz2-1.0 libreadline8 libsqlite3-0 \
     libffi8 liblzma5 tk \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419~deb12u2' \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/pyenv/versions/3.12.13 /opt/pyenv/versions/3.12.13
