@@ -14,10 +14,6 @@ rm latest.tgz
 
 git pull
 
-# We update the monitor python environment
-. ./venv/bin/activate
-pip install -r monitor/backend/requirements.txt
-deactivate
 # We update the oracle server python environment
 cd servers
 . ./venv/bin/activate
