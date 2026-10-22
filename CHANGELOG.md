@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.7.6] - TBD
+
+### Fixed
+
+- Update the Docker image's CA certificate stores and Python `certifi` dependency to address the eMudhra certificate incident.
+
+### Changed
+
+- Update the Docker image's `moneyonchain-prices-source` dependency to `0.7.10`.
+
 ## [1.3.7.5] - 2026-10-20
 
 ### Added
