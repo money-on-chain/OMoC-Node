@@ -5,6 +5,8 @@ FROM base as builder
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYENV_ROOT=/opt/pyenv
 ENV PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+# Use Debian's patched CA bundle for every pip download, including venv bootstrap.
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential curl git ca-certificates \
