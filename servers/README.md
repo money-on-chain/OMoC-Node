@@ -219,7 +219,7 @@ V4 message, including its expiration.
 - ORACLE_PRICE_RECEIVE_MAX_AGE=<float>   
   Received price max age in exchange cache before we consider it a No-Price. 
   It is expected to be expressed in seconds. For details check 
-  [PRICE_HANDLING.md](../PRICE_HANDLING.md).
+  [PRICE_HANDLING.md](../docs/PRICE_HANDLING.md).
   
 - ORACLE_PRICE_PUBLISH_MAX_DIFF=<float>
 - ORACLE_PRICE_VALIDATE_MAX_DIF=<float>
@@ -228,7 +228,7 @@ V4 message, including its expiration.
     values returned from the price-queue. One value is used when generating a 
     new price, and the other is used when generating a price to be used to 
     validate third party oracles price proposal. For details check 
-    [PRICE_HANDLING.md](../PRICE_HANDLING.md).
+    [PRICE_HANDLING.md](../docs/PRICE_HANDLING.md).
 
 
 #### Exchanges to use by coinpair and their ponderation
