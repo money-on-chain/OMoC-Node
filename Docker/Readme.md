@@ -10,11 +10,7 @@ docker build -t moneyonchain/omoc_node -f Docker/Dockerfile .
 
 ### 2.1 - Set oracle configuration:
 
-```bash
-$ python3 scripts/setAddress.py [-e env file]
-```
-        
-This will generate a file with the following configuration 
+envfile:
         
 ```bash
 CHAIN_ID=31
