@@ -6,7 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 FROM python:3.8
 
-COPY --from=patched-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN rm -rf /etc/ssl/certs /usr/share/ca-certificates
+COPY --from=patched-ca /usr/share/ca-certificates/ /usr/share/ca-certificates/
+COPY --from=patched-ca /etc/ca-certificates.conf /etc/ca-certificates.conf
+COPY --from=patched-ca /etc/ssl/certs/ /etc/ssl/certs/
 ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
