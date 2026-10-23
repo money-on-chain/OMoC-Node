@@ -1,4 +1,14 @@
+FROM debian:bookworm-slim AS patched-ca
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419~deb12u2' \
+    && rm -rf /var/lib/apt/lists/*
+
 FROM python:3.8
+
+COPY --from=patched-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 RUN apt-get update && \
     apt-get install -y \
@@ -12,7 +22,8 @@ RUN echo $TZ > /etc/timezone && \
     apt-get clean
 
 COPY ./files/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir 'certifi==2026.10.19'
 
 RUN mkdir /common
 COPY ./files/common /common
