@@ -25,19 +25,17 @@ This repository contains the Decentralized Oracle System's **Oracle Reference No
 
 ## Project Structure
 
-* [development.md](development.md): How to run a local development environment.
+
 * [Docker](Docker): Docker container preparation scripts.
 * [docs](docs): System documentation.
-* [scripts](scripts): A few scripts to retrieve system execution info from the blockchain allowing to examine system behavior.
 * [servers](servers): The reference Oracle implementation along with the schedulers.
 * [servers/common](servers/common): Python utility classes which will be used in the system.
 * [servers/oracle](servers/oracle): The source code for the Oracle reference node itself.
 * [servers/scripts](servers/scripts): Scripts to test servers and manually register, start round, etc... This is useful for the development environment.
-* [servers/delfos](servers/delfos): Sets up a group of price feeders working together to test the system in a single machine.
+
 
 ## Smart Contracts Design
 
-![Architecture](docs/contracts.png)
 
 **OracleManager**: Allows any blockchain user to register an oracle in the system and subscribe it as a price-provider for different coin-pairs.
 
