@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.7.7] - Upcoming
+
+### Fixed
+
+- Replace `pip` with `uv` for Python dependency installation in Docker images. `uv` uses the system CA certificates, avoiding the certificate issues caused by `pip` relying on `certifi`.
+
 ## [1.3.7.6] - 2026-10-26
 
 ### Fixed
