@@ -1,12 +1,14 @@
 # ---------- build stage ----------
 FROM debian:bookworm-slim AS base
 FROM base as builder
+# uv 0.13.6; update this digest using https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+COPY --from=ghcr.io/astral-sh/uv@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /bin/uv
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYENV_ROOT=/opt/pyenv
 ENV PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
-# Use Debian's patched CA bundle for every pip download, including venv bootstrap.
-ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt
+ENV UV_SYSTEM_CERTS=true
+ENV UV_NO_MANAGED_PYTHON=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential curl git ca-certificates \
@@ -21,16 +23,16 @@ RUN pyenv install 3.12.13 && \
     pyenv install 3.8.20
 
 RUN mkdir -p /app/omoc_node
-RUN /opt/pyenv/versions/3.8.20/bin/python -m venv /app/omoc_node/.venv && \
-    /app/omoc_node/.venv/bin/python -m pip install --upgrade \
-    'pip==25.0.1' 'setuptools==75.3.2' 'wheel==0.45.1'
+RUN uv venv --python /opt/pyenv/versions/3.8.20/bin/python /app/omoc_node/.venv && \
+    uv pip install --python /app/omoc_node/.venv/bin/python \
+    'setuptools==75.3.2' 'wheel==0.45.1'
 COPY servers/requirements.txt .
-RUN /app/omoc_node/.venv/bin/python -m pip install -r requirements.txt
+RUN uv pip install --python /app/omoc_node/.venv/bin/python -r requirements.txt
 
 RUN mkdir -p /app/moc_prices_source
-RUN /opt/pyenv/versions/3.12.13/bin/python -m venv /app/moc_prices_source/.venv && \
-    /app/moc_prices_source/.venv/bin/python -m pip install --upgrade pip setuptools wheel
-RUN /app/moc_prices_source/.venv/bin/python -m pip install moneyonchain-prices-source==0.7.10
+RUN uv venv --python /opt/pyenv/versions/3.12.13/bin/python /app/moc_prices_source/.venv && \
+    uv pip install --python /app/moc_prices_source/.venv/bin/python setuptools wheel
+RUN uv pip install --python /app/moc_prices_source/.venv/bin/python moneyonchain-prices-source==0.7.10
 
 # ---------- runtime stage ----------
 FROM base
