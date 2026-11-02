@@ -32,7 +32,7 @@ RUN uv pip install --python /app/omoc_node/.venv/bin/python -r requirements.txt
 RUN mkdir -p /app/moc_prices_source
 RUN uv venv --python /opt/pyenv/versions/3.12.13/bin/python /app/moc_prices_source/.venv && \
     uv pip install --python /app/moc_prices_source/.venv/bin/python setuptools wheel
-RUN uv pip install --python /app/moc_prices_source/.venv/bin/python moneyonchain-prices-source==0.7.10
+RUN uv pip install --python /app/moc_prices_source/.venv/bin/python moneyonchain-prices-source==0.7.11
 
 # ---------- runtime stage ----------
 FROM base
