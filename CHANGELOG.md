@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.7.7] - 2026-11-02
+
+### Fixed
+
+- Replace `pip` with `uv` for Python dependency installation in Docker images. `uv` uses the system CA certificates, avoiding the certificate issues caused by `pip` relying on `certifi`.
+
+### Changed
+
+- Update the Docker image's `moneyonchain-prices-source` dependency to `0.7.11`.
+
 ## [1.3.7.6] - 2026-10-26
 
 ### Fixed
