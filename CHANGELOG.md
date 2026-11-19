@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.7.8] - Upcoming
+
+- TBD
+
 ## [1.3.7.7] - 2026-11-02
 
 ### Fixed
