@@ -4,5 +4,5 @@
 - [x] Update the `CHANGELOG.md` with the changes proposed for this release.
 - [x] Do a final review with @codex.
 - [x] Set the final `VERSION` in `servers/common/settings.py` to `1.3.7.8`, removing the `-beta.1` suffix.
-- [ ] Update the `CHANGELOG.md` with the latest release date.
+- [x] Update the `CHANGELOG.md` with the latest release date.
 - [ ] Delete this `TODO.md` file before the release.
