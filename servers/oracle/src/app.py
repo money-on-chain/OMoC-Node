@@ -24,6 +24,63 @@ not_authorized_msg = "The request was not made by a selected oracle."
 
 # endpoints which can be accessed by anyone
 OPEN_ENDPOINTS = {"/version", "/info"}
+SIGN_ENDPOINTS = {"/sign/", "/sign-price-v4/", "/sign-task/"}
+MAX_SIGN_BODY_SIZE = 64 * 1024
+
+
+class LimitSignBodyMiddleware:
+    """Reject oversized signing requests before FastAPI parses their form fields."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["path"] not in SIGN_ENDPOINTS:
+            return await self.app(scope, receive, send)
+
+        async def reject():
+            await Response(status_code=413)(scope, receive, send)
+
+        # CVE-2026-54283: urlencoded form limits are ignored by this Starlette
+        # version. Reject large bodies before Form() invokes its parser.
+        for name, value in scope.get("headers", []):
+            if name.lower() == b"content-length":
+                try:
+                    if int(value) > MAX_SIGN_BODY_SIZE:
+                        return await reject()
+                except ValueError:
+                    pass  # The byte counter below also covers invalid headers.
+
+        # CVE-2026-54283: read at most one permitted body before calling
+        # FastAPI. An exception raised during Form() parsing would become 400.
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            if len(body) + len(chunk) > MAX_SIGN_BODY_SIZE:
+                return await reject()
+            body.extend(chunk)
+            if not message.get("more_body", False):
+                break
+
+        buffered_body = bytes(body)
+        replayed = False
+
+        async def replay_receive():
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": buffered_body, "more_body": False}
+            return await receive()
+
+        return await self.app(scope, replay_receive, send)
+
+
+# The IP filter registered below runs first; permitted requests then reach
+# this limit before FastAPI reads Form() fields.
+app.add_middleware(LimitSignBodyMiddleware)
 
 
 def get_error_msg(msg=None):
@@ -37,8 +94,11 @@ async def filter_ips_by_selected_oracles(request: Request, call_next):
         return await call_next(request)
     try:
         (ip, port) = request.client
-        logger.debug("Got a connection to %s from %r" % (request.url.path, ip))
-        if not (request.url.path in OPEN_ENDPOINTS):
+        # CVE-2026-48710: Host can change request.url.path. The ASGI path is
+        # the one used for routing, so the public-route exemption uses it too.
+        path = request.scope["path"]
+        logger.debug("Got a connection to %s from %r" % (path, ip))
+        if path not in OPEN_ENDPOINTS:
             if not main_executor.is_valid_ip(ip):
                 raise Exception("%s %r" % (not_authorized_msg, ip))
         return await call_next(request)
