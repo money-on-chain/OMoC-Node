@@ -2,7 +2,14 @@
 
 ## [1.3.7.8] - Upcoming
 
-- TBD
+### Fixed
+
+- Prevent a manipulated `Host` header from bypassing the Oracle IP filter by checking the routed ASGI path (CVE-2026-48710).
+- Limit signing request bodies to 64 KiB before form parsing to reduce resource exhaustion from oversized URL-encoded forms (CVE-2026-54283).
+
+### Tests
+
+- Add regression tests for the IP-filter bypass and signing request body limit.
 
 ## [1.3.7.7] - 2026-11-02
 
