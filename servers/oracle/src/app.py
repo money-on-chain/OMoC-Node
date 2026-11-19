@@ -28,10 +28,6 @@ SIGN_ENDPOINTS = {"/sign/", "/sign-price-v4/", "/sign-task/"}
 MAX_SIGN_BODY_SIZE = 64 * 1024
 
 
-class SignBodyTooLarge(Exception):
-    pass
-
-
 class LimitSignBodyMiddleware:
     """Reject oversized signing requests before FastAPI parses their form fields."""
 
@@ -55,21 +51,31 @@ class LimitSignBodyMiddleware:
                 except ValueError:
                     pass  # The byte counter below also covers invalid headers.
 
-        received = 0
-
-        async def limited_receive():
-            nonlocal received
+        # CVE-2026-54283: read at most one permitted body before calling
+        # FastAPI. An exception raised during Form() parsing would become 400.
+        body = bytearray()
+        while True:
             message = await receive()
-            if message["type"] == "http.request":
-                received += len(message.get("body", b""))
-                if received > MAX_SIGN_BODY_SIZE:
-                    raise SignBodyTooLarge
-            return message
+            if message["type"] == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            if len(body) + len(chunk) > MAX_SIGN_BODY_SIZE:
+                return await reject()
+            body.extend(chunk)
+            if not message.get("more_body", False):
+                break
 
-        try:
-            return await self.app(scope, limited_receive, send)
-        except SignBodyTooLarge:
-            return await reject()
+        buffered_body = bytes(body)
+        replayed = False
+
+        async def replay_receive():
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": buffered_body, "more_body": False}
+            return await receive()
+
+        return await self.app(scope, replay_receive, send)
 
 
 # The IP filter registered below runs first; permitted requests then reach

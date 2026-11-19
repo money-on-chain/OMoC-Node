@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from types import SimpleNamespace
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form, Request
 from starlette.responses import JSONResponse, Response
 
 
@@ -20,7 +20,6 @@ def load_http_guards():
         "OPEN_ENDPOINTS",
         "SIGN_ENDPOINTS",
         "MAX_SIGN_BODY_SIZE",
-        "SignBodyTooLarge",
         "LimitSignBodyMiddleware",
         "filter_ips_by_selected_oracles",
     }
@@ -49,7 +48,7 @@ def load_http_guards():
     return namespace
 
 
-async def request_asgi(app, path, host, body=b"", chunks=None):
+async def request_asgi(app, path, host, body=b"", chunks=None, headers=()):
     events = []
     parts = chunks if chunks is not None else [body]
     incoming = [
@@ -75,7 +74,7 @@ async def request_asgi(app, path, host, body=b"", chunks=None):
         "raw_path": path.encode(),
         "query_string": b"",
         "root_path": "",
-        "headers": [(b"host", host.encode())],
+        "headers": [(b"host", host.encode()), *headers],
         "client": ("203.0.113.10", 12345),
         "server": ("127.0.0.1", 80),
     }
@@ -100,19 +99,21 @@ def test_malformed_host_cannot_bypass_ip_filter():
 
 def test_sign_body_limit_rejects_chunked_oversize_before_form_parsing():
     guards = load_http_guards()
+    guards["main_executor"].is_valid_ip = lambda ip: True
     reached = []
+    app = guards["app"]
+    app.add_middleware(guards["LimitSignBodyMiddleware"])
 
-    async def parse_body(scope, receive, send):
-        while True:
-            event = await receive()
-            if not event.get("more_body"):
-                break
+    @app.post("/sign/")
+    async def sign(value: str = Form(...)):
         reached.append(True)
-        await Response(status_code=200)(scope, receive, send)
+        return {"signed": True}
 
-    app = guards["LimitSignBodyMiddleware"](parse_body)
     limit = guards["MAX_SIGN_BODY_SIZE"]
-    assert asyncio.run(request_asgi(app, "/sign/", "example.com", chunks=[b"a" * limit, b"b"])) == 413
-    assert reached == []
-    assert asyncio.run(request_asgi(app, "/sign/", "example.com", body=b"a" * limit)) == 200
+    headers = [(b"content-type", b"application/x-www-form-urlencoded")]
+    valid_body = b"value=" + b"a" * (limit - len(b"value="))
+    assert asyncio.run(request_asgi(app, "/sign/", "example.com", body=valid_body, headers=headers)) == 200
     assert reached == [True]
+    reached.clear()
+    assert asyncio.run(request_asgi(app, "/sign/", "example.com", chunks=[valid_body, b"b"], headers=headers)) == 413
+    assert reached == []
