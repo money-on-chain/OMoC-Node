@@ -15,8 +15,10 @@ from oracle.src.oracle_publish_message import (
     EXPIRING_PRICE_MESSAGE_VERSION,
     LEGACY_PRICE_MESSAGE_VERSION,
     PublishPriceParams,
+    PublishRewardsParams,
+    PublishTaskParams,
+    REWARDS_MESSAGE_VERSION,
 )
-from oracle.src.oracle_publish_message import PublishTaskParams
 from oracle.src.oracle_settings import ORACLE_PRICE_ENGINES_SIG
 from oracle.src.request_validation import ValidationFailure
 
@@ -28,7 +30,7 @@ not_authorized_msg = "The request was not made by a selected oracle."
 
 # endpoints which can be accessed by anyone
 OPEN_ENDPOINTS = {"/version", "/info"}
-SIGN_ENDPOINTS = {"/sign/", "/sign-price-v4/", "/sign-task/"}
+SIGN_ENDPOINTS = {"/sign/", "/sign-price-v4/", "/sign-task/", "/sign-rewards/"}
 MAX_SIGN_BODY_SIZE = 64 * 1024
 
 
@@ -293,6 +295,60 @@ async def sign_task(
         logger.debug("Sign: %r" % (params,))
         message, my_signature = validation_data.validate_and_sign(signature)
         logger.debug(f"Sign After: {message} {my_signature}")
+        return {"message": message, "signature": my_signature.hex()}
+
+    except ValidationFailure as e:
+        reason = get_error_msg(e)
+        logger.warning(
+            "Giving a Failed Dependency to node %s, reason: %s",
+            oracle_addr,
+            reason,
+        )
+        raise HTTPException(status_code=424, detail=reason)
+    except Exception as e:
+        logger.error(e)
+        if settings.ON_ERROR_PRINT_STACK_TRACE:
+            logger.error(
+                "\n".join(traceback.format_exception(type(e), e, e.__traceback__))
+            )
+        raise HTTPException(status_code=422, detail=get_error_msg(e))
+
+
+@app.post("/sign-rewards/")
+async def sign_rewards(
+    *,
+    version: str = Form(...),
+    coin_pair: str = Form(...),
+    epoch: str = Form(...),
+    merkle_root: str = Form(...),
+    cid: str = Form(...),
+    snapshot_block: str = Form(...),
+    distributed_today: str = Form(...),
+    oracle_addr: str = Form(...),
+    last_pub_block: str = Form(...),
+    signature: str = Form(...),
+):
+    try:
+        if int(version) != REWARDS_MESSAGE_VERSION:
+            raise ValidationFailure("Rewards endpoint accepts only V3", coin_pair)
+
+        params = PublishRewardsParams(
+            version=int(version),
+            coin_pair=CoinPair(coin_pair),
+            epoch=int(epoch),
+            merkle_root=merkle_root,
+            cid=cid,
+            snapshot_block=int(snapshot_block),
+            distributed_today=int(distributed_today),
+            epoch_data_hash=None,
+            oracle_addr=oracle_addr,
+            last_pub_block=int(last_pub_block),
+        )
+        validation_data = await main_executor.get_validation_data(params)
+        if not validation_data:
+            raise ValidationFailure("Missing coin pair", coin_pair)
+
+        message, my_signature = validation_data.validate_and_sign(signature)
         return {"message": message, "signature": my_signature.hex()}
 
     except ValidationFailure as e:

@@ -25,6 +25,10 @@ class CoinPair:
     def is_tasks_runner(self):
         return self.cp.lower().startswith("task")
 
+    def is_rewards_publisher(self):
+        lower = self.cp.lower()
+        return lower.endswith("_rewards") or lower.startswith("rewards")
+
     def __str__(self):
         return self.cp
 

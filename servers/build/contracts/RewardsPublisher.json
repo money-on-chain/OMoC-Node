@@ -1,0 +1,181 @@
+{
+  "contractName": "RewardsPublisher",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "sender", "type": "address"},
+        {"indexed": true, "internalType": "address", "name": "votedOracle", "type": "address"},
+        {"indexed": true, "internalType": "uint256", "name": "epoch", "type": "uint256"},
+        {"indexed": false, "internalType": "uint256", "name": "blockNumber", "type": "uint256"}
+      ],
+      "name": "EpochPublished",
+      "type": "event"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "_oracle", "type": "address"}],
+      "name": "canRemoveOracle",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "coinPair",
+      "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "distributor",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAvailableRewardFees",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {"internalType": "uint256", "name": "epoch", "type": "uint256"},
+            {"internalType": "bytes32", "name": "merkleRoot", "type": "bytes32"},
+            {"internalType": "string", "name": "cid", "type": "string"},
+            {"internalType": "uint256", "name": "snapshotBlock", "type": "uint256"},
+            {"internalType": "uint256", "name": "distributedToday", "type": "uint256"}
+          ],
+          "internalType": "struct RewardsPublisher.EpochData",
+          "name": "_data",
+          "type": "tuple"
+        }
+      ],
+      "name": "getEpochDataHash",
+      "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getLastPublicationBlock",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getMinOraclesPerRound",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getName",
+      "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "_owner", "type": "address"}],
+      "name": "getOracleRoundInfo",
+      "outputs": [
+        {"internalType": "uint256", "name": "points", "type": "uint256"},
+        {"internalType": "bool", "name": "selectedInCurrentRound", "type": "bool"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getPrice",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRoundInfo",
+      "outputs": [
+        {"internalType": "uint256", "name": "round", "type": "uint256"},
+        {"internalType": "uint256", "name": "startBlock", "type": "uint256"},
+        {"internalType": "uint256", "name": "lockPeriodTimestamp", "type": "uint256"},
+        {"internalType": "uint256", "name": "totalPoints", "type": "uint256"},
+        {"internalType": "address[]", "name": "selectedOwners", "type": "address[]"},
+        {"internalType": "address[]", "name": "selectedOracles", "type": "address[]"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getToken",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getValidPricePeriodInBlocks",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maxOraclesPerRound",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "peek",
+      "outputs": [
+        {"internalType": "bytes32", "name": "", "type": "bytes32"},
+        {"internalType": "bool", "name": "", "type": "bool"}
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"internalType": "uint256", "name": "_version", "type": "uint256"},
+        {"internalType": "bytes32", "name": "_name", "type": "bytes32"},
+        {
+          "components": [
+            {"internalType": "uint256", "name": "epoch", "type": "uint256"},
+            {"internalType": "bytes32", "name": "merkleRoot", "type": "bytes32"},
+            {"internalType": "string", "name": "cid", "type": "string"},
+            {"internalType": "uint256", "name": "snapshotBlock", "type": "uint256"},
+            {"internalType": "uint256", "name": "distributedToday", "type": "uint256"}
+          ],
+          "internalType": "struct RewardsPublisher.EpochData",
+          "name": "_data",
+          "type": "tuple"
+        },
+        {"internalType": "address", "name": "_votedOracle", "type": "address"},
+        {"internalType": "uint256", "name": "_blockNumber", "type": "uint256"},
+        {"internalType": "uint8[]", "name": "_sigV", "type": "uint8[]"},
+        {"internalType": "bytes32[]", "name": "_sigR", "type": "bytes32[]"},
+        {"internalType": "bytes32[]", "name": "_sigS", "type": "bytes32[]"}
+      ],
+      "name": "publishEpoch",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "switchRound",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+}

@@ -129,3 +129,18 @@ GAS_LIMIT_ADDR = config_per_chain_id('GAS_LIMIT_ADDR')
 MULTICALL_ADDR = config_per_chain_id('MULTICALL_ADDR')
 
 DISABLE_FALLBACKS = config('DISABLE_FALLBACKS', cast=bool, default=False)
+
+# RewardsPublisher (opt-in when BPRO_REWARDS is in ORACLE_COIN_PAIR_FILTER)
+REWARDS_ARCHIVE_RPC_URL = config('REWARDS_ARCHIVE_RPC_URL', cast=str, default='')
+REWARDS_STATE_DIR = config('REWARDS_STATE_DIR', cast=str, default='')
+REWARDS_SNAPSHOT_CONFIRMATIONS = config('REWARDS_SNAPSHOT_CONFIRMATIONS', cast=int, default=12)
+REWARDS_LOG_CHUNK_SIZE = config('REWARDS_LOG_CHUNK_SIZE', cast=int, default=1000)
+REWARDS_CODE_CONCURRENCY = config('REWARDS_CODE_CONCURRENCY', cast=int, default=20)
+REWARDS_TOKEN_START_BLOCK = config('REWARDS_TOKEN_START_BLOCK', cast=int, default=0)
+REWARDS_IPFS_GATEWAYS = tuple(
+    gw.strip()
+    for gw in config('REWARDS_IPFS_GATEWAYS', cast=str, default='').split(',')
+    if gw.strip()
+)
+REWARDS_IPFS_API_URL = config('REWARDS_IPFS_API_URL', cast=str, default='')
+REWARDS_PUBLISHER_MIN_GAS = config('REWARDS_PUBLISHER_MIN_GAS', cast=int, default=0)

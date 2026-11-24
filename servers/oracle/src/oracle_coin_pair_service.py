@@ -4,12 +4,20 @@ from typing import List, Union
 from hexbytes import HexBytes
 
 from common.services.blockchain import BlockChainAddress, BlockchainAccount, is_error, BlockChain
-from common.services.coin_pair_price_service import CoinPairService, TasksRunnerService
+from common.services.coin_pair_price_service import (
+    CoinPairService,
+    RewardsPublisherService,
+    TasksRunnerService,
+)
 from common.services.coin_pair_service_types import CoinPairServiceType
 from common.services.info_getter_service import InfoGetterService
 from common.services.oracle_dao import CoinPair, CoinPairInfo, RoundInfo, FullOracleRoundInfo, OracleBlockchainInfo
 from common.services.oracle_manager_service import OracleManagerService
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishPriceParams,
+    PublishRewardsParams,
+    PublishTaskParams,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +65,11 @@ class OracleCoinPairService():
         if self.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
             return await self._coin_pair_service.get_tasks_available_as_flags()
         raise Exception("Not a TasksRunnerService")
+
+    async def get_distributor_addr(self) -> str:
+        if self.coin_pair_type == CoinPairServiceType.REWARDS_PUBLISHER:
+            return await self._coin_pair_service.get_distributor_addr()
+        raise Exception("Not a RewardsPublisherService")
 
     async def log_data(self):
         return await self._coin_pair_service.log_data()

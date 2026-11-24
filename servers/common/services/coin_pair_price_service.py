@@ -9,7 +9,11 @@ from common.services.coin_pair_service_types import CoinPairServiceType
 from common.services.oracle_dao import OracleRoundInfo, RoundInfo
 
 from common import settings
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishPriceParams,
+    PublishRewardsParams,
+    PublishTaskParams,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -167,3 +171,63 @@ class TasksRunnerService(BaseCoinPairService):
                                                   params.last_pub_block, v, r, s, account=account, wait=wait,
                                                  last_gas_price=last_gas_price,
                                                  gas=gas)
+
+
+class RewardsPublisherService(BaseCoinPairService):
+    def __init__(self, contract: BlockChainContract):
+        super().__init__(contract)
+
+    def get_service_type(self):
+        return CoinPairServiceType.REWARDS_PUBLISHER
+
+    async def get_distributor_addr(self) -> str:
+        return await self.coin_pair_call("distributor")
+
+    async def get_epoch_data_hash(self, params: PublishRewardsParams):
+        root_hex = params.merkle_root[2:] if params.merkle_root.startswith("0x") else params.merkle_root
+        epoch_data = (
+            params.epoch,
+            bytes.fromhex(root_hex),
+            params.cid,
+            params.snapshot_block,
+            params.distributed_today,
+        )
+        return await self.coin_pair_call("getEpochDataHash", epoch_data)
+
+    async def log_data(self):
+        return "rewards publisher"
+
+    async def _publish(
+        self,
+        params: PublishRewardsParams,
+        v: List[int],
+        r: List[bytes],
+        s: List[bytes],
+        account: BlockchainAccount = None,
+        wait=False,
+        last_gas_price=None,
+    ):
+        gas = settings.REWARDS_PUBLISHER_MIN_GAS or None
+        root_hex = params.merkle_root[2:] if params.merkle_root.startswith("0x") else params.merkle_root
+        epoch_data = (
+            params.epoch,
+            bytes.fromhex(root_hex),
+            params.cid,
+            params.snapshot_block,
+            params.distributed_today,
+        )
+        return await self.coin_pair_execute(
+            "publishEpoch",
+            params.version,
+            params.coin_pair.longer(),
+            epoch_data,
+            params.oracle_addr,
+            params.last_pub_block,
+            v,
+            r,
+            s,
+            account=account,
+            wait=wait,
+            last_gas_price=last_gas_price,
+            gas=gas,
+        )

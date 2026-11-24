@@ -6,6 +6,7 @@ class CoinPairServiceType(Enum):
 
     COIN_PAIR = auto()
     TASKS_RUNNER = auto()
+    REWARDS_PUBLISHER = auto()
     UNKNOWN = auto()
 
 
