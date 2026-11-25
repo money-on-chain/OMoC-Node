@@ -21,7 +21,7 @@ class TurnForTest(OracleTurn):
         return oracle_addr in oracle_addresses, None
 
 
-def make_loop(monkeypatch, balances):
+def make_loop(monkeypatch, balances, gas_prices=None):
     selected = [oracle(1), oracle(2), oracle(3)]
     snapshot = OracleBlockchainInfo(CoinPair("BTCUSD"), selected, 1, 10, 9,
                                     "0x" + "01" * 32, 60)
@@ -50,7 +50,12 @@ def make_loop(monkeypatch, balances):
 
     monkeypatch.setattr("oracle.src.oracle_blockchain_info_loop.run_in_executor", execute_now)
     loop = object.__new__(OracleBlockchainInfoLoop)
-    loop._conf = SimpleNamespace(ORACLE_MIN_NATIVE_BALANCE_WEI=100, MULTICALL_ADDR=oracle(99).addr)
+    loop._conf = SimpleNamespace(ORACLE_MIN_PUBLICATION_GAS=10, MULTICALL_ADDR=oracle(99).addr)
+    gas_prices = list(gas_prices if gas_prices is not None else [10] * max(1, len(balances)))
+    async def get_current_gas_price():
+        return gas_prices.pop(0)
+
+    loop._gas_calc = SimpleNamespace(get_current=get_current_gas_price)
     loop._cps = SimpleNamespace(
         _blockchain=SimpleNamespace(W3=object()),
         is_info_service_available=lambda: True,
@@ -104,8 +109,24 @@ def test_multicall_failure_closes_turns(monkeypatch):
 
 def test_zero_threshold_skips_multicall(monkeypatch):
     loop, selected, calls = make_loop(monkeypatch, [])
-    loop._conf.ORACLE_MIN_NATIVE_BALANCE_WEI = 0
+    loop._conf.ORACLE_MIN_PUBLICATION_GAS = 0
     asyncio.run(loop.force_update())
     assert loop.get().eligible_oracles is None
     assert loop.get().selected_oracles == selected
+    assert calls == []
+
+
+def test_gas_price_changes_required_balance(monkeypatch):
+    loop, selected, _ = make_loop(monkeypatch, [[150, 150, 150], [150, 150, 150]],
+                                  gas_prices=[10, 20])
+    asyncio.run(loop.force_update())
+    assert loop.get().eligible_oracles == selected
+    asyncio.run(loop.force_update())
+    assert loop.get().eligible_oracles == []
+
+
+def test_gas_price_failure_closes_turns_without_multicall(monkeypatch):
+    loop, _, calls = make_loop(monkeypatch, [[150, 150, 150]], gas_prices=[None])
+    asyncio.run(loop.force_update())
+    assert loop.get().eligible_oracles == []
     assert calls == []

@@ -57,7 +57,7 @@ class OracleLoop(BgTaskExecutor):
         logger.info("Oracle loop Adding New coin pair %r" % cp_key)
         tasks = []
         if oracle_settings.ORACLE_RUN:
-            bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service)
+            bl_loop = OracleBlockchainInfoLoop(self.conf, cp_service, self.bs_loop.gas_calc)
             if cp_service.coin_pair_type == CoinPairServiceType.COIN_PAIR:
                 pf_loop = PriceFeederLoop(self.conf, cp_service.coin_pair)
                 runner = CoinPairRunner(self.conf, pf_loop, cp_service, bl_loop)

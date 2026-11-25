@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class OracleBlockchainInfoLoop(BgTaskExecutor):
-    def __init__(self, conf: OracleConfiguration, cps: OracleCoinPairService):
+    def __init__(self, conf: OracleConfiguration, cps: OracleCoinPairService, gas_calc):
         self._conf = conf
         self._cps = cps
+        self._gas_calc = gas_calc
         self._coin_pair = cps.coin_pair
         self._blockchain_info: OracleBlockchainInfo = None
         self.last_update = None
@@ -44,11 +45,15 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
         else:
             data = await self._get_blocking_parallel_requests()
         if data:
-            threshold = self._conf.ORACLE_MIN_NATIVE_BALANCE_WEI
-            if threshold < 0:
-                raise ValueError("ORACLE_MIN_NATIVE_BALANCE_WEI must be nonnegative")
-            if threshold:
+            gas_budget = self._conf.ORACLE_MIN_PUBLICATION_GAS
+            if gas_budget < 0:
+                raise ValueError("ORACLE_MIN_PUBLICATION_GAS must be nonnegative")
+            if gas_budget:
                 try:
+                    gas_price = await self._gas_calc.get_current()
+                    if is_error(gas_price) or not isinstance(gas_price, int) or gas_price <= 0:
+                        raise ValueError(f"Invalid gas price: {gas_price!r}")
+                    threshold = gas_budget * gas_price
                     addresses = [oracle.addr for oracle in data.selected_oracles]
                     if addresses:
                         def get_balances():
