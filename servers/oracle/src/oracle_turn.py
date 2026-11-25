@@ -24,7 +24,7 @@ class OracleTurn(MyCfgdLogger):
     # Called by /sign endpoint
     def validate_turn(self, vi: OracleBlockchainInfo, oracle_addr, extra_args):
         oracle_addresses = select_next_addresses(
-            vi.last_pub_block_hash, vi.selected_oracles
+            vi.last_pub_block_hash, vi.eligible_oracles if vi.eligible_oracles is not None else vi.selected_oracles
         )
         if self.is_selected_oracle(oracle_addresses, oracle_addr):
             return True, self.info("selected chosen " + oracle_addr)
@@ -35,7 +35,7 @@ class OracleTurn(MyCfgdLogger):
         self, vi: OracleBlockchainInfo, oracle_addr, extra_args
     ):
         oracle_addresses = select_next_addresses(
-            vi.last_pub_block_hash, vi.selected_oracles
+            vi.last_pub_block_hash, vi.eligible_oracles if vi.eligible_oracles is not None else vi.selected_oracles
         )
 
         (is_my_turn, msg) = self._is_oracle_turn_with_msg(
@@ -62,7 +62,7 @@ class OracleTurn(MyCfgdLogger):
 
     @staticmethod
     def is_selected_oracle(oracle_addresses, oracle_addr):
-        return oracle_addresses[0] == oracle_addr
+        return bool(oracle_addresses) and oracle_addresses[0] == oracle_addr
     
     @staticmethod
     def get_fallback_sequence(entering_fallbacks_amounts, selected_oracles_len):
@@ -228,7 +228,7 @@ class PriceOracleTurn(OracleTurn):
         conf = self._conf.get_oracle_turn_conf(self._coin_pair)
 
         entering_fallback_sequence = self.get_fallback_sequence(
-            conf.entering_fallbacks_amounts, len(vi.selected_oracles)
+            conf.entering_fallbacks_amounts, len(vi.eligible_oracles if vi.eligible_oracles is not None else vi.selected_oracles)
         )
 
         # WARN if oracles won't get to publish before price expires
@@ -356,7 +356,7 @@ class TasksOracleTurn(OracleTurn):
         conf = self._conf.get_oracle_turn_conf(self._coin_pair)
 
         entering_fallback_sequence = self.get_fallback_sequence(  
-            conf.entering_fallbacks_amounts, len(vi.selected_oracles)  
+            conf.entering_fallbacks_amounts, len(vi.eligible_oracles if vi.eligible_oracles is not None else vi.selected_oracles)
         )  
   
         blocks_since_last_pub = vi.block_num - last_block_when_available

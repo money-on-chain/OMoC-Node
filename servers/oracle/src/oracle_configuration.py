@@ -3,7 +3,7 @@ import typing
 from common.helpers import parseTimeDelta, MyCfgdLogger
 from common.services.blockchain import is_error
 from common.services.contract_factory_service import ContractFactoryService
-from common.settings import config, MULTICALL_ADDR
+from common.settings import config, MULTICALL_ADDR, ORACLE_MIN_NATIVE_BALANCE_WEI
 from .oracle_settings import GET_VAR_COINPAIR
 from decimal import Decimal
 from enum import Enum
@@ -231,6 +231,12 @@ class OracleConfiguration(MyCfgdLogger):
                 "configuration": lambda: config('MULTICALL_ADDR', cast=str, default=MULTICALL_ADDR),
                 "blockchain": lambda p: self._eternal_storage_service.get_address(p),
                 "description": "Address of the multicall-contract (used for conditional publication)",
+            },
+            "ORACLE_MIN_NATIVE_BALANCE_WEI": {
+                "priority": self.Order.configuration_default,
+                "configuration": lambda: ORACLE_MIN_NATIVE_BALANCE_WEI,
+                "blockchain": lambda p: None,
+                "description": "Minimum native balance in wei for an oracle to be eligible to publish",
             },
         }
         self.from_conf = set()

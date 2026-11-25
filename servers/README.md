@@ -373,6 +373,11 @@ ORACLE_PRICE_PUBLISH_BLOCKS = 1
 #
 ORACLE_ENTERING_FALLBACKS_AMOUNTS=020406080A
 
+# Minimum native gas-token balance (wei) required to enter the publisher/fallback
+# order. Zero disables the balance filter. The configured MULTICALL_ADDR must
+# implement Multicall3.getEthBalance(address) as well as aggregate(...).
+ORACLE_MIN_NATIVE_BALANCE_WEI=0
+
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
 

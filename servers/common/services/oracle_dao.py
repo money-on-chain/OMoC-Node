@@ -74,12 +74,12 @@ FullOracleRoundInfo = typing.NamedTuple("FullOracleRoundInfo",
                                          ("selectedInRound", int)
                                          ])
 
-OracleBlockchainInfo = typing.NamedTuple("OracleBlockchainInfo",
-                                         [("coin_pair", CoinPair),
-                                          ('selected_oracles', typing.List[FullOracleRoundInfo]),
-                                          ('blockchain_price', int),
-                                          ('block_num', int),
-                                          ('last_pub_block', int),
-                                          ('last_pub_block_hash', str),
-                                          ('valid_price_period_in_blocks', int)
-                                          ])
+class OracleBlockchainInfo(typing.NamedTuple):
+    coin_pair: CoinPair
+    selected_oracles: typing.List[FullOracleRoundInfo]
+    blockchain_price: int
+    block_num: int
+    last_pub_block: int
+    last_pub_block_hash: str
+    valid_price_period_in_blocks: int
+    eligible_oracles: typing.Optional[typing.List[FullOracleRoundInfo]] = None

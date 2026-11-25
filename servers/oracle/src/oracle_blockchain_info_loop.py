@@ -5,10 +5,11 @@ import traceback
 
 from common import settings
 from common.bg_task_executor import BgTaskExecutor
-from common.services.blockchain import is_error 
+from common.services.blockchain import is_error, run_in_executor
 from common.services.oracle_dao import OracleBlockchainInfo
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
+from w3multicall.multicall import W3Multicall
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,43 @@ class OracleBlockchainInfoLoop(BgTaskExecutor):
         else:
             data = await self._get_blocking_parallel_requests()
         if data:
+            threshold = self._conf.ORACLE_MIN_NATIVE_BALANCE_WEI
+            if threshold < 0:
+                raise ValueError("ORACLE_MIN_NATIVE_BALANCE_WEI must be nonnegative")
+            if threshold:
+                try:
+                    addresses = [oracle.addr for oracle in data.selected_oracles]
+                    if addresses:
+                        def get_balances():
+                            multicall = W3Multicall(
+                                self._cps._blockchain.W3, self._conf.MULTICALL_ADDR
+                            )
+                            for address in addresses:
+                                multicall.add(W3Multicall.Call(
+                                    self._conf.MULTICALL_ADDR,
+                                    'getEthBalance(address)(uint256)', [address]
+                                ))
+                            return multicall.call(block_identifier='latest')
+
+                        balances = await run_in_executor(get_balances)
+                        if len(balances) != len(addresses):
+                            raise ValueError("Multicall returned an incomplete balance list")
+                        eligible = []
+                        for oracle, balance in zip(data.selected_oracles, balances):
+                            if balance is None:
+                                raise ValueError("Multicall could not decode a native balance")
+                            if balance >= threshold:
+                                eligible.append(oracle)
+                            else:
+                                logger.info("Oracle %s excluded at block %s: native balance %s < %s wei",
+                                            oracle.addr, data.block_num, balance, threshold)
+                        data = data._replace(eligible_oracles=eligible)
+                    else:
+                        data = data._replace(eligible_oracles=[])
+                except Exception:
+                    logger.exception("Failed to fetch oracle balances; disabling publication until balances recover")
+                    self._blockchain_info = data._replace(eligible_oracles=[])
+                    return
             self._blockchain_info = data
 
     def get(self) -> OracleBlockchainInfo:
