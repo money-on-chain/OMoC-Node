@@ -127,6 +127,6 @@ def config_per_chain_id(envvar, cast=str, default = None):
 
 GAS_LIMIT_ADDR = config_per_chain_id('GAS_LIMIT_ADDR')
 MULTICALL_ADDR = config_per_chain_id('MULTICALL_ADDR')
-ORACLE_MIN_PUBLICATION_GAS = config_per_chain_id('ORACLE_MIN_PUBLICATION_GAS', cast=int, default=0)
+ORACLE_MIN_PUBLICATION_GAS = config_per_chain_id('ORACLE_MIN_PUBLICATION_GAS', cast=int, default=200000)
 
 DISABLE_FALLBACKS = config('DISABLE_FALLBACKS', cast=bool, default=False)

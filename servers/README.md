@@ -374,10 +374,11 @@ ORACLE_PRICE_PUBLISH_BLOCKS = 1
 ORACLE_ENTERING_FALLBACKS_AMOUNTS=020406080A
 
 # Minimum gas budget required to enter the publisher/fallback order. The
-# required native balance is this value times the publication gas price. Zero
-# disables the balance filter. The configured MULTICALL_ADDR must
+# required native balance is this value times the publication gas price. The
+# default is 200000 gas; set it to zero to disable the balance filter. The
+# configured MULTICALL_ADDR must
 # implement Multicall3.getEthBalance(address) as well as aggregate(...).
-ORACLE_MIN_PUBLICATION_GAS=0
+ORACLE_MIN_PUBLICATION_GAS=200000
 
 # Timeout used when requesting signatures fom other oracles
 ORACLE_GATHER_SIGNATURE_TIMEOUT = "60 secs"
