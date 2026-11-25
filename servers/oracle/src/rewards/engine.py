@@ -89,16 +89,12 @@ class RewardsEngine:
 
         if loaded is not None:
             ep_json, raw_bytes, path = loaded
-            cid_matches = (
-                not current_cid
-                or not current_cid.startswith("baf")
-                or compute_cid_v1(raw_bytes) == current_cid
-            )
             if (
                 ep_json.epoch == current_epoch
                 and ep_json.snapshot_block == current_snapshot_block
                 and ep_json.merkle_root.lower() == current_root.lower()
-                and cid_matches
+                and bool(current_cid)
+                and compute_cid_v1(raw_bytes) == current_cid
             ):
                 verify_epoch_json_merkle(ep_json, current_root)
                 self._last_synced_epoch = current_epoch

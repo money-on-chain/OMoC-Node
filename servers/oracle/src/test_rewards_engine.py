@@ -587,17 +587,28 @@ async def test_state_store_prunes_old_published_and_candidates(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sync_accepts_local_legacy_cidv0_without_re_recovery(tmp_path):
+async def test_sync_rejects_unauthenticated_local_file_and_recovers_from_chain(tmp_path):
     rpc = FakeArchiveRpc(num_blocks=60)
+    start_ts = rpc.state["distributionStartTime"]
     ep1_json = build_epoch_json(1, 19, [(EOA_1, 3000)], [(EOA_1, 500)], [], 3000)
-    ep1_raw = serialize_epoch_json(ep1_json)
+    ep1_cid = compute_cid_v1(serialize_epoch_json(ep1_json))
 
-    store = RewardsStateStore(str(tmp_path / "legacy_state"))
-    store.save_published(1, ep1_raw)
+    # Save a local file with matching merkleRoot (holders) but tampered balances -> different CIDv1
+    tampered_json = build_epoch_json(1, 19, [(EOA_1, 3000)], [(EOA_1, 9999)], [], 3000)
+    store = RewardsStateStore(str(tmp_path / "tampered_state"))
+    store.save_published(1, serialize_epoch_json(tampered_json))
 
+    rpc.logs.extend(
+        [
+            _min_eligible_log(5, 0, 1, 100),
+            _period_started_log(6, 0, 0, start_ts, 90_000),
+            _transfer_log(10, 0, ZERO_ADDR, EOA_1, 500),
+            _epoch_published_log(25, 0, 1, ep1_json.merkle_root, ep1_cid, 19, 3000),
+        ]
+    )
     rpc.state["currentEpoch"] = 1
     rpc.state["currentRoot"] = ep1_json.merkle_root
-    rpc.state["currentIpfsCid"] = "QmLegacyPinataCidV0HashExample1234567890123456"
+    rpc.state["currentIpfsCid"] = ep1_cid
     rpc.state["currentSnapshotBlock"] = 19
     rpc.state["totalDistributedHistorical"] = 3000
 
@@ -608,8 +619,11 @@ async def test_sync_accepts_local_legacy_cidv0_without_re_recovery(tmp_path):
         snapshot_confirmations=12,
     )
     res = await engine.sync()
-    assert res.source == "local"
+    assert res.source == "chain_recovery"
     assert res.epoch == 1
+    repaired, raw, _ = store.load_published(1)
+    assert compute_cid_v1(raw) == ep1_cid
+    assert [(b.address, b.balance) for b in repaired.balances] == [(EOA_1, 500)]
 
 
 @pytest.mark.asyncio
@@ -692,3 +706,106 @@ async def test_runner_invalidates_candidate_on_policy_change_and_initializes_tur
         await runner._compute_task
     assert runner._candidate is not None
     assert runner._candidate.epoch_data.distributed_today == 0
+
+
+def test_sort_logs_orders_by_transaction_index_before_log_index():
+    """RSK eth_getLogs may report per-transaction logIndex; transactionIndex must break ties first."""
+    from oracle.src.rewards.indexer import sort_logs
+
+    tx0_credit = {"blockNumber": "0x2a", "transactionIndex": "0x0", "logIndex": "0x2"}
+    tx1_debit = {"blockNumber": "0x2a", "transactionIndex": "0x1", "logIndex": "0x0"}
+    assert sort_logs([tx1_debit, tx0_credit]) == [tx0_credit, tx1_debit]
+
+
+@pytest.mark.asyncio
+async def test_rewards_runner_skips_rpc_while_idle_and_wakes_on_pub_block_change(
+    tmp_path, monkeypatch
+):
+    import time as time_mod
+    from starlette.datastructures import Secret
+    from common.services.blockchain import BlockchainAccount
+    from oracle.src import oracle_settings, oracle_turn
+
+    acc = BlockchainAccount(EOA_1, Secret("0x" + "11" * 32))
+    monkeypatch.setattr(oracle_settings, "get_oracle_account", lambda: acc)
+    monkeypatch.setattr(oracle_turn, "get_oracle_account", lambda: acc)
+
+    rpc = FakeArchiveRpc(num_blocks=60)
+    rpc.state["canPublishEpoch"] = False
+    rpc.state["nextEpochTime"] = int(time_mod.time()) + 3600  # 1 hour in the future
+
+    poll_count = 0
+    orig_read = rpc.read_distributor_state
+
+    async def counting_read(distributor: str, block_number="latest"):
+        nonlocal poll_count
+        poll_count += 1
+        return await orig_read(distributor, block_number=block_number)
+
+    rpc.read_distributor_state = counting_read
+
+    store = RewardsStateStore(str(tmp_path / "idle_state"))
+    engine = RewardsEngine(
+        rpc_client=rpc,
+        distributor_address=DISTRIBUTOR,
+        state_store=store,
+        snapshot_confirmations=12,
+    )
+    cps = Mock()
+    cps.coin_pair = CoinPair("BPRO_REWARDS")
+    cps.addr = PUBLISHER
+    cps.coin_pair_type = CoinPairServiceType.REWARDS_PUBLISHER
+    cps._blockchain = Mock(chain_id=31)
+
+    bc_info = OracleBlockchainInfo(
+        coin_pair=CoinPair("BPRO_REWARDS"),
+        selected_oracles=[FullOracleRoundInfo(EOA_1, "http://o1:5556", 100, EOA_1, 0, True, 1)],
+        blockchain_price=0,
+        block_num=60,
+        last_pub_block=10,
+        last_pub_block_hash=b"\x02" * 32,
+        valid_price_period_in_blocks=0,
+    )
+    vi_loop = Mock()
+    vi_loop.get.return_value = bc_info
+    conf = Mock()
+    conf.get_oracle_turn_conf.return_value = Mock(
+        price_delta_pct=0,
+        price_publish_blocks=0,
+        entering_fallbacks_amounts=b"\x00\x01",
+        trigger_valid_publication_blocks=10,
+    )
+
+    runner = RewardsRunner(
+        conf,
+        cps,
+        vi_loop,
+        engine=engine,
+        pinner=IpfsPinner(""),
+        idle_poll_interval_secs=300.0,
+        cutoff_wakeup_lead_secs=120.0,
+    )
+
+    # First tick polls Distributor and enters idle cooldown
+    avail, _, _ = await runner.is_oracle_turn(bc_info, EOA_1)
+    assert avail is False
+    assert poll_count == 1
+
+    # Immediate subsequent tick skips RPC completely
+    avail2, _, _ = await runner.is_oracle_turn(bc_info, EOA_1)
+    assert avail2 is False
+    assert poll_count == 1
+
+    # If last_pub_block advances (another oracle published), it wakes up immediately
+    bc_info_next = OracleBlockchainInfo(
+        coin_pair=CoinPair("BPRO_REWARDS"),
+        selected_oracles=bc_info.selected_oracles,
+        blockchain_price=0,
+        block_num=65,
+        last_pub_block=64,
+        last_pub_block_hash=b"\x03" * 32,
+        valid_price_period_in_blocks=0,
+    )
+    avail3, _, _ = await runner.is_oracle_turn(bc_info_next, EOA_1)
+    assert avail3 is False
+    assert poll_count == 2

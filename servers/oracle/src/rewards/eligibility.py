@@ -8,9 +8,12 @@ Strict rules:
 """
 
 import asyncio
+import logging
 from typing import Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from oracle.src.rewards.rpc_client import event_topic
+
+logger = logging.getLogger(__name__)
 
 CONTRACT_REGISTERED_TOPIC = event_topic("ContractRegistered(uint256,address)")
 
@@ -126,8 +129,10 @@ async def read_eligibility(
     # Query eth_getCode for every address with balance > 0 at snapshot_block.
     addresses: List[str] = [addr.lower() for addr, bal in balances.items() if bal > 0]
     contracts: Set[str] = set()
+    total_addrs = len(addresses)
+    last_code_pct = -1
 
-    for idx in range(0, len(addresses), code_concurrency):
+    for idx in range(0, total_addrs, code_concurrency):
         batch = addresses[idx : idx + code_concurrency]
         codes = await asyncio.gather(
             *(client.get_code(addr, snapshot_block) for addr in batch)
@@ -135,6 +140,18 @@ async def read_eligibility(
         for addr, code in zip(batch, codes):
             if code != "0x":
                 contracts.add(addr)
+        done = min(idx + len(batch), total_addrs)
+        pct = int((done * 100) // total_addrs) if total_addrs else 100
+        if total_addrs >= 100 and (pct >= last_code_pct + 25 or done == total_addrs):
+            logger.info(
+                "Eligibility eth_getCode at block %s: %d%% (%d/%d, %d contracts)",
+                snapshot_block,
+                pct,
+                done,
+                total_addrs,
+                len(contracts),
+            )
+            last_code_pct = pct
 
     after_blk = await client.get_block(snapshot_block)
     if not before_hash or before_hash != after_blk["hash"]:

@@ -4,9 +4,12 @@ Matches `rewards-program/scripts/snapshot/recover.ts` and `recovery.ts`.
 Any discrepancy in `distributedToday` or `EpochPublished.root` aborts with an error.
 """
 
+import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 from oracle.src.rewards.eligibility import compute_allocations, read_eligibility
+
+logger = logging.getLogger(__name__)
 from oracle.src.rewards.epoch_json import build_epoch_json
 from oracle.src.rewards.indexer import (
     PERIOD_DURATION,
@@ -110,6 +113,12 @@ async def recover_from_chain(
     minimums: List[Tuple[int, int, int]] = []  # (effectiveEpoch, value, blockNumber)
 
     # Scan Distributor events from initializationBlock..ref_tip
+    logger.info(
+        "Recovery: scanning Distributor events from block %s to %s (target epoch %s)...",
+        init_block,
+        ref_tip,
+        last_epoch,
+    )
     start = init_block
     while start <= ref_tip:
         end = min(start + chunk_size - 1, ref_tip)
@@ -216,6 +225,13 @@ async def recover_from_chain(
     if any(b.effective_epoch > last_epoch + 1 for b in migration_batches):
         raise ValueError("Invalid migration effective epoch")
 
+    logger.info(
+        "Recovery: found %d published epoch(s), %d period(s), %d migration batch(es); replaying...",
+        len(publications),
+        len(budgets),
+        len(migration_batches),
+    )
+
     balances: Dict[str, int] = {}
     cumulative: Dict[str, int] = {}
     included_migration = 0
@@ -295,6 +311,14 @@ async def recover_from_chain(
             epoch_budget=epoch_budget,
             distributed_today=pub.distributed_today,
             expected_root=pub.root,
+        )
+        logger.info(
+            "Recovery: verified epoch %s/%s (snapshotBlock=%s, holders=%d, root=%s)",
+            pub.epoch,
+            last_epoch,
+            pub.snapshot_block,
+            len(cumulative),
+            pub.root,
         )
 
         if pub.epoch == last_epoch:

@@ -105,15 +105,12 @@ def compute_cid_v1(raw_bytes: bytes) -> str:
         chunk_len = len(chunk)
         nodes.append((cid_bytes, chunk_len, chunk_len))
 
-    # Build balanced DAG bottom-up with branching factor MAX_CHILDREN (174).
+    # Build balanced DAG bottom-up with branching factor MAX_CHILDREN (174),
+    # keeping every leaf at the same depth from the root (matching Boxo/Kubo).
     while len(nodes) > 1:
         next_level: List[Tuple[bytes, int, int]] = []
         for i in range(0, len(nodes), MAX_CHILDREN):
             group = nodes[i : i + MAX_CHILDREN]
-            if len(group) == 1:
-                # Kubo balanced builder promotes a lone remaining node directly.
-                next_level.append(group[0])
-                continue
             blocksizes = [item[1] for item in group]
             total_filesize = sum(blocksizes)
             unixfs_data = _encode_unixfs_file(total_filesize, blocksizes)

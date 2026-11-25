@@ -3,6 +3,7 @@
 Completely decoupled from consensus/signing: IPFS outages never block signing or publishing.
 """
 
+import json
 import logging
 from typing import Optional, Sequence
 
@@ -83,5 +84,56 @@ class IpfsPinner:
         if returned_cid != expected_cid:
             raise RuntimeError(
                 f"Kubo returned CID {returned_cid!r}, expected {expected_cid!r}"
+            )
+        return returned_cid
+
+
+class PinataPinner:
+    """Uploads and pins canonical epoch JSON bytes to Pinata using CIDv1."""
+
+    DEFAULT_API_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+
+    def __init__(
+        self,
+        jwt: str,
+        timeout_secs: float = 60.0,
+        api_url: str = DEFAULT_API_URL,
+    ):
+        self.jwt = jwt.strip() if jwt else ""
+        self.timeout_secs = timeout_secs
+        self.api_url = api_url.rstrip("/") if api_url else self.DEFAULT_API_URL
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.jwt)
+
+    async def pin_bytes(self, raw_bytes: bytes, expected_cid: str, filename: str) -> str:
+        """Upload `raw_bytes` to Pinata (cidVersion=1) and assert Hash equals `expected_cid`."""
+        if not self.enabled:
+            raise RuntimeError("Pinata pinner is not configured")
+
+        form = aiohttp.FormData()
+        form.add_field(
+            "file",
+            raw_bytes,
+            filename=filename,
+            content_type="application/json",
+        )
+        form.add_field("pinataOptions", json.dumps({"cidVersion": 1}))
+        form.add_field("pinataMetadata", json.dumps({"name": filename}))
+
+        headers = {"Authorization": f"Bearer {self.jwt}"}
+        timeout = aiohttp.ClientTimeout(total=self.timeout_secs)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(self.api_url, data=form, headers=headers) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"Pinata upload failed (HTTP {resp.status}): {text[:200]}")
+                body = await resp.json()
+
+        returned_cid = body.get("IpfsHash") if isinstance(body, dict) else None
+        if returned_cid != expected_cid:
+            raise RuntimeError(
+                f"Pinata returned CID {returned_cid!r}, expected {expected_cid!r}"
             )
         return returned_cid

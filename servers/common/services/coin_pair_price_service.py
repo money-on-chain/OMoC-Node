@@ -180,6 +180,9 @@ class RewardsPublisherService(BaseCoinPairService):
     def get_service_type(self):
         return CoinPairServiceType.REWARDS_PUBLISHER
 
+    async def get_price(self):
+        return await self.coin_pair_call("getPrice")
+
     async def get_distributor_addr(self) -> str:
         return await self.coin_pair_call("distributor")
 

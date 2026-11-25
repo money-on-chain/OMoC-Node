@@ -40,7 +40,7 @@ def test_cid_v1_multiblock_and_three_level_dag():
     assert cid_1m.startswith("bafybei")
     assert cid_1m == compute_cid_v1(one_mib_plus)
 
-    # > 174 chunks (175 chunks = > 45 MiB, triggers 3-level DAG with lone-node promotion)
+    # > 174 chunks (175 chunks = > 45 MiB, triggers 3-level balanced DAG with uniform leaf depth)
     big = b"\x42" * (CHUNK_SIZE * MAX_CHILDREN + 1)
     cid_big = compute_cid_v1(big)
     assert cid_big.startswith("bafybei")

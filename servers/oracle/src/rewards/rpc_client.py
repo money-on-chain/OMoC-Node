@@ -113,6 +113,10 @@ class ArchiveRpcClient:
                     await asyncio.sleep(self.retry_delay_secs * attempt)
         raise ArchiveRpcError(f"RPC {method} failed after {self.retries} attempts: {last_err}")
 
+    async def get_chain_id(self) -> int:
+        res = await self.rpc_call("eth_chainId", [])
+        return int(res, 16)
+
     async def get_block_number(self) -> int:
         res = await self.rpc_call("eth_blockNumber", [])
         return int(res, 16)

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from typing import Dict, Optional
 
 from common import settings
@@ -40,6 +41,9 @@ class RewardsRunner(MyCfgdLogger):
       without ever blocking consensus or on-chain publication.
     """
 
+    DEFAULT_IDLE_POLL_INTERVAL_SECS = 300.0
+    DEFAULT_CUTOFF_WAKEUP_LEAD_SECS = 120.0
+
     def __init__(
         self,
         conf: OracleConfiguration,
@@ -47,6 +51,8 @@ class RewardsRunner(MyCfgdLogger):
         vi_loop: OracleBlockchainInfoLoop,
         engine: Optional[RewardsEngine] = None,
         pinner: Optional[IpfsPinner] = None,
+        idle_poll_interval_secs: float = DEFAULT_IDLE_POLL_INTERVAL_SECS,
+        cutoff_wakeup_lead_secs: float = DEFAULT_CUTOFF_WAKEUP_LEAD_SECS,
     ):
         super().__init__(None, str(cps.coin_pair))
         self._conf = conf
@@ -73,6 +79,12 @@ class RewardsRunner(MyCfgdLogger):
         self._candidate: Optional[CandidateResult] = None
         self._last_block_when_available: Optional[int] = None
         self._pending_pins: Dict[int, CandidateResult] = {}
+
+        self._idle_poll_interval_secs: float = float(idle_poll_interval_secs)
+        self._cutoff_wakeup_lead_secs: float = float(cutoff_wakeup_lead_secs)
+        self._last_idle_poll_at: Optional[float] = None
+        self._cached_next_epoch_time: int = 0
+        self._cached_last_pub_block: Optional[int] = None
 
     @property
     def is_syncing(self) -> bool:
@@ -123,6 +135,18 @@ class RewardsRunner(MyCfgdLogger):
         if not state_dir:
             raise RuntimeError("REWARDS_STATE_DIR must be configured for RewardsRunner")
         rpc = ArchiveRpcClient(rpc_url)
+        expected_chain_id = self._get_chain_id()
+        try:
+            archive_chain_id = await rpc.get_chain_id()
+        except Exception:
+            await rpc.close()
+            raise
+        if archive_chain_id != expected_chain_id:
+            await rpc.close()
+            raise RuntimeError(
+                f"REWARDS_ARCHIVE_RPC_URL chain_id {archive_chain_id} does not match "
+                f"publisher blockchain chain_id {expected_chain_id}"
+            )
         store = RewardsStateStore(state_dir)
         self._engine = RewardsEngine(
             rpc_client=rpc,
@@ -279,7 +303,31 @@ class RewardsRunner(MyCfgdLogger):
 
         self._pin_task = asyncio.create_task(_run_pins())
 
+    def _should_skip_idle_poll(self, blockchain_info: OracleBlockchainInfo) -> bool:
+        if (
+            self._engine is None
+            or self.is_syncing
+            or self._candidate is not None
+            or self._pending_pins
+            or self._last_idle_poll_at is None
+            or self._idle_poll_interval_secs <= 0
+        ):
+            return False
+        if self._cached_last_pub_block != blockchain_info.last_pub_block:
+            return False
+        if (time.monotonic() - self._last_idle_poll_at) >= self._idle_poll_interval_secs:
+            return False
+        if (
+            self._cached_next_epoch_time > 0
+            and time.time() >= self._cached_next_epoch_time - self._cutoff_wakeup_lead_secs
+        ):
+            return False
+        return True
+
     async def is_oracle_turn(self, blockchain_info: OracleBlockchainInfo, oracle_addr: str):
+        if self._should_skip_idle_poll(blockchain_info):
+            return False, None, None
+
         try:
             engine = await self._ensure_engine()
             state = await engine.rpc.read_distributor_state(engine.distributor)
@@ -329,7 +377,12 @@ class RewardsRunner(MyCfgdLogger):
         ):
             self._candidate = None
             self._last_block_when_available = None
+            self._last_idle_poll_at = time.monotonic()
+            self._cached_next_epoch_time = int(state["nextEpochTime"])
+            self._cached_last_pub_block = blockchain_info.last_pub_block
             return False, None, None
+
+        self._last_idle_poll_at = None
 
         # Re-verify cached candidate against reorgs and on-chain policy/migration changes
         if self._candidate is not None:
@@ -389,6 +442,7 @@ class RewardsRunner(MyCfgdLogger):
         )
 
     async def create_validator(self, params: PublishRewardsParams) -> RewardsRequestValidation:
+        self._last_idle_poll_at = None
         if params.epoch_data_hash is None:
             computed_hash = compute_epoch_data_hash(
                 chain_id=self._get_chain_id(),

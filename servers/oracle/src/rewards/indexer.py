@@ -3,10 +3,13 @@
 Matches `rewards-program/scripts/snapshot/snapshot.ts`, `migration.ts`, and `period-budget.ts`.
 """
 
+import logging
 from typing import Dict, List, Sequence, Tuple
 
 from oracle.src.rewards.rpc_client import abi_decode, event_topic
 from oracle.src.rewards.types import MigrationBatch
+
+logger = logging.getLogger(__name__)
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -38,12 +41,19 @@ def calculate_epoch_budget(
     return quota if quota < remaining_budget else remaining_budget
 
 
+def _int_field(val, default: int = 0) -> int:
+    if val is None:
+        return default
+    return int(val, 16) if isinstance(val, str) else int(val)
+
+
 def sort_logs(logs: List[dict]) -> List[dict]:
     return sorted(
         logs,
         key=lambda log: (
-            int(log["blockNumber"], 16) if isinstance(log["blockNumber"], str) else int(log["blockNumber"]),
-            int(log["logIndex"], 16) if isinstance(log["logIndex"], str) else int(log["logIndex"]),
+            _int_field(log.get("blockNumber")),
+            _int_field(log.get("transactionIndex")),
+            _int_field(log.get("logIndex")),
         ),
     )
 
@@ -95,6 +105,17 @@ async def index_transfer_events(
     if from_block > to_block:
         return
 
+    total_blocks = to_block - from_block + 1
+    logger.info(
+        "Indexing Transfer events from block %s to %s (%s blocks, chunk_size=%s)...",
+        from_block,
+        to_block,
+        total_blocks,
+        chunk_size,
+    )
+    total_events = 0
+    last_logged_pct = -1
+
     start = from_block
     while start <= to_block:
         end = min(start + chunk_size - 1, to_block)
@@ -114,6 +135,18 @@ async def index_transfer_events(
             raw = bytes.fromhex(data_hex[2:] if data_hex.startswith("0x") else data_hex)
             (value,) = abi_decode(["uint256"], raw)
             apply_transfer(balances, from_addr, to_addr, int(value))
+            total_events += 1
+        pct = int(((end - from_block + 1) * 100) // total_blocks)
+        if pct >= last_logged_pct + 5 or end == to_block:
+            logger.info(
+                "Transfer indexing progress: %d%% (block %s/%s, %d events, %d holders)",
+                pct,
+                end,
+                to_block,
+                total_events,
+                len(balances),
+            )
+            last_logged_pct = pct
         start = end + 1
 
     for addr in list(balances.keys()):
