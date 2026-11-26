@@ -11,7 +11,9 @@ from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfo
 from oracle.src.oracle_publish_message import (
     EXPIRING_PRICE_MESSAGE_VERSION,
     PublishPriceParams,
+    PublishRewardsParams,
     PublishTaskParams,
+    REWARDS_MESSAGE_VERSION,
 )
 from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 
@@ -287,3 +289,129 @@ class TaskRequestValidation:
             )
             raise InvalidSignature("oracle %s invalid signature" %
                                    self.params.oracle_addr, self.cp)
+
+
+class RewardsRequestValidation:
+    def __init__(
+        self,
+        params: PublishRewardsParams,
+        oracle_turn: TasksOracleTurn,
+        is_syncing: bool,
+        is_ready: bool,
+        last_block_when_available: int,
+        local_candidate,
+        blockchain_info: OracleBlockchainInfo,
+        expected_epoch_data_hash: bytes = None,
+    ):
+        self.params = params
+        self.oracle_turn = oracle_turn
+        self.is_syncing = is_syncing
+        self.is_ready = is_ready
+        self.last_block_when_available = last_block_when_available
+        self.local_candidate = local_candidate
+        self.blockchain_info = blockchain_info
+        self.expected_epoch_data_hash = expected_epoch_data_hash
+
+    @property
+    def cp(self):
+        return self.params.coin_pair
+
+    def validate_and_sign(self, signature):
+        self.validate_params()
+        self.validate_turn()
+        message = self.params.prepare_msg()
+        self.validate_signature(message, signature)
+        our_acc = oracle_settings.get_oracle_account()
+        s = crypto.sign_message(hexstr="0x" + message, account=our_acc)
+        logger.debug("%r:%s : rewards sign result: %r" % (self.cp, our_acc.short, s))
+        return message, s
+
+    def validate_params(self):
+        if self.is_syncing:
+            raise ValidationFailure("Rewards runner is currently syncing", self.cp)
+
+        if not self.params or not self.blockchain_info:
+            raise NoBlockchainData(
+                "Still don't have a valid block chain info params %r block chain info %r"
+                % (self.params, self.blockchain_info),
+                self.cp,
+            )
+
+        if self.params.version != REWARDS_MESSAGE_VERSION:
+            raise ValidationFailure(
+                "Invalid rewards message version %r (expected %r)"
+                % (self.params.version, REWARDS_MESSAGE_VERSION),
+                self.cp,
+            )
+
+        if not self.is_ready or self.local_candidate is None:
+            raise ValidationFailure("Local rewards candidate is not ready", self.cp)
+
+        if self.params.last_pub_block != self.blockchain_info.last_pub_block:
+            raise DifferentLastPubBlock(
+                "Different last publication blocks %r != %r"
+                % (self.params.last_pub_block, self.blockchain_info.last_pub_block),
+                self.cp,
+            )
+
+        local = self.local_candidate.epoch_data
+        if self.params.epoch != local.epoch:
+            raise ValidationFailure(
+                "Rewards epoch mismatch %r != %r" % (self.params.epoch, local.epoch),
+                self.cp,
+            )
+        if self.params.snapshot_block != local.snapshot_block:
+            raise ValidationFailure(
+                "Rewards snapshot_block mismatch %r != %r"
+                % (self.params.snapshot_block, local.snapshot_block),
+                self.cp,
+            )
+        if self.params.merkle_root.lower() != local.merkle_root.lower():
+            raise ValidationFailure(
+                "Rewards merkle_root mismatch %r != %r"
+                % (self.params.merkle_root, local.merkle_root),
+                self.cp,
+            )
+        if self.params.cid != local.cid:
+            raise ValidationFailure(
+                "Rewards cid mismatch %r != %r" % (self.params.cid, local.cid),
+                self.cp,
+            )
+        if self.params.distributed_today != local.distributed_today:
+            raise ValidationFailure(
+                "Rewards distributed_today mismatch %r != %r"
+                % (self.params.distributed_today, local.distributed_today),
+                self.cp,
+            )
+        if (
+            self.expected_epoch_data_hash is not None
+            and self.params.epoch_data_hash != self.expected_epoch_data_hash
+        ):
+            raise ValidationFailure("Rewards epoch_data_hash mismatch", self.cp)
+
+    def validate_turn(self):
+        is_turn, msg = self.oracle_turn.validate_turn(
+            self.blockchain_info,
+            self.params.oracle_addr,
+            extra_args={
+                "are_tasks_available": self.is_ready,
+                "last_block_when_available": self.last_block_when_available,
+            },
+        )
+        if not is_turn:
+            raise InvalidTurn(
+                "is not oracle %s turn : %s" % (self.params.oracle_addr, msg),
+                self.cp,
+            )
+
+    def validate_signature(self, message, signature):
+        try:
+            signature_bytes = HexBytes(signature)
+            valid = verify_signature(self.params.oracle_addr, message, signature_bytes)
+        except Exception:
+            valid = False
+
+        if not valid:
+            raise InvalidSignature(
+                "oracle %s invalid signature" % self.params.oracle_addr, self.cp
+            )

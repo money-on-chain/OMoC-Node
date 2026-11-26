@@ -9,12 +9,21 @@ from oracle.src.oracle_blockchain_info_loop import OracleBlockchainInfoLoop, Ora
 from oracle.src.oracle_coin_pair_loop import OracleCoinPairLoop
 from oracle.src.oracle_coin_pair_service import OracleCoinPairService
 from oracle.src.oracle_configuration import OracleConfiguration
-from oracle.src.oracle_publish_message import PublishPriceParams, PublishTaskParams
+from oracle.src.oracle_publish_message import (
+    PublishPriceParams,
+    PublishRewardsParams,
+    PublishTaskParams,
+)
 from oracle.src.oracle_service import OracleService
 from oracle.src.oracle_turn import PriceOracleTurn, TasksOracleTurn
 from oracle.src.price_feeder.price_feeder import PriceFeederLoop
-from oracle.src.request_validation import PriceRequestValidation, TaskRequestValidation
+from oracle.src.request_validation import (
+    PriceRequestValidation,
+    RewardsRequestValidation,
+    TaskRequestValidation,
+)
 from oracle.src.coin_pair_runner import CoinPairRunner
+from oracle.src.rewards_runner import RewardsRunner
 from oracle.src.tasks_runner import TasksRunner
 from typing import Union
 
@@ -64,6 +73,9 @@ class OracleLoop(BgTaskExecutor):
                 tasks.extend([pf_loop])
             if cp_service.coin_pair_type == CoinPairServiceType.TASKS_RUNNER:
                 runner = TasksRunner(self.conf, cp_service, bl_loop)
+            if cp_service.coin_pair_type == CoinPairServiceType.REWARDS_PUBLISHER:
+                runner = RewardsRunner(self.conf, cp_service, bl_loop)
+                tasks.extend([runner])
             cp_loop = OracleCoinPairLoop(self.conf, runner, self.bs_loop)
             tasks.extend([bl_loop, cp_loop])
             self.cpMap[cp_key] = OracleLoopTasks(cp_service, tasks,
